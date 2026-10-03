@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio &amp; Control Room</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0e0f12">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="casa-estilo.css">
+<style>
+  body{background:radial-gradient(1200px 600px at 50% -8%, #15171d 0%, transparent 62%), var(--ce-bg);padding:22px 20px 44px;}
+  .wrap{max-width:1040px;margin:0 auto}
+  .head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+  .head h1{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:0}
+  .head .tag{font-size:11px;color:var(--ce-accent);border:1px solid var(--ce-accent);border-radius:20px;padding:2px 9px;font-weight:600}
+  .sub{color:var(--ce-muted);font-size:13px;margin:0 0 16px}
+  .board{border:1px solid var(--ce-line);border-radius:18px;background:#0c0d11;padding:14px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+  svg.plan{display:block;width:100%;height:auto;font-family:-apple-system,"Segoe UI",Roboto,sans-serif}
+  /* zones — dim by default, illuminate on hover */
+  .zone{cursor:pointer}
+  .zone .hit{fill:transparent}
+  .card{fill:var(--ce-card);stroke:var(--ce-line);stroke-width:1;transition:fill .15s,stroke .15s}
+  .zone:hover .card{fill:var(--ce-card-hi);stroke:var(--ce-accent)}
+  .ic{fill:none;stroke:#80848f;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s}
+  .zone:hover .ic{stroke:#ffffff}
+  .t{fill:#a7abb5;font-weight:600;transition:fill .15s}
+  .zone:hover .t{fill:#ffffff}
+  .t.lab{font-size:12px}.t.sm{font-size:10px;font-weight:600}.t.xs{font-size:8.5px;font-weight:600;fill:#8f939d}
+  .region-t{fill:#cfd2d8;transition:fill .15s}.zone:hover .region-t{fill:#fff}
+  .room{fill:#141519;stroke:#26272f;stroke-width:1.5}
+  .roomtag{fill:#8a8a92;font-size:12.5px;font-weight:700;letter-spacing:.14em}
+  .desk{fill:#101116;stroke:#23242b;stroke-width:1}
+  .wall{fill:#1f2027;stroke:#2c2d35;stroke-width:1}
+  .pasillo-t{fill:#7a7c86;font-size:12px;font-weight:700;letter-spacing:.3em}
+  .door{fill:none;stroke:#d8803a;stroke-width:1.6;opacity:.8}
+  .doorlab{fill:#b9803f;font-size:8px;letter-spacing:.04em}
+  /* drawer */
+  .links{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:10}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:min(780px,96vw);background:var(--ce-panel);border-left:1px solid var(--ce-line);transform:translateX(100%);transition:transform .26s cubic-bezier(.4,0,.2,1);z-index:11;overflow-y:auto;box-shadow:-20px 0 50px rgba(0,0,0,.5)}
+  .drawer.on{transform:translateX(0)}
+  .drawer .ph{width:100%;height:380px;object-fit:contain;background:#0a0b0d;display:block;border-bottom:1px solid var(--ce-line)}
+  #d-gallery{background:#0a0b0d;border-bottom:1px solid var(--ce-line)}
+  #d-gallery figure{margin:0}
+  #d-gallery img{display:block;width:100%;height:min(560px,64vh);object-fit:contain;background:#0a0b0d}
+  #d-gallery.multi img{height:min(360px,46vh)}
+  #d-normal.notext .body{display:none}
+  #d-normal.notext #d-gallery{border-bottom:0}
+  #d-normal.notext #d-gallery img{height:min(560px,48vh)}
+  #d-gallery figure+figure img{border-top:1px solid var(--ce-line)}
+  #d-gallery figcaption{font-size:11px;color:var(--ce-muted);text-align:center;padding:5px 12px 11px}
+  .d-hz{position:relative;display:block;cursor:pointer}
+  .d-hz::after{content:'';position:absolute;inset:0;border:3px solid transparent;transition:border-color .15s;pointer-events:none}
+  .d-hz:hover::after{border-color:var(--ce-accent)}
+  .d-tip{position:absolute;left:0;top:0;pointer-events:none;z-index:6;background:rgba(10,11,13,.94);color:#fff;font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid var(--ce-accent);white-space:nowrap;line-height:1;transform:translate(14px,14px);opacity:0;transition:opacity .1s}
+  .d-hz:hover .d-tip{opacity:1}
+  .drawer .body{padding:18px 20px 30px}
+  .drawer h2{margin:0 0 2px;font-size:19px}.drawer .kind{color:var(--ce-accent);font-size:12px;font-weight:600;margin-bottom:16px}
+  .drawer h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ce-muted);margin:18px 0 6px}
+  .drawer p{margin:0;font-size:13.5px;color:#d9d9de;line-height:1.5}
+  .drawer .prod{margin-top:18px;border:1px dashed var(--ce-line);border-radius:10px;padding:14px;color:var(--ce-muted2);font-size:12px;text-align:center}
+  .drawer .prod img{display:none;width:100%;border-radius:8px;background:#fff}
+  .drawer .prod .cap{display:none;font-size:11px;color:var(--ce-muted2);margin-top:8px}
+  .drawer .prod.has{border-style:solid;padding:10px}
+  .drawer .prod.has img,.drawer .prod.has .cap{display:block}.drawer .prod.has .ph{display:none}
+  .d-sitebtn{display:none;margin-top:18px;background:var(--ce-accent);color:var(--ce-on-accent);font-weight:650;font-size:13.5px;text-decoration:none;border-radius:10px;padding:10px 18px}
+  .d-sitebtn.on{display:inline-block}
+  .d-sitebtn:hover{background:var(--ce-accent-hi)}
+  .close{position:absolute;top:12px;right:12px;z-index:2;width:34px;height:34px;border-radius:8px;border:1px solid var(--ce-line);background:rgba(0,0,0,.4);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .close:hover{border-color:var(--ce-accent);color:var(--ce-accent)}
+  /* rack interactive mode — right drawer: rack photo on top, clicked unit's card below */
+  .drawer.rackmode{width:min(780px,96vw);overflow:hidden}
+  #d-rack{display:none}
+  .drawer.rackmode #d-normal{display:none}
+  .drawer.rackmode #d-rack{display:flex;flex-direction:column;height:100%}
+  .rack-hd{padding:9px 16px 5px;flex:none}
+  .rack-hd h2{margin:0;font-size:17px}.rack-hd .kind{color:var(--ce-accent);font-size:11px;font-weight:600}
+  .rack-hd p{margin:4px 0 0;font-size:11.5px;color:var(--ce-muted);line-height:1.35;padding-right:40px}
+  .rackwrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;background:#0a0b0d}
+  .rackscroll{flex:1;min-height:0;overflow:auto;display:flex;align-items:center;justify-content:center;padding:2px}
+  .rackstage{position:relative;display:inline-block;line-height:0;font-size:0}
+  .rackimg{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100vh - 300px)}
+  .rhs{position:absolute;border:2px solid transparent;border-radius:6px;cursor:pointer;transition:border-color .12s,background .12s}
+  .rackwrap.show .rhs{border-color:rgba(255,255,255,.2)}
+  .rhs:hover,.rhs.on{border-color:var(--ce-accent);background:var(--ce-accent-wash)}
+  .racktip{position:absolute;left:0;top:0;pointer-events:none;z-index:6;background:rgba(10,11,13,.94);color:#fff;font-size:12px;font-weight:600;padding:4px 9px;border-radius:6px;border:1px solid var(--ce-accent);white-space:nowrap;line-height:1;transform:translate(14px,14px);opacity:0;transition:opacity .1s}
+  .racktip.on{opacity:1}
+  /* card below the rack — fills on click */
+  .rackcard{flex:none;height:184px;overflow:hidden;box-sizing:border-box;display:flex;gap:16px;align-items:center;padding:16px 18px;background:rgba(16,17,22,.98);border-top:1px solid var(--ce-line)}
+  .rackcard .rc-hint{color:var(--ce-muted2);font-size:13px;margin:auto;text-align:center}
+  .rc-img{width:270px;height:150px;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--ce-line);flex:none}
+  .rc-txt{min-width:0;flex:1}
+  .rc-name{font-size:17px;font-weight:700;color:#fff}
+  .rc-desc{font-size:13px;color:var(--ce-muted);margin-top:4px;line-height:1.45}
+  .rc-btn{display:inline-block;margin-top:9px;background:var(--ce-accent);color:var(--ce-on-accent);font-weight:650;font-size:12.5px;text-decoration:none;border-radius:8px;padding:7px 14px}
+  .rc-btn:hover{background:var(--ce-accent-hi)}
+  /* power wall (breaker board + 2 Datapak) — full screen */
+  .pwr{position:fixed;inset:0;z-index:20;background:#0b0c0f;display:none;flex-direction:column}
+  .pwr.on{display:flex}
+  .pwr-hd{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:12px 18px 8px;border-bottom:1px solid var(--ce-line);flex-wrap:wrap}
+  .pwr-hd h2{margin:0;font-size:18px}.pwr-hd .kind{color:var(--ce-accent);font-size:11.5px;font-weight:600}
+  .pwr-hd p{margin:3px 0 0;font-size:12px;color:var(--ce-muted)}
+  .pwr-btns{display:flex;gap:8px;align-items:center;margin-right:44px}
+  .pwr-btns button{background:#1a1b21;color:#e6e7ea;border:1px solid var(--ce-line);border-radius:8px;padding:7px 12px;font:inherit;font-size:12.5px;cursor:pointer}
+  .pwr-btns button:hover{border-color:var(--ce-accent);color:var(--ce-accent)}
+  .pwr .close{top:12px;right:14px}
+  .pwr-stage,.pwr-photos{flex:1;min-height:0;display:flex;gap:18px;align-items:center;justify-content:center;padding:14px;overflow:auto;background:#8d8f91 linear-gradient(#9a9c9e,#7e8082)}
+  .pw-cab{height:100%;max-height:100%;flex:0 1 auto;display:flex}
+  .pw-board{height:100%;width:auto;max-width:44vw;display:block;filter:drop-shadow(0 10px 20px rgba(0,0,0,.45))}
+  .pw-dps{display:flex;gap:4px;height:88%;align-self:center}
+  .pw-dp{height:100%;width:auto;max-width:25vw;display:block;filter:drop-shadow(0 10px 20px rgba(0,0,0,.45))}
+  .pwr-photos{display:none;background:#0a0b0d}
+  .pwr-photos img{max-height:100%;max-width:48%;object-fit:contain}
+  .pwr.photos .pwr-stage{display:none}.pwr.photos .pwr-photos{display:flex}
+  .din{cursor:pointer}
+  .din .cap{transition:transform .17s cubic-bezier(.34,1.4,.5,1)}
+  .din:not(.on) .cap{transform:translateY(11px)}
+  .din.on .mk-off,.din:not(.on) .mk-on{display:none}
+  .din:hover .din-hit{stroke:var(--ce-accent);stroke-width:2.5}
+  .pw-test{cursor:pointer}.pw-test:hover{filter:brightness(1.15)}
+  .rock{cursor:pointer}.rock .r-top{fill:#25262b}.rock .r-bot{fill:#5d5f66}
+  .rock.on .r-top{fill:#5d5f66}.rock.on .r-bot{fill:#25262b}
+  .rock:hover>rect:first-child{stroke:var(--ce-accent)}
+  .pw-dp .g-led{fill:#12301c}.pw-dp.ready .g-led{fill:#3be07a}
+  .pw-dp .phase{fill:#4a1512;stroke:#111;stroke-width:1}.pw-dp.mains .phase{fill:#ff3b2f;filter:drop-shadow(0 0 4px #ff3b2f)}
+  .pwr-status{display:flex;gap:8px;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--ce-line);background:#101116}
+  .pw-chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--ce-muted);border:1px solid var(--ce-line);border-radius:20px;padding:4px 11px}
+  .pw-chip i{width:9px;height:9px;border-radius:50%;background:#3a3c44}
+  .pw-chip.ok{color:#e9fbe9;border-color:#2f7a45}.pw-chip.ok i{background:#3be07a;box-shadow:0 0 6px #3be07a}
+  .pwr-tip{position:fixed;left:0;top:0;z-index:30;pointer-events:none;max-width:300px;background:rgba(10,11,13,.95);color:#fff;font-size:12px;padding:6px 10px;border-radius:7px;border:1px solid var(--ce-accent);transform:translate(14px,14px);opacity:0;transition:opacity .1s;line-height:1.35}
+  .pwr-tip.on{opacity:1}.pwr-tip b{display:block}.pwr-tip span{color:var(--ce-muted)}
+  @media (max-width:900px){.pwr-stage{flex-direction:column;align-items:center}.pw-cab,.pw-dps{height:auto}.pw-board{width:100%;max-width:100%;height:auto}.pw-dp{max-width:48vw;height:auto}}
+</style>
+</head>
+<body class="ce-base">
+<div class="wrap">
+  <div class="head"><h1>Studio &amp; Control Room</h1><span class="tag">interactive map</span></div>
+  <p class="sub">Tap any item to see what it is, what it's for and a photo.</p>
+
+  <div class="board">
+  <svg class="plan" viewBox="-10 -42 792 812" role="img" aria-label="Studio and control room map">
+    <defs>
+      <pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse">
+        <path d="M26 0H0V26" fill="none" stroke="#1b1c22" stroke-width="1"/>
+      </pattern>
+      <linearGradient id="gcroma" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#17251b"/><stop offset="1" stop-color="#121a15"/>
+      </linearGradient>
+      <linearGradient id="gdeco" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1d1830"/><stop offset="1" stop-color="#171423"/>
+      </linearGradient>
+    </defs>
+
+    <!-- ROOM LABELS -->
+    <text class="roomtag" x="2" y="-20">STUDIO</text>
+    <text class="roomtag" x="431" y="-20">CONTROL ROOM</text>
+
+    <!-- ===================== STUDIO ===================== -->
+    <rect class="room" x="0" y="0" width="420" height="750" rx="16"/>
+    <rect x="0" y="0" width="420" height="750" rx="16" fill="url(#grid)" opacity="0.5"/>
+
+    <!-- CHROMA -->
+    <g class="zone" data-k="croma">
+      <rect class="hit" x="12" y="12" width="396" height="118" rx="12"/>
+      <rect x="12" y="12" width="396" height="118" rx="12" fill="url(#gcroma)" stroke="#2f6a3a" stroke-width="1.5"/>
+      <text class="region-t" x="210" y="66" text-anchor="middle" font-size="18" font-weight="700" letter-spacing=".02em">CHROMA</text>
+      <text class="t xs" x="210" y="86" text-anchor="middle">green cyclorama</text>
+    </g>
+
+    <!-- CAMERAS (3, in an arc) -->
+    <g class="zone" data-k="camaras">
+      <rect class="hit" x="56" y="186" width="256" height="106" rx="12"/>
+      <g transform="translate(85,215)"><rect class="card" x="-15" y="-11" width="30" height="22" rx="4"/>
+        <g class="ic"><rect x="-9" y="-5" width="12" height="10" rx="1.5"/><rect x="-6" y="-8.5" width="6" height="3.5" rx="1"/><path d="M3 -4 l6 -2 v12 l-6 -2 z"/><circle cx="6" cy="0" r="2"/></g></g>
+      <g transform="translate(185,255)"><rect class="card" x="-15" y="-11" width="30" height="22" rx="4"/>
+        <g class="ic"><rect x="-9" y="-5" width="12" height="10" rx="1.5"/><rect x="-6" y="-8.5" width="6" height="3.5" rx="1"/><path d="M3 -4 l6 -2 v12 l-6 -2 z"/><circle cx="6" cy="0" r="2"/></g></g>
+      <g transform="translate(285,215)"><rect class="card" x="-15" y="-11" width="30" height="22" rx="4"/>
+        <g class="ic"><rect x="-9" y="-5" width="12" height="10" rx="1.5"/><rect x="-6" y="-8.5" width="6" height="3.5" rx="1"/><path d="M3 -4 l6 -2 v12 l-6 -2 z"/><circle cx="6" cy="0" r="2"/></g></g>
+      <text class="t sm" x="185" y="288" text-anchor="middle">3 cameras</text>
+    </g>
+
+    <!-- LIGHTING DESK (DMX) -->
+    <g class="zone" data-k="luces">
+      <rect class="hit" x="318" y="268" width="104" height="48" rx="8"/>
+      <rect class="card" x="320" y="270" width="100" height="44" rx="7"/>
+      <g class="ic" transform="translate(332,282)"><line x1="0" y1="2" x2="0" y2="20"/><line x1="7" y1="2" x2="7" y2="20"/><line x1="14" y1="2" x2="14" y2="20"/><circle cx="0" cy="8" r="2"/><circle cx="7" cy="14" r="2"/><circle cx="14" cy="6" r="2"/></g>
+      <text class="t sm" x="378" y="290" text-anchor="middle">Lighting</text>
+      <text class="t sm" x="378" y="303" text-anchor="middle">desk · DMX</text>
+    </g>
+
+    <!-- SET (physical) -->
+    <g class="zone" data-k="decorado">
+      <rect class="hit" x="12" y="588" width="396" height="150" rx="12"/>
+      <rect x="12" y="588" width="396" height="150" rx="12" fill="url(#gdeco)" stroke="#43366b" stroke-width="1.5"/>
+      <text class="region-t" x="210" y="660" text-anchor="middle" font-size="18" font-weight="700" letter-spacing=".02em">SET</text>
+      <text class="t xs" x="210" y="680" text-anchor="middle">physical set · 180° from chroma</text>
+    </g>
+
+    <!-- ===================== CONTROL ROOM ===================== -->
+    <rect class="room" x="429" y="0" width="261" height="320" rx="14"/>
+    <rect x="429" y="0" width="261" height="320" rx="14" fill="url(#grid)" opacity="0.5"/>
+
+    <!-- MONITOR WALL (no label — clearly screens) -->
+    <g class="zone" data-k="pantallas">
+      <rect class="hit" x="440" y="8" width="240" height="26" rx="6"/>
+      <rect class="card" x="440" y="10" width="240" height="22" rx="6"/>
+      <g class="ic" stroke-width="1.3"><rect x="520" y="14" width="24" height="14" rx="1.5"/><rect x="548" y="14" width="24" height="14" rx="1.5"/><rect x="576" y="14" width="24" height="14" rx="1.5"/></g>
+    </g>
+
+    <!-- DESK 1: CCU + vision mixer (+ rack on the right) -->
+    <rect class="desk" x="442" y="40" width="236" height="40" rx="8"/>
+    <g class="zone" data-k="ccu">
+      <rect class="hit" x="448" y="46" width="48" height="28" rx="6"/>
+      <rect class="card" x="448" y="46" width="48" height="28" rx="6"/>
+      <text class="t sm" x="472" y="64" text-anchor="middle">CCU</text>
+    </g>
+    <g class="zone" data-k="mezclador">
+      <rect class="hit" x="502" y="46" width="60" height="28" rx="6"/>
+      <rect class="card" x="502" y="46" width="60" height="28" rx="6"/>
+      <text class="t sm" x="532" y="64" text-anchor="middle">ATEM</text>
+    </g>
+    <g class="zone" data-k="rack">
+      <rect class="hit" x="624" y="44" width="50" height="32" rx="6"/>
+      <rect class="card" x="624" y="44" width="50" height="32" rx="6"/>
+      <g class="ic" stroke-width="1.3"><line x1="632" y1="52" x2="666" y2="52"/><line x1="632" y1="58" x2="666" y2="58"/><line x1="632" y1="64" x2="666" y2="64"/></g>
+      <text class="t xs" x="649" y="73" text-anchor="middle">rack</text>
+    </g>
+
+    <!-- DESK 2: graphics (CG) + teleprompter -->
+    <rect class="desk" x="442" y="112" width="186" height="38" rx="8"/>
+    <g class="zone" data-k="tituladora">
+      <rect class="hit" x="500" y="118" width="34" height="26" rx="5"/>
+      <rect class="card" x="500" y="118" width="34" height="26" rx="5"/>
+      <g class="ic" stroke-width="1.3"><rect x="510" y="124" width="14" height="9" rx="1"/><line x1="517" y1="133" x2="517" y2="137"/><line x1="514" y1="138" x2="520" y2="138"/></g>
+    </g>
+    <g class="zone" data-k="prompter">
+      <rect class="hit" x="560" y="118" width="34" height="26" rx="5"/>
+      <rect class="card" x="560" y="118" width="34" height="26" rx="5"/>
+      <g class="ic" stroke-width="1.3"><rect x="570" y="124" width="14" height="9" rx="1"/><line x1="577" y1="133" x2="577" y2="137"/><line x1="574" y1="138" x2="580" y2="138"/></g>
+    </g>
+    <text class="t xs" x="535" y="162" text-anchor="middle">graphics + teleprompter</text>
+
+    <!-- DESK 3: audio (audio rack · Midas · 2 computers) -->
+    <rect class="desk" x="442" y="181" width="186" height="38" rx="8"/>
+    <g class="zone" data-k="rackaudio">
+      <rect class="hit" x="447" y="187" width="36" height="26" rx="5"/>
+      <rect class="card" x="447" y="187" width="36" height="26" rx="5"/>
+      <g class="ic" stroke-width="1.3"><line x1="456" y1="194" x2="474" y2="194"/><line x1="456" y1="200" x2="474" y2="200"/><line x1="456" y1="206" x2="474" y2="206"/></g>
+    </g>
+    <g class="zone" data-k="audio">
+      <rect class="hit" x="487" y="187" width="42" height="26" rx="5"/>
+      <rect class="card" x="487" y="187" width="42" height="26" rx="5"/>
+      <text class="t sm" x="508" y="203" text-anchor="middle">Midas</text>
+    </g>
+    <g class="zone" data-k="pcaudio1">
+      <rect class="hit" x="533" y="187" width="30" height="26" rx="5"/>
+      <rect class="card" x="533" y="187" width="30" height="26" rx="5"/>
+      <g class="ic" stroke-width="1.2"><rect x="541" y="192" width="14" height="9" rx="1"/><line x1="548" y1="201" x2="548" y2="205"/><line x1="545" y1="206" x2="551" y2="206"/></g>
+    </g>
+    <g class="zone" data-k="pcaudio2">
+      <rect class="hit" x="567" y="187" width="30" height="26" rx="5"/>
+      <rect class="card" x="567" y="187" width="30" height="26" rx="5"/>
+      <g class="ic" stroke-width="1.2"><rect x="575" y="192" width="14" height="9" rx="1"/><line x1="582" y1="201" x2="582" y2="205"/><line x1="579" y1="206" x2="585" y2="206"/></g>
+    </g>
+    <text class="t xs" x="520" y="233" text-anchor="middle">audio desk</text>
+
+    <!-- BREAKER BOARD + DATAPAK (shifted right; gap on the left for an unknown cabinet; clear of the door) -->
+    <g class="zone" data-k="breaker">
+      <rect class="hit" x="476" y="292" width="70" height="24" rx="6"/>
+      <rect class="card" x="476" y="292" width="70" height="24" rx="6"/>
+      <text class="t xs" x="511" y="307" text-anchor="middle">Breaker</text>
+    </g>
+    <g class="zone" data-k="datapak">
+      <rect class="hit" x="550" y="292" width="62" height="24" rx="6"/>
+      <rect class="card" x="550" y="292" width="62" height="24" rx="6"/>
+      <text class="t xs" x="581" y="307" text-anchor="middle">Datapak</text>
+    </g>
+
+    <!-- ===================== WALL + PATCH (two side by side, at the lower patch height) ===================== -->
+    <rect class="wall" x="394" y="212" width="48" height="46" rx="4"/>
+    <g class="zone" data-k="patch_plato">
+      <rect class="hit" x="398" y="216" width="19" height="38" rx="4"/>
+      <rect class="card" x="398" y="216" width="19" height="38" rx="4"/>
+      <g class="ic" stroke-width="1.2"><circle cx="407.5" cy="224" r="1.5"/><circle cx="407.5" cy="231" r="1.5"/><circle cx="407.5" cy="238" r="1.5"/><circle cx="407.5" cy="245" r="1.5"/></g>
+    </g>
+    <g class="zone" data-k="patch_control">
+      <rect class="hit" x="419" y="216" width="19" height="38" rx="4"/>
+      <rect class="card" x="419" y="216" width="19" height="38" rx="4"/>
+      <g class="ic" stroke-width="1.2"><circle cx="428.5" cy="224" r="1.5"/><circle cx="428.5" cy="231" r="1.5"/><circle cx="428.5" cy="238" r="1.5"/><circle cx="428.5" cy="245" r="1.5"/></g>
+    </g>
+    <text class="t xs" x="418" y="208" text-anchor="middle">patch ×2</text>
+
+    <!-- ===================== HALLWAY ===================== -->
+    <rect x="420" y="330" width="350" height="60" rx="10" fill="#17141d" stroke="#2c2836" stroke-width="1.3" stroke-dasharray="4 5"/>
+    <text class="pasillo-t" x="595" y="365" text-anchor="middle">HALLWAY</text>
+    <!-- studio door (right wall of the studio, toward the hallway) — larger swing -->
+    <path class="door" d="M420 340 a44 44 0 0 1 44 44"/>
+    <!-- control-room door (bottom wall, opens INWARD/upward, left-to-right) — smaller swing -->
+    <path class="door" d="M626 320 A25 25 0 0 1 651 295"/>
+  </svg>
+  </div>
+
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer">
+  <button class="close" id="close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  <div id="d-normal">
+    <div id="d-gallery"></div>
+    <div class="body"><h2 id="d-name"></h2><div class="kind" id="d-kind"></div>
+      <h3>What it is</h3><p id="d-what"></p><h3>What it's for</h3><p id="d-use"></p>
+    </div>
+  </div>
+  <div id="d-rack">
+    <div class="rack-hd"><h2>Technical rack</h2><div class="kind">The signal chain</div>
+      <p>Slide over a unit to see it below · click it to open the maker's site.</p></div>
+    <div class="rackwrap show" id="rackwrap">
+      <div class="rackscroll"><div class="rackstage" id="rackstage"><img class="rackimg" src="img/rack-v2.jpg" alt="Technical rack"><div class="racktip" id="racktip"></div></div></div>
+    </div>
+    <div class="rackcard" id="rackcard"><div class="rc-hint">Click a unit on the rack to see its card here.</div></div>
+  </div>
+</aside>
+<div class="pwr" id="pwr">
+  <div class="pwr-hd"><div><h2>Power wall</h2><div class="kind">Breaker board + 2 × Pulsar Datapak III — as on the control-room wall</div>
+    <p>Click a breaker or switch to flip it · <b>T</b> on the RCD trips it · hover for names.</p></div>
+    <div class="pwr-btns"><button id="pw-photo">Real photos</button><button id="pw-alloff">All off</button><button id="pw-allon">All on</button></div></div>
+  <button class="close" id="pw-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  <div class="pwr-stage" id="pwr-stage"></div>
+  <div class="pwr-photos"><img src="img/breaker-board.jpg" alt="Breaker board (photo)"><img src="img/datapak.jpg" alt="Datapak ×2 (photo)"></div>
+  <div class="pwr-status" id="pwr-status"></div>
+  <div class="pwr-tip" id="pwr-tip"></div>
+</div>
+<script src="power.js"></script>
+
+<script>
+const DATA={
+  croma:{name:"Chroma (cyclorama)",kind:"Chroma-key background",notext:true,photos:[{src:"img/plato-croma.jpg",cap:"Green cyclorama"},{src:"img/plato-croma-luces.jpg",cap:"Lighting grid above the chroma"}],what:"A curved green wall wrapping floor and background, lit evenly.",use:"An even green backdrop so the Ultimatte units can replace it with another image in real time."},
+  decorado:{name:"Set (physical)",kind:"Real set",notext:true,photos:[{src:"img/plato-decorado.jpg",cap:"The physical set"},{src:"img/plato-decorado-luces.jpg",cap:"Lighting grid above the set"}],what:"The far end of the studio (180° from the chroma): a news/magazine set with a curved backing and podium.",use:"To shoot with a real set, no chroma. Same cameras and lights, swung round to this side."},
+  camaras:{name:"3 studio cameras",kind:"Blackmagic Studio Camera 6K Pro",ph:"img/producto/studiocamera.jpg",link:"https://www.blackmagicdesign.com/es/products/blackmagicstudiocamera",what:"Three Blackmagic studio cameras on wheeled tripods, in an arc facing the chroma.",use:"They capture the scene; their SDI feeds down to the control room (Ultimatte + mixer). Adjusted from the CCU."},
+  luces:{name:"Lighting desk",kind:"Showtec Showmaster 24 MKII (DMX)",ph:"img/producto/showtec.jpg",link:"https://www.showtec-lights.com/es/50830-showmaster-24-mkii.html",what:"A 24-channel DMX controller; each fader is labelled with its light (chroma panels, back, front, top…).",use:"It sets each light and sends DMX to the dimmers (Datapak) in the control room, which power the lamps."},
+  pantallas:{name:"Monitor wall",kind:"Multiview + PGM",ph:"img/pantallas.jpg",what:"The screens on the wall above the control desks: the multiview and the PROGRAM monitor.",use:"To see every source and what's on air at a glance, and decide the cut."},
+  ccu:{name:"Camera control (CCU)",kind:"Blackmagic ATEM Camera Control Panel",ph:"img/producto/ccu.jpg",link:"https://www.blackmagicdesign.com/products/atemcameracontrolpanel",what:"A 4-channel camera control panel: one set of controls per camera (RGB balance, iris, gain, master black).",use:"To adjust the cameras from the control room and, above all, match them in colour and exposure so cuts don't jump."},
+  mezclador:{name:"Vision mixer",kind:"ATEM 1 M/E Advanced Panel 10",ph:"img/producto/atem-panel.jpg",link:"https://www.blackmagicdesign.com/products/atemconstellation/advancedpanel",what:"The control surface for the switcher (the switcher itself, an ATEM 2 M/E Constellation, is in the rack): PROGRAM/PREVIEW buses, T-bar, CUT and AUTO.",use:"To choose which camera goes to air, cut or mix, and add titles and chroma (KEY/DSK). It's the heart of the gallery."},
+  rack:{name:"Technical rack",kind:"The signal chain",ph:"img/rack-v2.jpg",prod:"img/producto/constellation.jpg",what:"On the desk to the right: 3 Ultimatte 12 HD + switch, Ultimatte Smart Remote 4, HyperDeck Studio HD Pro, Smart Videohub 20×20, ATEM 2 M/E Constellation HD.",use:"The Ultimatte units take the 3 cameras over SDI and do the chroma; the Constellation mixes; the HyperDeck records; the Videohub routes."},
+  tituladora:{name:"Graphics (CG)",kind:"Computer",ph:"img/control-2-top.jpg",what:"One of the two computers on the middle desk. (Exact use to be confirmed.)",use:"To generate the titles and graphics overlaid on screen."},
+  prompter:{name:"Teleprompter",kind:"Computer",ph:"img/control-2-top.jpg",what:"The other computer on the middle desk. (Exact use to be confirmed.)",use:"To scroll the text the presenter reads, reflected in front of the lens."},
+  rackaudio:{name:"Audio rack",kind:"Sound processing & connection",ph:"img/rack-audio.jpg",what:"The rack next to the audio desk.",use:"It houses the audio electronics: preamps, converters, distribution and interconnection of the programme sound."},
+  audio:{name:"Audio desk",kind:"Midas M32R",ph:"img/producto/midas.jpg",link:"https://www.midasconsoles.com/en/products/0603-AEP",what:"A Midas M32R digital desk (16 faders) with its audio rack alongside.",use:"To mix the mics and sound sources of the programme (EQ, dynamics, sends, talkback)."},
+  pcaudio1:{name:"Computer (audio desk)",kind:"Use to be confirmed",ph:"img/control-3.jpg",what:"One of the two computers to the right of the Midas. Alex will confirm its use.",use:"— (pending)"},
+  pcaudio2:{name:"Computer (audio desk)",kind:"Use to be confirmed",ph:"img/control-3.jpg",what:"The other computer to the right of the Midas. Alex will confirm its use.",use:"— (pending)"},
+  breaker:{name:"Breaker board",kind:"Power",ph:"img/breaker-board.jpg",what:"The cabinet next to the hallway, the one closest to the studio. Labels: RCD, dimmers, LED.",use:"To switch the studio and control-room power on and off, with protection (RCD/breakers)."},
+  datapak:{name:"Datapak (dimmers)",kind:"Pulsar Datapak III ×2",ph:"img/datapak.jpg",link:"https://theatrecrafts.com/bhc/equipment/pulsar-datapak",what:"Two dimmer blocks (12 channels × 10 A), to the right of the breaker board.",use:"They take the DMX from the lighting desk and set the power sent to each light."},
+  patch_plato:{name:"Patch panel — studio side",kind:"Studio ↔ control link",ph:"img/patch-plato2.jpg",what:"The patch panel on the STUDIO side of the shared wall. It sits right next to the control-room one.",use:"To bring the studio signals out tidily (camera SDI, audio…) toward the control room via patch leads."},
+  patch_control:{name:"Patch panel — control side",kind:"Studio ↔ control link",ph:"img/patch-control2.jpg",what:"The twin panel, on the CONTROL ROOM side, next to the studio one on the same wall.",use:"To receive and distribute the signals coming from the studio in the control room, re-configurable."}
+};
+// --- Interactive rack: devices top→bottom (y/h = % of the photo height) ---
+const RACK=[
+  {name:"Ultimatte 12 HD (×2)",prod:"img/producto/ultimatte.jpg",link:"https://www.blackmagicdesign.com/products/ultimatte",desc:"Real-time chroma key — one per camera.",y:4,h:9,x:8,w:44},
+  {name:"Longshine LCS-GS8116",prod:"img/producto/switch.jpg",link:"https://www.longshine.de/products/networking/16-port-1g-switch-fanless-rackmountable-rackmount/",desc:"16-port unmanaged Gigabit Ethernet switch — the rack's network backbone.",y:4,h:7,x:53,w:39},
+  {name:"Ultimatte Smart Remote 4",prod:"img/producto/smart-remote.jpg",link:"https://www.blackmagicdesign.com/products/ultimatte",desc:"Touch remote to set up the Ultimatte units.",y:17,h:13,x:8,w:84},
+  {name:"Caymon PSR119GS — power distribution",prod:"img/producto/caymon.png",link:"https://caymon.eu/products/d/psr119gs---19inch-power-distribution-unit---9-x-german-sockets-plus-rear-switch",desc:"The rack's switched power strip (9× sockets).",y:35,h:8.5,x:8,w:84},
+  {name:"HyperDeck Studio HD Pro",prod:"img/producto/hyperdeck.jpg",link:"https://www.blackmagicdesign.com/products/hyperdeckstudio",desc:"Records the programme to cards / SSD.",y:43.7,h:4,x:8,w:84},
+  {name:"Smart Videohub 20×20",prod:"img/producto/videohub.jpg",link:"https://www.blackmagicdesign.com/es/products/blackmagicvideohub",desc:"SDI matrix: routes any source to any destination.",y:47.9,h:3.9,x:8,w:84},
+  {name:"ATEM 2 M/E Constellation HD",prod:"img/producto/constellation.jpg",link:"https://www.blackmagicdesign.com/es/products/atemconstellation",desc:"The actual vision mixer (driven by the ATEM panel).",y:52,h:4.5,x:8,w:84},
+  {name:"NewTek TriCaster TCXD450 — unused",prod:"img/producto/tricaster.jpg",link:"https://downloads.newtek.com/LiveProductionSystems/Legacy/850/TCXD.pdf",desc:"All-in-one switcher/streaming unit. Currently not in use. (Link = manual, discontinued.)",y:76,h:7.5,x:8,w:84},
+  {name:"Lapara Rack 1000VA — UPS (SAI)",prod:"img/producto/lapara.jpg",link:"https://lapara.es/sais/sai-online/sai-rack-1000-va-online-lcd-lapara",desc:"Uninterruptible power supply: keeps the rack running through a mains cut.",y:85,h:8,x:8,w:84}
+];
+const rackStage=document.getElementById('rackstage'),racktip=document.getElementById('racktip');
+function buildRack(){
+  if(rackStage.dataset.built)return; rackStage.dataset.built="1";
+  RACK.forEach(d=>{const z=document.createElement(d.link?'a':'div');z.className='rhs';
+    z.style.cssText=`left:${d.x}%;top:${d.y}%;width:${d.w}%;height:${d.h}%;cursor:${d.link?'pointer':'default'}`;
+    if(d.link){z.href=d.link;z.target='_blank';z.rel='noopener';}
+    z.addEventListener('mouseenter',()=>{showDev(d,z);racktip.textContent=d.name;racktip.classList.add('on');});
+    z.addEventListener('mousemove',e=>{const r=rackStage.getBoundingClientRect();racktip.style.left=(e.clientX-r.left)+'px';racktip.style.top=(e.clientY-r.top)+'px';});
+    z.addEventListener('mouseleave',()=>racktip.classList.remove('on'));
+    rackStage.appendChild(z);});
+}
+function escAttr(s){return String(s).replace(/"/g,'&quot;');}
+function showDev(d,z){
+  if(z){document.querySelectorAll('.rhs.on').forEach(e=>e.classList.remove('on'));z.classList.add('on');}
+  document.getElementById('rackcard').innerHTML=`${d.prod?`<img class="rc-img" src="${d.prod}" alt="${escAttr(d.name)}">`:''}`+
+    `<div class="rc-txt"><div class="rc-name">${d.name}</div><div class="rc-desc">${d.desc}</div></div>`;
+}
+function resetCard(){document.getElementById('rackcard').innerHTML='<div class="rc-hint">Slide over a unit to see it here · click it to open the maker\'s site.</div>';}
+const drawer=document.getElementById('drawer'),scrim=document.getElementById('scrim');
+function open(k){
+  if(k==='breaker'||k==='datapak'){openPower();return;}
+  if(k==='rack'){buildRack();resetCard();document.querySelectorAll('.rhs.on').forEach(e=>e.classList.remove('on'));drawer.classList.add('rackmode','on');scrim.classList.add('on');return;}
+  const d=DATA[k];if(!d)return;drawer.classList.remove('rackmode');
+  const gal=document.getElementById('d-gallery');gal.innerHTML='';
+  const photos=d.photos||(d.ph?[{src:d.ph}]:[]);const single=photos.length===1;gal.classList.toggle('multi',!single);
+  photos.forEach(p=>{const f=document.createElement('figure');
+    if(d.link&&single){const a=document.createElement('a');a.className='d-hz';a.href=d.link;a.target='_blank';a.rel='noopener';
+      const im=document.createElement('img');im.src=p.src;im.alt=d.name;a.appendChild(im);
+      const tip=document.createElement('div');tip.className='d-tip';tip.textContent=d.name;a.appendChild(tip);
+      a.addEventListener('mousemove',e=>{const r=a.getBoundingClientRect();tip.style.left=(e.clientX-r.left)+'px';tip.style.top=(e.clientY-r.top)+'px';});
+      f.appendChild(a);
+    }else{const im=document.createElement('img');im.src=p.src;im.alt=p.cap||d.name;f.appendChild(im);}
+    if(p.cap){const c=document.createElement('figcaption');c.textContent=p.cap;f.appendChild(c);}
+    gal.appendChild(f);});
+  document.getElementById('d-name').textContent=d.name;document.getElementById('d-kind').textContent=d.kind;document.getElementById('d-what').textContent=d.what;document.getElementById('d-use').textContent=d.use;
+  document.getElementById('d-normal').classList.toggle('notext',!!d.notext);
+  drawer.classList.add('on');scrim.classList.add('on');}
+function close(){drawer.classList.remove('on');scrim.classList.remove('on');setTimeout(()=>drawer.classList.remove('rackmode'),260);}
+document.querySelectorAll('.zone').forEach(z=>z.addEventListener('click',()=>open(z.dataset.k)));
+document.getElementById('close').addEventListener('click',close);scrim.addEventListener('click',close);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){close();closePower();}});
+</script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>
