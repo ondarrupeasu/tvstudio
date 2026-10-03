@@ -43,7 +43,8 @@ const FX=[
   {id:'cdc',name:'Backlight right (chroma) — on the cyc tray',int:5,temp:6,zone:'c',bar:'tray',at:[259,22],type:'fresnel',lock:'tray'},
   {id:'fiz',name:'Front left (chroma)',int:7,temp:8,zone:'c',bar:'cM5',at:[0,330],type:'fresnel'},
   {id:'fdc',name:'Front right (chroma)',int:9,temp:10,zone:'c',bar:'cM7',at:[0,330],type:'fresnel'},
-  {id:'pfr',name:'Front panels (chroma)',int:12,temp:11,zone:'c',bar:'cM6',at:[0,350],type:'panel'},
+  {id:'pfr',name:'Front panel left (chroma)',int:12,temp:11,zone:'c',bar:'cH4',at:[150,0],type:'panel'},
+  {id:'pfr2',name:'Front panel right (chroma)',int:12,temp:11,zone:'c',bar:'cH4',at:[270,0],type:'panel'},
   {id:'s13',name:'Top light left',int:13,zone:'s',bar:'sH2',at:[290,0],type:'fresnel'},
   {id:'s14',name:'Top panels',int:14,zone:'s',bar:'sM1',at:[0,700],type:'panel'},
   {id:'s15',name:'Top light right',int:15,zone:'s',bar:'sH2',at:[130,0],type:'fresnel'},
@@ -168,8 +169,8 @@ const TIP={
   mode:'MODE SELECT: cycles CHASE/SCENES → DOUBLE PRESET → 1-24 SINGLE PRESET. Below: REC SPEED (programming).',
   page:'PAGE: chooses memory page 1-4 (LEDs under DELETE). With SHIFT/RECORD: REC/CLEAR.',
   addkill:'ADD/KILL: Add (LED off) = flashes add up; Kill (LED on) = a flash cuts the other scenes. With SHIFT/RECORD: REC/EXIT.',
-  record:'RECORD: enters record mode (with a code) and records steps. Held = SHIFT for the functions printed below other buttons.',
-  insert:'INSERT: inserts a step in Edit mode. SHIFT/RECORD + INSERT = % OR 255: display in percent or DMX value (0-255).',
+  record:'RECORD: enters record mode (with a code) and records steps. Held = SHIFT for the functions printed below other buttons. Here: click it once to latch SHIFT (LED on), then click the other button — or hold the R key.',
+  insert:'INSERT: inserts a step in Edit mode. SHIFT/RECORD + INSERT = % OR 255: display in percent or DMX value (0-255). Here: click RECORD, then INSERT — or keys R + I.',
   down:'DOWN: lowers the level in Edit mode. Below: BEAT REV — reverses programs on the standard beat.',
   up:'UP: raises the level in Edit mode. Below: CHASE REV — reverses all programs on the SPEED fader.',
   del:'DELETE: deletes the current step in Edit mode. Below: REV ONE — reverses one program.',
@@ -286,14 +287,19 @@ function press(id,down){
   if(id==='full'){D.full=down;return render();}
   if(id==='dark'){D.dark=down;return render();}
   if(id==='btnA'){D.btnA=down;return render();}
-  if(id==='record'){D.shift=down;return render();}
+  if(id==='record'){if(down&&D.power){D.shift=!D.shift;D.shiftKey=false;}return render();}
   if(!down||!D.power)return;
   if(id==='bo')D.bo=!D.bo;
   else if(id==='mode')D.mode=MODES[(MODES.indexOf(D.mode)+1)%3];
   else if(id==='page'&&!D.shift)D.page=D.page%4+1;
   else if(id==='addkill'&&!D.shift)D.kill=!D.kill;
   else if(id==='insert'&&D.shift)D.pct=!D.pct;
+  if(D.shift&&!D.shiftKey)D.shift=false;
   render();}
+/* keyboard: hold R = SHIFT (RECORD), I = INSERT — so SHIFT + INSERT (% or 255) works without two mouse buttons */
+addEventListener('keydown',e=>{if(!root.classList.contains('on')||e.metaKey||e.ctrlKey||e.altKey||e.repeat)return;const k=e.key.toLowerCase();
+  if(k==='r'&&D.power){D.shift=D.shiftKey=true;render();}else if(k==='i')press('insert',true);});
+addEventListener('keyup',e=>{if(e.key.toLowerCase()==='r'&&D.shiftKey){D.shift=D.shiftKey=false;render();}});
 function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('dsk-front').innerHTML=deskSvg();document.getElementById('dsk-back').innerHTML=rearSvg();
   document.getElementById('dsk-mini').innerHTML=miniStudio();const ms=document.querySelector('.dk-studio');
