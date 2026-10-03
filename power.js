@@ -42,8 +42,8 @@ const MG={stripe:'#ec8a2c'};  // Merlin Gerin multi 9 (orange band)
 const TOP=[  // top row, in DIN modules (1 module = PW) — measured on img/breaker-board.jpg
   {gap:4},
   {id:'rcd',tag:'Diferencial',tagc:'#ff4fa3',name:'RCD — Merlin Gerin C60N 4P C40 + Vigi',tip:'Residual-current protection (diferencial). Feeds the rest of the board. T = test (trips it).',parts:[mcb(4,{...MG,rating:'C40'}),vigi()]},
-  {id:'dp',tag:'DATAPAK',tagc:'#ff4fa3',name:'Datapak supply — Hager 4P',tip:'Three-phase supply to the two Datapak dimmer packs → physical-set lights (desk faders 13-24).',parts:[mcb(4,{body:'#dfe2e3',edge:'#a9adb0',hi:'#eef0f1',bar:'#3b73c4'})]},
-  {id:'dim',tag:'Dimmers',tagc:'#ff4fa3',name:'Dimmers — Legrand 4P',tip:'Breaker labelled "Dimmers" — what it feeds is still to be confirmed.',parts:[mcb(4,{body:'#cfd2d5',edge:'#9a9ea3',hi:'#e2e4e6'})]},
+  {id:'dp',tag:'DATAPAK',tagc:'#ff4fa3',name:'Datapak supply — Hager 4P',tip:'Three-phase supply to Datapak 1 (left). What its 12 channels feed is still unknown — the desk does not drive it.',parts:[mcb(4,{body:'#dfe2e3',edge:'#a9adb0',hi:'#eef0f1',bar:'#3b73c4'})]},
+  {id:'dim',tag:'Dimmers',tagc:'#ff4fa3',name:'Dimmers — Legrand 4P',tip:'Three-phase supply to Datapak 2 (right): the dimmers of the physical-set lights (desk faders 13-24). Working assumption.',parts:[mcb(4,{body:'#cfd2d5',edge:'#9a9ea3',hi:'#e2e4e6'})]},
   {id:'led',tag:'LED',tagc:'#efe3a2',name:'LED — CHINT 1P+N C16',tip:'Constant power for the LED fixtures → chroma lights (desk faders 1-12, controlled over DMX).',parts:[mcb(2,{body:'#f3f4f2',edge:'#a8aaa6',hi:'#fbfbfa',cap:'#2f6fd6',capStroke:'#1b4ea8',hole:'#1b3f86',rating:'C16'})]},
   {gap:2}
 ];
@@ -85,7 +85,7 @@ function board(){const W=RAILW+2*BX,H=900;let s=`<svg class="pw-board" viewBox="
 
 /* ---------- Datapak SVG (Pulsar Datapak III, 12 × 10 A) ---------- */
 function chan(n,x,y,dir){ // dir: 'h' = LEDs-fuse-label left→right, 'hr' mirrored, 'v' = top row (stacked)
-  const g=(cx,cy)=>`<circle class="g-led" cx="${cx}" cy="${cy}" r="4.6"/>`,r=(cx,cy)=>`<circle cx="${cx}" cy="${cy}" r="4.6" fill="#3b1513"/>`,
+  const g=(cx,cy)=>`<circle class="g-led" data-ch="${n}" cx="${cx}" cy="${cy}" r="4.6"/>`,r=(cx,cy)=>`<circle cx="${cx}" cy="${cy}" r="4.6" fill="#3b1513"/>`,
     f=(cx,cy)=>`<circle cx="${cx}" cy="${cy}" r="9" fill="#141416" stroke="#5e6066" stroke-width="1.4"/><line x1="${cx-5}" y1="${cy}" x2="${cx+5}" y2="${cy}" stroke="#5e6066" stroke-width="1.6"/>`,
     lab=(lx,ly,w,h)=>`<rect x="${lx}" y="${ly}" width="${w}" height="${h}" rx="1" fill="#d9d9d6"/>`,
     num=(nx,ny)=>`<text x="${nx}" y="${ny}" text-anchor="middle" font-size="11" font-weight="700" fill="#e6e6e6">${n}</text>`;
@@ -114,15 +114,22 @@ function datapak(u){let s=`<svg class="pw-dp" data-u="${u}" viewBox="0 0 400 470
 
 /* ---------- logic ---------- */
 const root=document.getElementById('pwr'),stage=document.getElementById('pwr-stage'),tip=document.getElementById('pwr-tip'),stat=document.getElementById('pwr-status');
-const mains=()=>state.rcd&&state.dp;
+const mains=u=>state.rcd&&state[u==1?'dim':'dp'];
+/* Datapak 2 takes the desk's DMX 13-24 (output monitor LEDs follow the level); Datapak 1 gets no DMX */
+function leds(){const out=window.DESK_OUT||[];
+  root.querySelectorAll('.pw-dp').forEach(sv=>{const u=+sv.dataset.u,rdy=mains(u)&&state['dpE'+u];
+    sv.querySelectorAll('.g-led').forEach(c=>{const v=rdy&&u==1?(out[11+ +c.dataset.ch]||0):0;
+      c.style.fill=v>0.02?'#3be07a':'';c.style.opacity=v>0.02?(0.35+0.65*v).toFixed(2):'';});});}
+document.addEventListener('desk-change',leds);
 function render(){
   root.querySelectorAll('[data-id]').forEach(e=>e.classList.toggle('on',!!state[e.dataset.id]));
-  root.querySelectorAll('.pw-dp').forEach(sv=>{const u=sv.dataset.u;sv.classList.toggle('mains',mains());sv.classList.toggle('ready',mains()&&state['dpE'+u]);});
+  root.querySelectorAll('.pw-dp').forEach(sv=>{const u=sv.dataset.u;sv.classList.toggle('mains',mains(u));sv.classList.toggle('ready',mains(u)&&state['dpE'+u]);});leds();
   root.querySelector('[data-id="rcd"] .led')?.setAttribute('fill',state.rcd?'#191a1f':'#e5372a');
   const it=(ok,t)=>`<span class="pw-chip ${ok?'ok':''}"><i></i>${t}</span>`;
-  stat.innerHTML=it(state.rcd,'RCD (diferencial)')+it(mains(),'Datapak mains · ψ1-ψ3')+it(mains()&&state.dpE0,'Datapak 1 electronics')+it(mains()&&state.dpE1,'Datapak 2 electronics')+it(mains()&&(state.dpE0||state.dpE1),'Set lighting · Datapak')+it(state.rcd&&state.led,'Chroma lighting · LED')+it(state.rcd&&state.dim,'“Dimmers” circuit');}
+  stat.innerHTML=it(state.rcd,'RCD (diferencial)')+it(mains(0)&&state.dpE0,'Datapak 1 · “Datapak” (use unknown)')+it(mains(1)&&state.dpE1,'Datapak 2 · “Dimmers” → set lighting')+it(state.rcd&&state.led,'Chroma lighting · LED');
+  document.dispatchEvent(new Event('power-change'));}
 function build(){if(stage.dataset.built)return;stage.dataset.built='1';
-  stage.innerHTML=`<div class="pw-cab">${board()}</div><div class="pw-dps">${datapak(0)}${datapak(1)}</div>`;
+  stage.innerHTML=`<div class="pw-cab">${board()}</div><div class="pw-dps"><figure>${datapak(0)}<figcaption>Datapak 1 · “Datapak” breaker · use unknown</figcaption></figure><figure>${datapak(1)}<figcaption>Datapak 2 · “Dimmers” breaker · set lights (faders 13-24)</figcaption></figure></div>`;
   stage.addEventListener('click',e=>{const t=e.target.closest('[data-act="test"]');
     if(t){if(state.rcd){state.rcd=false;render();}return;}
     const m=e.target.closest('[data-id]');if(!m)return;state[m.dataset.id]=!state[m.dataset.id];render();});
@@ -136,7 +143,9 @@ function setAll(v){['rcd','dp','dim','led','dpE0','dpE1'].forEach(k=>state[k]=v)
 document.getElementById('pw-allon').addEventListener('click',()=>setAll(true));
 document.getElementById('pw-alloff').addEventListener('click',()=>setAll(false));
 document.getElementById('pw-photo').addEventListener('click',e=>{const on=root.classList.toggle('photos');e.currentTarget.textContent=on?'Recreation':'Real photos';});
+document.getElementById('pw-desk').addEventListener('click',()=>{window.closePower();window.openDesk();});
 document.getElementById('pw-close').addEventListener('click',()=>window.closePower());
+window.PWR=state;
 window.openPower=()=>{build();root.classList.add('on');};
 window.closePower=()=>{root.classList.remove('on');tip.classList.remove('on');};
 })();

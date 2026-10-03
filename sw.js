@@ -1,11 +1,12 @@
 /* TV Studio service worker — basic offline cache.
    Bump CACHE when assets change to force an update. */
-const CACHE = 'tvstudio-v2';
+const CACHE = 'tvstudio-v4';
 const ASSETS = [
   './',
   './index.html',
   './casa-estilo.css',
   './power.js',
+  './desk.js',
   './manifest.webmanifest',
   './icon.svg',
   './img/rack-v2.jpg',
