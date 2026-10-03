@@ -60,10 +60,12 @@ const ends=b=>{const [A,B]=anchors(b);if(!b.m)return [A,B];const u=unit(A,B),ea=
 function proj(b,p){const [A,B]=ends(b),dx=B[0]-A[0],dy=B[1]-A[1];return Math.min(.97,Math.max(.03,((p[0]-A[0])*dx+(p[1]-A[1])*dy)/(dx*dx+dy*dy)));}
 const ptOn=(b,t)=>{const [A,B]=ends(b);return [A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t];};
 const pos=f=>{const [A,B]=ends(BAR[f.bar]);return [A[0]+(B[0]-A[0])*f.t,A[1]+(B[1]-A[1])*f.t];};
+/* default rig = how Alex placed it to match the real studio (4-oct, "Copy positions") */
+const DEFAULT_LAYOUT={"bars":{"cM1":[0,0,10,26.5],"cM2":[0,0,10,28.3],"cM5":[0,27,44.4,23.5],"cM6":[15.8,-11.2,30.4,10],"cM7":[14.5,0,38.5,10],"sM2":[29.2,29.2,10,10],"sM3":[19.9,0.5,10,10],"sM4":[11.2,-9.8,30.5,10]},"fx":{"pch1":["trayL",0.59],"pch2":["trayL",0.059],"pch3":["trayB",0.142],"pch4":["trayB",0.417],"pch5":["trayB",0.593],"pch6":["trayB",0.879],"pch7":["trayR",0.03],"pch8":["trayR",0.59],"ciz":["trayB",0.26],"cdc":["trayB",0.715],"fiz":["cM5",0.152],"fdc":["cM6",0.215],"pfr":["cM4",0.532],"pfr2":["cM7",0.281],"s13":["sH2",0.242],"s14":["sG1",0.727],"s14b":["sG1",0.485],"s14c":["sG1",0.242],"s15":["sH2",0.731],"s16":["sH1",0.246],"s17":["sH1",0.5],"s18":["sH1",0.768],"s19":["sM3",0.287],"s20":["sM4",0.368],"s21":["sM3",0.705],"s22":["sM4",0.756],"s23":["sG2",0.461],"s24":["sG1",0.97]},"v":4};
 function defaults(){BARS.forEach(b=>{b.oa=b.ob=0;b.ea=b.eb=EXT0;});
   FX.forEach(f=>{const b=BAR[f.bar=f.bar0||f.bar];f.bar0=f.bar;const [A,B]=ends(b);
     const p=f.at[0]===0?[A[0]+(B[0]-A[0])*((f.at[1]-A[1])/(B[1]-A[1])),f.at[1]]:f.at[1]===0?[f.at[0],A[1]+(B[1]-A[1])*((f.at[0]-A[0])/(B[0]-A[0]))]:f.at;
-    f.t=proj(b,p);});}
+    f.t=proj(b,p);});load(DEFAULT_LAYOUT);}
 /* range of each end along the slide axis: the extent of the rail that end rides on */
 function endRange(b,end){const k=b.m==='x'?0:1,P=end==='a'?b.a:b.b,o=1-k;
   const r=b.ride.map(id=>BAR[id]).sort((r1,r2)=>Math.abs((r1.a[o]+r1.b[o])/2-P[o])-Math.abs((r2.a[o]+r2.b[o])/2-P[o]))[0];
