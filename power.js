@@ -143,7 +143,6 @@ function setAll(v){['rcd','dp','dim','led','dpE0','dpE1'].forEach(k=>state[k]=v)
 document.getElementById('pw-allon').addEventListener('click',()=>setAll(true));
 document.getElementById('pw-alloff').addEventListener('click',()=>setAll(false));
 document.getElementById('pw-photo').addEventListener('click',e=>{const on=root.classList.toggle('photos');e.currentTarget.textContent=on?'Recreation':'Real photos';});
-document.getElementById('pw-desk').addEventListener('click',()=>{window.closePower();window.openDesk();});
 document.getElementById('pw-close').addEventListener('click',()=>window.closePower());
 window.PWR=state;
 window.openPower=()=>{build();root.classList.add('on');};

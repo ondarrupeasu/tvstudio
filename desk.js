@@ -339,7 +339,6 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     tip.innerHTML=`<b>${m.dataset.name}</b>${tipTxt?`<span>${tipTxt}</span>`:''}`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});
   root.addEventListener('mouseleave',()=>{tip.classList.remove('on');hl([],[]);});
   document.getElementById('dk-arrows').addEventListener('click',e=>{const on=svg.classList.toggle('noarrows');e.currentTarget.textContent=on?'Show teacher\'s arrows':'Hide teacher\'s arrows';});
-  document.getElementById('dk-power').addEventListener('click',()=>window.openPower());
   document.getElementById('dk-close').addEventListener('click',()=>window.closeDesk());
   document.getElementById('dk-reset').addEventListener('click',()=>window.RIG.reset());
   document.getElementById('dk-copy').addEventListener('click',e=>{window.RIG.copy();const b=e.currentTarget;b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy positions',1600);});

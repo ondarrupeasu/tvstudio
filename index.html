@@ -195,6 +195,11 @@
     #d-empty svg{color:var(--ce-accent);margin-bottom:12px}#d-empty h2{color:#e9e9ec;font-size:18px;margin:0 0 6px}#d-empty p{margin:0;font-size:13.5px}
     svg.plan{max-height:calc(100vh - 170px)}
   }
+  /* one switch button for both simulators: fixed at the top centre, same size and place in both views */
+  .swbtn{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:30;display:none;align-items:center;justify-content:center;gap:8px;width:170px;height:36px;
+    background:var(--ce-accent);color:var(--ce-on-accent);border:0;border-radius:10px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+  .swbtn.on{display:inline-flex}.swbtn:hover{background:var(--ce-accent-hi)}
+  @media (max-width:900px){.swbtn{top:auto;bottom:14px}}
 </style>
 </head>
 <body class="ce-base">
@@ -408,7 +413,7 @@
 <div class="pwr" id="pwr">
   <div class="pwr-hd"><div><h2>Power wall</h2><div class="kind">Breaker board + 2 × Pulsar Datapak III — as on the control-room wall</div>
     <p>Click a breaker or switch to flip it · <b>T</b> on the RCD trips it · hover for names.</p></div>
-    <div class="pwr-btns"><button id="pw-desk">Lighting desk</button><button id="pw-photo">Real photos</button><button id="pw-alloff">All off</button><button id="pw-allon">All on</button></div></div>
+    <div class="pwr-btns"><button id="pw-photo">Real photos</button><button id="pw-alloff">All off</button><button id="pw-allon">All on</button></div></div>
   <button class="close" id="pw-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   <div class="pwr-stage" id="pwr-stage"></div>
   <div class="pwr-photos"><img src="img/breaker-board.jpg" alt="Breaker board (photo)"><img src="img/datapak.jpg" alt="Datapak ×2 (photo)"></div>
@@ -419,13 +424,20 @@
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
-    <div class="pwr-btns"><button id="dk-reset">Reset light positions</button><button id="dk-copy">Copy positions</button><button id="dk-arrows">Hide teacher's arrows</button><button id="dk-power">Power wall</button></div></div>
+    <div class="pwr-btns"><button id="dk-reset">Reset light positions</button><button id="dk-copy">Copy positions</button><button id="dk-arrows">Hide teacher's arrows</button></div></div>
   <button class="close" id="dk-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   <div class="dsk-body"><div class="dsk-mini" id="dsk-mini"></div><div class="dsk-main"><div id="dsk-back"></div><div id="dsk-front"></div></div></div>
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
 <script src="desk.js"></script>
+<button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
+<script>
+(function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
+  const sync=()=>{const p=pw.classList.contains('on'),d=dk.classList.contains('on');b.classList.toggle('on',p||d);b.querySelector('span').textContent=p?'Lighting desk':'Power wall';};
+  new MutationObserver(sync).observe(pw,{attributes:true,attributeFilter:['class']});new MutationObserver(sync).observe(dk,{attributes:true,attributeFilter:['class']});
+  b.addEventListener('click',()=>{if(pw.classList.contains('on')){closePower();openDesk();}else{closeDesk();openPower();}});})();
+</script>
 
 <script>
 const DATA={
