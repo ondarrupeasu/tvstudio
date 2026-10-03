@@ -246,7 +246,6 @@ function rearSvg(){const tip=(n,t,inner)=>`<g data-name="${n}" data-tip="${t}">$
   return s+'</svg>';}
 
 function miniStudio(){return `<svg class="dk-studio" viewBox="-6 -24 432 784" role="img" aria-label="Studio lights"><rect x="0" y="0" width="420" height="750" rx="16" fill="#141519" stroke="#26272f" stroke-width="1.5"/>
-  ${[[85,215],[185,255],[285,215]].map(([x,y])=>`<rect x="${x-12}" y="${y-8}" width="24" height="16" rx="3" fill="#1c1d23" stroke="#3a3c44"/>`).join('')}
   <text x="2" y="-8" class="ms-h">STUDIO · lights</text></svg>`;}
 /* ---------- render ---------- */
 const root=document.getElementById('dsk'),tip=document.getElementById('dsk-tip');
