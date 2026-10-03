@@ -23,24 +23,16 @@ const BARS=[
   ['sM1','s',[450,289],[447,442],'x',['sH1','sH2']],
   ['sM2','s',[367,648],[370,877],'x',['sH3','sH4']],['sM3','s',[408,648],[408,877],'x',['sH3','sH4']],['sM4','s',[632,645],[562,877],'x',['sH3','sH4']]
 ].map(([id,z,a,b,m,ride])=>{const M=z==='c'?MAPC:MAPS;return {id,z,a:M(a),b:M(b),grey:m==='grey',m:m==='grey'?null:m,ride};});
-BARS.push({id:'tray',z:'c',a:[40,22],b:[380,22],tray:true});   // fixed cyc-light tray along the chroma wall
-/* the 8 LED cyc panels on the tray ("PANELES CHROMA", faders 1-2): one per side wall, one per curve, four on the back wall */
-const CYC=[[20,92],[29,31],[137,22],[186,22],[234,22],[283,22],[391,31],[400,92]];
-/* the tray follows the cyclorama: side wall, curve, back wall, curve, side wall — sampled as a polyline (t = 0..1 along it) */
-const TRAY=(()=>{const P=[],q=(a,c,b,n)=>{for(let i=1;i<=n;i++){const t=i/n,u=1-t;P.push([u*u*a[0]+2*u*t*c[0]+t*t*b[0],u*u*a[1]+2*u*t*c[1]+t*t*b[1]]);}};
-  P.push([20,118],[20,58]);q([20,58],[20,22],[56,22],12);P.push([364,22]);q([364,22],[400,22],[400,58],12);P.push([400,118]);
-  const L=[0];for(let i=1;i<P.length;i++)L.push(L[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));return {P,L,len:L[L.length-1]};})();
-function trayAt(t){const d=Math.min(1,Math.max(0,t))*TRAY.len,{P,L}=TRAY;let i=1;while(i<L.length-1&&L[i]<d)i++;
-  const k=(d-L[i-1])/((L[i]-L[i-1])||1),A=P[i-1],B=P[i];return {p:[A[0]+(B[0]-A[0])*k,A[1]+(B[1]-A[1])*k],ang:Math.atan2(B[1]-A[1],B[0]-A[0])*180/Math.PI};}
-function trayProj(p){const {P,L}=TRAY;let best=null;for(let i=1;i<P.length;i++){const A=P[i-1],B=P[i],dx=B[0]-A[0],dy=B[1]-A[1],l2=dx*dx+dy*dy||1;
-  const k=Math.min(1,Math.max(0,((p[0]-A[0])*dx+(p[1]-A[1])*dy)/l2)),q=[A[0]+dx*k,A[1]+dy*k],d=Math.hypot(q[0]-p[0],q[1]-p[1]);
-  if(!best||d<best.d)best={d,t:(L[i-1]+Math.sqrt(l2)*k)/TRAY.len};}return Math.min(.99,Math.max(.01,best.t));}
+/* cyc lights: three straight fixed grey bars set back from the cyclorama (left side, back wall, right side) */
+BARS.push({id:'trayL',z:'c',a:[48,64],b:[48,128],tray:true,grey:true},{id:'trayB',z:'c',a:[64,50],b:[356,50],tray:true,grey:true},{id:'trayR',z:'c',a:[372,64],b:[372,128],tray:true,grey:true});
+/* the 8 LED cyc panels ("PANELES CHROMA", faders 1-2): one per side, one per corner, four on the back wall */
+const CYC=[['trayL',[48,96]],['trayB',[78,50]],['trayB',[130,50]],['trayB',[185,50]],['trayB',[240,50]],['trayB',[295,50]],['trayB',[342,50]],['trayR',[372,96]]];
 const BAR=Object.fromEntries(BARS.map(b=>[b.id,b]));
 /* fixtures: channel(s) from the desk tape; default bar + approximate spot (projected onto the bar) */
 const FX=[
-  ...CYC.map((c,i)=>({id:'pch'+(i+1),name:`Chroma cyc panel ${i+1}/8 — LED, on the cyc tray`,int:2,temp:1,zone:'c',bar:'tray',at:c,type:'cyc',lock:'tray'})),
-  {id:'ciz',name:'Backlight left (chroma) — on the cyc tray',int:3,temp:4,zone:'c',bar:'tray',at:[161,22],type:'fresnel',lock:'tray'},
-  {id:'cdc',name:'Backlight right (chroma) — on the cyc tray',int:5,temp:6,zone:'c',bar:'tray',at:[259,22],type:'fresnel',lock:'tray'},
+  ...CYC.map(([bar,at],i)=>({id:'pch'+(i+1),name:`Chroma cyc panel ${i+1}/8 — LED, on the cyc-light bars`,int:2,temp:1,zone:'c',bar,at,type:'cyc',lock:'tray'})),
+  {id:'ciz',name:'Backlight left (chroma) — on the cyc-light bar',int:3,temp:4,zone:'c',bar:'trayB',at:[157,50],type:'fresnel',lock:'tray'},
+  {id:'cdc',name:'Backlight right (chroma) — on the cyc-light bar',int:5,temp:6,zone:'c',bar:'trayB',at:[267,50],type:'fresnel',lock:'tray'},
   {id:'fiz',name:'Front left (chroma)',int:7,temp:8,zone:'c',bar:'cM5',at:[0,330],type:'fresnel'},
   {id:'fdc',name:'Front right (chroma)',int:9,temp:10,zone:'c',bar:'cM7',at:[0,330],type:'fresnel'},
   {id:'pfr',name:'Front panel left (chroma)',int:12,temp:11,zone:'c',bar:'cH4',at:[150,0],type:'panel'},
@@ -59,9 +51,9 @@ const FX=[
   {id:'s24',name:'Panel (marked *)',int:24,zone:'s',bar:'sH3',at:[60,0],type:'panel'}
 ];
 const ends=b=>{const v=o=>b.m==='x'?[o,0]:b.m==='y'?[0,o]:[0,0],da=v(b.oa||0),db=v(b.ob||0);return [[b.a[0]+da[0],b.a[1]+da[1]],[b.b[0]+db[0],b.b[1]+db[1]]];};
-function proj(b,p){if(b.tray)return trayProj(p);const [A,B]=ends(b),dx=B[0]-A[0],dy=B[1]-A[1];return Math.min(.97,Math.max(.03,((p[0]-A[0])*dx+(p[1]-A[1])*dy)/(dx*dx+dy*dy)));}
-const ptOn=(b,t)=>{if(b.tray)return trayAt(t).p;const [A,B]=ends(b);return [A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t];};
-const pos=f=>{if(f.bar==='tray')return trayAt(f.t).p;const [A,B]=ends(BAR[f.bar]);return [A[0]+(B[0]-A[0])*f.t,A[1]+(B[1]-A[1])*f.t];};
+function proj(b,p){const [A,B]=ends(b),dx=B[0]-A[0],dy=B[1]-A[1];return Math.min(.97,Math.max(.03,((p[0]-A[0])*dx+(p[1]-A[1])*dy)/(dx*dx+dy*dy)));}
+const ptOn=(b,t)=>{const [A,B]=ends(b);return [A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t];};
+const pos=f=>{const [A,B]=ends(BAR[f.bar]);return [A[0]+(B[0]-A[0])*f.t,A[1]+(B[1]-A[1])*f.t];};
 function defaults(){BARS.forEach(b=>b.oa=b.ob=0);
   FX.forEach(f=>{const b=BAR[f.bar=f.bar0||f.bar];f.bar0=f.bar;const [A,B]=ends(b);
     const p=f.at[0]===0?[A[0]+(B[0]-A[0])*((f.at[1]-A[1])/(B[1]-A[1])),f.at[1]]:f.at[1]===0?[f.at[0],A[1]+(B[1]-A[1])*((f.at[0]-A[0])/(B[0]-A[0]))]:f.at;
@@ -72,9 +64,9 @@ function endRange(b,end){const k=b.m==='x'?0:1,P=end==='a'?b.a:b.b,o=1-k;
   return [Math.min(r.a[k],r.b[k])+3-P[k],Math.max(r.a[k],r.b[k])-3-P[k]];}
 const LKEY='tvs-layout';
 function save(){try{localStorage.setItem(LKEY,JSON.stringify(layout()));}catch(e){}}
-function layout(){return {bars:Object.fromEntries(BARS.filter(b=>b.m&&(b.oa||b.ob)).map(b=>[b.id,[+b.oa.toFixed(1),+b.ob.toFixed(1)]])),fx:Object.fromEntries(FX.map(f=>[f.id,[f.bar,+f.t.toFixed(3)]])),v:2};}
+function layout(){return {bars:Object.fromEntries(BARS.filter(b=>b.m&&(b.oa||b.ob)).map(b=>[b.id,[+b.oa.toFixed(1),+b.ob.toFixed(1)]])),fx:Object.fromEntries(FX.map(f=>[f.id,[f.bar,+f.t.toFixed(3)]])),v:3};}
 function load(L){if(!L)return;Object.entries(L.bars||{}).forEach(([id,o])=>{if(BAR[id]){const [x,y]=Array.isArray(o)?o:[o,o];BAR[id].oa=x;BAR[id].ob=y;}});
-  Object.entries(L.fx||{}).forEach(([id,[bar,t]])=>{const f=FX.find(x=>x.id===id);if(f&&BAR[bar]&&(!f.lock||(f.lock===bar&&L.v===2))){f.bar=bar;f.t=t;}});}
+  Object.entries(L.fx||{}).forEach(([id,[bar,t]])=>{const f=FX.find(x=>x.id===id);if(f&&BAR[bar]&&(!f.lock||(BAR[bar].tray&&L.v===3))){f.bar=bar;f.t=t;}});}
 defaults();try{load(JSON.parse(localStorage.getItem(LKEY)));}catch(e){}
 
 const mix=(a,b,t)=>{const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const A=p(a),B=p(b);
@@ -86,12 +78,11 @@ function fxLayer(svg,mini){
   g.innerHTML=`<defs><filter id="${fid}" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="7"/></filter></defs><path class="fx-wash" data-wash="c" d="M12 130 V58 Q12 14 56 14 H364 Q408 14 408 58 V130 Z"/><g class="rig"></g><g class="fxs"></g>`;
   svg.appendChild(g);LAYERS.push({g,mini,fid});drawRig();}
 function drawRig(){LAYERS.forEach(({g,mini,fid})=>{
-  g.querySelector('.rig').innerHTML=BARS.filter(b=>!b.tray).map(b=>{const [A,B]=ends(b);const l=`x1="${A[0].toFixed(1)}" y1="${A[1].toFixed(1)}" x2="${B[0].toFixed(1)}" y2="${B[1].toFixed(1)}"`;
+  g.querySelector('.rig').innerHTML=BARS.map(b=>{const [A,B]=ends(b);const l=`x1="${A[0].toFixed(1)}" y1="${A[1].toFixed(1)}" x2="${B[0].toFixed(1)}" y2="${B[1].toFixed(1)}"`;
     return b.m?`<g class="bar mov" data-bar="${b.id}" data-name="Movable bar" data-tip="Drag the middle to slide it along its two rails · drag an end to angle it."><line class="bar-l" ${l}/><line class="bar-hit" ${l}></line>${[['a',A],['b',B]].map(([k,P])=>`<g class="bar-h" data-end="${k}"><circle class="bar-e" cx="${P[0]}" cy="${P[1]}" r="4.2"/><circle class="bar-eh" cx="${P[0]}" cy="${P[1]}" r="10"></circle></g>`).join('')}</g>`
-      :`<line class="bar ${b.grey?'grey':'fix'}" ${l} data-name="${b.grey?'Fixed grey pipe':'Fixed rail'}" data-tip="Fixed to the ceiling. Lights can hang from it."></line>`;}).join('')+
-    `<path class="bar tray" d="M20 118 V58 Q20 22 56 22 H364 Q400 22 400 58 V118" fill="none" data-name="Cyc-light tray" data-tip="Fixed tray along the chroma wall: 8 LED cyc panels + the two chroma backlights."></path>`;
+      :`<line class="bar ${b.grey?'grey':'fix'}" ${l} data-name="${b.tray?'Cyc-light bar (fixed)':b.grey?'Fixed grey pipe':'Fixed rail'}" data-tip="${b.tray?'Fixed grey bar set back from the cyclorama: the 8 LED cyc panels + the two chroma backlights hang here.':'Fixed to the ceiling. Lights can hang from it.'}"></line>`;}).join('');
   g.querySelector('.fxs').innerHTML=FX.map(f=>{const [x,y]=pos(f);let core;
-    if(f.type==='cyc'){const a=trayAt(f.t).ang;core=`<rect class="fx-core" x="${x-9}" y="${y-3.5}" width="18" height="7" rx="1.5" transform="rotate(${a.toFixed(1)} ${x} ${y})"/>`;}
+    if(f.type==='cyc'){const [A,B]=ends(BAR[f.bar]),a=Math.atan2(B[1]-A[1],B[0]-A[0])*180/Math.PI;core=`<rect class="fx-core" x="${x-9}" y="${y-3.5}" width="18" height="7" rx="1.5" transform="rotate(${a.toFixed(1)} ${x} ${y})"/>`;}
     else if(f.type==='panel')core=`<rect class="fx-core" x="${x-9}" y="${y-5}" width="18" height="10" rx="2"/>`;
     else core=`<circle class="fx-core" cx="${x}" cy="${y}" r="${f.type==='big'?8:6}"/>`;
     const glow=f.type==='cyc'?`<circle class="fx-glow" filter="url(#${fid})" cx="${x}" cy="${y}" r="20"/>`:`<circle class="fx-glow" filter="url(#${fid})" cx="${x}" cy="${y}" r="${f.type==='big'?34:26}"/>`;
@@ -106,7 +97,7 @@ function initRigDrag(svg,always){
     const p0=pt(e);let moved=false;try{svg.setPointerCapture(e.pointerId);}catch(_){}
     const f=fg&&FX.find(x=>x.id===fg.dataset.fx),b=bg&&BAR[bg.dataset.bar],end=bg&&e.target.closest('.bar-h')?.dataset.end,oa0=b?b.oa:0,ob0=b?b.ob:0;
     const mv=ev=>{const p=pt(ev);if(Math.hypot(p[0]-p0[0],p[1]-p0[1])>3)moved=true;if(!moved)return;
-      if(f&&!f.fixed){let best=null;BARS.filter(x=>f.lock?x.id===f.lock:!x.tray).forEach(x=>{const t=proj(x,p),q=ptOn(x,t),d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(!best||d<best.d)best={x,t,d};});
+      if(f&&!f.fixed){let best=null;BARS.filter(x=>f.lock?x.tray:!x.tray).forEach(x=>{const t=proj(x,p),q=ptOn(x,t),d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(!best||d<best.d)best={x,t,d};});
         f.bar=best.x.id;f.t=best.t;}
       if(b){const k=b.m==='x'?0:1,d=p[k]-p0[k],[la,ha]=endRange(b,'a'),[lb,hb]=endRange(b,'b'),cl=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
         if(end==='a')b.oa=cl(oa0+d,la,ha);else if(end==='b')b.ob=cl(ob0+d,lb,hb);
@@ -318,12 +309,12 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     root.querySelectorAll('.strip-hl.on,.fx.hl').forEach(x=>x.classList.remove('on','hl'));
     chs.forEach(c=>root.querySelector(`.strip-hl[data-ch="${c}"]`)?.classList.add('on'));
     fxs.forEach(id=>root.querySelectorAll(`.fx[data-fx="${id}"]`).forEach(x=>x.classList.add('hl')));};
-  const barName=id=>{const b=BAR[id];return b.tray?'the cyc-light tray (fixed)':b.m?'a movable bar':b.grey?'a fixed grey pipe':'a fixed rail';};
+  const barName=id=>{const b=BAR[id];return b.tray?'a fixed cyc-light bar':b.m?'a movable bar':b.grey?'a fixed grey pipe':'a fixed rail';};
   root.addEventListener('mousemove',e=>{const m=e.target.closest('[data-name]');if(!m||!root.contains(m)){tip.classList.remove('on');hl([],[]);return;}
     let tipTxt=m.dataset.tip||'';
     if(m.matches('.fx')){const f=FX.find(x=>x.id===m.dataset.fx),pct=v=>Math.round(v*100)+' %';
       tipTxt=`Fader ${f.int} = intensity (now ${pct(out[f.int-1])})`+(f.temp?` · fader ${f.temp} = colour temperature`:'')+
-        `<br>${f.zone==='c'?'LED · powered by the “LED” breaker':'Dimmed by Datapak 2 · “Dimmers” breaker'} · hangs on ${barName(f.bar)}`+(f.fixed?'':f.lock?' — drag to slide it along the tray':' — drag to move it');
+        `<br>${f.zone==='c'?'LED · powered by the “LED” breaker':'Dimmed by Datapak 2 · “Dimmers” breaker'} · hangs on ${barName(f.bar)}`+(f.fixed?'':f.lock?' — drag to slide it along the cyc-light bars':' — drag to move it');
       hl([f.int,f.temp].filter(Boolean),[f.id]);}
     else{const id=m.dataset.f||m.dataset.b||'',ch=/^c\d+$/.test(id)?+id.slice(1)+1:/^fl\d+$/.test(id)?+id.slice(2)+1:0;
       if(ch){const fx=FX.filter(f=>f.int===ch||f.temp===ch);hl([ch],fx.map(f=>f.id));
