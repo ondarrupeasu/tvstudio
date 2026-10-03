@@ -30,8 +30,8 @@ const BAR=Object.fromEntries(BARS.map(b=>[b.id,b]));
 /* fixtures: channel(s) from the desk tape; default bar + approximate spot (projected onto the bar) */
 const FX=[
   {id:'pch',name:'Chroma panels — 8 LED cyc lights on the fixed tray',int:2,temp:1,zone:'c',bar:'tray',at:[210,24],type:'cyc',fixed:true},
-  {id:'ciz',name:'Backlight left (chroma)',int:3,temp:4,zone:'c',bar:'cM1',at:[0,95],type:'panel'},
-  {id:'cdc',name:'Backlight right (chroma)',int:5,temp:6,zone:'c',bar:'cM2',at:[0,95],type:'panel'},
+  {id:'ciz',name:'Backlight left (chroma) — on the cyc tray',int:3,temp:4,zone:'c',bar:'tray',at:[161,0],type:'fresnel',lock:'tray'},
+  {id:'cdc',name:'Backlight right (chroma) — on the cyc tray',int:5,temp:6,zone:'c',bar:'tray',at:[259,0],type:'fresnel',lock:'tray'},
   {id:'fiz',name:'Front left (chroma)',int:7,temp:8,zone:'c',bar:'cM5',at:[0,330],type:'fresnel'},
   {id:'fdc',name:'Front right (chroma)',int:9,temp:10,zone:'c',bar:'cM7',at:[0,330],type:'fresnel'},
   {id:'pfr',name:'Front panels (chroma)',int:12,temp:11,zone:'c',bar:'cM6',at:[0,350],type:'panel'},
@@ -63,7 +63,7 @@ const LKEY='tvs-layout';
 function save(){try{localStorage.setItem(LKEY,JSON.stringify(layout()));}catch(e){}}
 function layout(){return {bars:Object.fromEntries(BARS.filter(b=>b.m&&(b.oa||b.ob)).map(b=>[b.id,[+b.oa.toFixed(1),+b.ob.toFixed(1)]])),fx:Object.fromEntries(FX.map(f=>[f.id,[f.bar,+f.t.toFixed(3)]]))};}
 function load(L){if(!L)return;Object.entries(L.bars||{}).forEach(([id,o])=>{if(BAR[id]){const [x,y]=Array.isArray(o)?o:[o,o];BAR[id].oa=x;BAR[id].ob=y;}});
-  Object.entries(L.fx||{}).forEach(([id,[bar,t]])=>{const f=FX.find(x=>x.id===id);if(f&&BAR[bar]){f.bar=bar;f.t=t;}});}
+  Object.entries(L.fx||{}).forEach(([id,[bar,t]])=>{const f=FX.find(x=>x.id===id);if(f&&BAR[bar]&&(!f.lock||f.lock===bar)){f.bar=bar;f.t=t;}});}
 defaults();try{load(JSON.parse(localStorage.getItem(LKEY)));}catch(e){}
 
 const mix=(a,b,t)=>{const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const A=p(a),B=p(b);
@@ -95,7 +95,7 @@ function initRigDrag(svg,always){
     const p0=pt(e);let moved=false;try{svg.setPointerCapture(e.pointerId);}catch(_){}
     const f=fg&&FX.find(x=>x.id===fg.dataset.fx),b=bg&&BAR[bg.dataset.bar],end=bg&&e.target.closest('.bar-h')?.dataset.end,oa0=b?b.oa:0,ob0=b?b.ob:0;
     const mv=ev=>{const p=pt(ev);if(Math.hypot(p[0]-p0[0],p[1]-p0[1])>3)moved=true;if(!moved)return;
-      if(f&&!f.fixed){let best=null;BARS.filter(x=>!x.tray).forEach(x=>{const t=proj(x,p),[A,B]=ends(x),q=[A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t],d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(!best||d<best.d)best={x,t,d};});
+      if(f&&!f.fixed){let best=null;BARS.filter(x=>f.lock?x.id===f.lock:!x.tray).forEach(x=>{const t=proj(x,p),[A,B]=ends(x),q=[A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t],d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(!best||d<best.d)best={x,t,d};});
         f.bar=best.x.id;f.t=best.t;}
       if(b){const k=b.m==='x'?0:1,d=p[k]-p0[k],[la,ha]=endRange(b,'a'),[lb,hb]=endRange(b,'b'),cl=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
         if(end==='a')b.oa=cl(oa0+d,la,ha);else if(end==='b')b.ob=cl(ob0+d,lb,hb);
