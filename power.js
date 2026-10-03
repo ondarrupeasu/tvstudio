@@ -35,18 +35,16 @@ function vigi(){const W=4*PW;let s=`<rect x=".5" y=".5" width="${W-1}" height="$
   return {w:W,svg:s};}
 
 /* ---------- model ---------- */
-// Studio lighting is split in two zones (chroma / set): one fed through the Datapaks, the other through the
-// "Dimmers" breaker. Which is which is still to be confirmed (Alex) — set DP_ZONE to 'chroma' or 'set'.
-const DP_ZONE='chroma';  // deduced 3-oct: chroma lights → DMX desk → Datapak (DMX dimmers). Confirm with Alex.
-const ZN={chroma:'Chroma lighting',set:'Set lighting'};
-const dpZone=DP_ZONE?ZN[DP_ZONE]:'Studio lighting — Datapak side',dimZone=DP_ZONE?ZN[DP_ZONE==='chroma'?'set':'chroma']:'Studio lighting — “Dimmers” side';
+// Studio lighting (from the labels on the Showtec desk, 3-oct): top row 1-12 = CHROMA, LED fixtures with
+// INTENSITY + colour TEMP channels (LEDs take constant power → the "LED" breaker); bottom row 13-24 = PHYSICAL SET,
+// one intensity channel per lamp (fresnels, a 2 kW front…) → dimmed by the Datapaks. "Dimmers" breaker: still unknown.
 const MG={stripe:'#ec8a2c'};  // Merlin Gerin multi 9 (orange band)
 const TOP=[  // top row, in DIN modules (1 module = PW) — measured on img/breaker-board.jpg
   {gap:4},
   {id:'rcd',tag:'Diferencial',tagc:'#ff4fa3',name:'RCD — Merlin Gerin C60N 4P C40 + Vigi',tip:'Residual-current protection (diferencial). Feeds the rest of the board. T = test (trips it).',parts:[mcb(4,{...MG,rating:'C40'}),vigi()]},
-  {id:'dp',tag:'DATAPAK',tagc:'#ff4fa3',name:'Datapak supply — Hager 4P',tip:'Three-phase supply to the two Datapak dimmer packs'+(DP_ZONE?` → ${dpZone.toLowerCase()}.`:' → one half of the studio lights.'),parts:[mcb(4,{body:'#dfe2e3',edge:'#a9adb0',hi:'#eef0f1',bar:'#3b73c4'})]},
-  {id:'dim',tag:'Dimmers',tagc:'#ff4fa3',name:'Dimmers — Legrand 4P',tip:'Feeds the other half of the studio lights'+(DP_ZONE?` → ${dimZone.toLowerCase()}.`:' (not through the Datapaks).'),parts:[mcb(4,{body:'#cfd2d5',edge:'#9a9ea3',hi:'#e2e4e6'})]},
-  {id:'led',tag:'LED',tagc:'#efe3a2',name:'LED — CHINT 1P+N C16',tip:'Breaker labelled "LED".',parts:[mcb(2,{body:'#f3f4f2',edge:'#a8aaa6',hi:'#fbfbfa',cap:'#2f6fd6',capStroke:'#1b4ea8',hole:'#1b3f86',rating:'C16'})]},
+  {id:'dp',tag:'DATAPAK',tagc:'#ff4fa3',name:'Datapak supply — Hager 4P',tip:'Three-phase supply to the two Datapak dimmer packs → physical-set lights (desk faders 13-24).',parts:[mcb(4,{body:'#dfe2e3',edge:'#a9adb0',hi:'#eef0f1',bar:'#3b73c4'})]},
+  {id:'dim',tag:'Dimmers',tagc:'#ff4fa3',name:'Dimmers — Legrand 4P',tip:'Breaker labelled "Dimmers" — what it feeds is still to be confirmed.',parts:[mcb(4,{body:'#cfd2d5',edge:'#9a9ea3',hi:'#e2e4e6'})]},
+  {id:'led',tag:'LED',tagc:'#efe3a2',name:'LED — CHINT 1P+N C16',tip:'Constant power for the LED fixtures → chroma lights (desk faders 1-12, controlled over DMX).',parts:[mcb(2,{body:'#f3f4f2',edge:'#a8aaa6',hi:'#fbfbfa',cap:'#2f6fd6',capStroke:'#1b4ea8',hole:'#1b3f86',rating:'C16'})]},
   {gap:2}
 ];
 const ROWS=2,PER=12;   // two rows of 12 Merlin Gerin K60N 2P C10
@@ -122,7 +120,7 @@ function render(){
   root.querySelectorAll('.pw-dp').forEach(sv=>{const u=sv.dataset.u;sv.classList.toggle('mains',mains());sv.classList.toggle('ready',mains()&&state['dpE'+u]);});
   root.querySelector('[data-id="rcd"] .led')?.setAttribute('fill',state.rcd?'#191a1f':'#e5372a');
   const it=(ok,t)=>`<span class="pw-chip ${ok?'ok':''}"><i></i>${t}</span>`;
-  stat.innerHTML=it(state.rcd,'RCD (diferencial)')+it(mains(),'Datapak mains · ψ1-ψ3')+it(mains()&&state.dpE0,'Datapak 1 electronics')+it(mains()&&state.dpE1,'Datapak 2 electronics')+it(mains()&&(state.dpE0||state.dpE1),dpZone)+it(state.rcd&&state.dim,dimZone)+it(state.rcd&&state.led,'“LED” circuit');}
+  stat.innerHTML=it(state.rcd,'RCD (diferencial)')+it(mains(),'Datapak mains · ψ1-ψ3')+it(mains()&&state.dpE0,'Datapak 1 electronics')+it(mains()&&state.dpE1,'Datapak 2 electronics')+it(mains()&&(state.dpE0||state.dpE1),'Set lighting · Datapak')+it(state.rcd&&state.led,'Chroma lighting · LED')+it(state.rcd&&state.dim,'“Dimmers” circuit');}
 function build(){if(stage.dataset.built)return;stage.dataset.built='1';
   stage.innerHTML=`<div class="pw-cab">${board()}</div><div class="pw-dps">${datapak(0)}${datapak(1)}</div>`;
   stage.addEventListener('click',e=>{const t=e.target.closest('[data-act="test"]');
