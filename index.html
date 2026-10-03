@@ -170,27 +170,15 @@
   .fx-wash{pointer-events:none;opacity:0}.fx-wash[data-wash="c"]{fill:#3ddc6a}.fx-wash[data-wash="s"]{fill:#ffcf8a}
   @media (max-width:900px){.dsk-body{flex-direction:column}.dsk-mini{height:320px;align-self:center}.dsk-main{overflow-x:auto;align-items:flex-start;justify-content:flex-start}#dsk-back,#dsk-front{min-width:760px}.dk-svg{max-height:none}}
   /* light-simulation mode */
-  .simbtn{margin-left:auto;display:inline-flex;align-items:center;gap:8px;background:#16171c;color:#e6e7ea;border:1px solid var(--ce-line);border-radius:20px;padding:6px 14px;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}
-  .simbtn i{width:9px;height:9px;border-radius:50%;background:#3a3c44}
-  .simbtn:hover{border-color:var(--ce-accent)}
-  body.sim .simbtn{border-color:var(--ce-accent);color:#fff;background:var(--ce-accent-wash)}body.sim .simbtn i{background:var(--ce-accent);box-shadow:0 0 6px var(--ce-accent)}
-  .simbar{display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:-6px 0 12px;padding:9px 12px;border:1px solid var(--ce-accent);border-radius:12px;background:var(--ce-accent-wash);font-size:12.5px;color:#e9e9ec}
-  .simbar span{flex:1;min-width:220px}
-  .simbar button,.d-simbtn{background:var(--ce-accent);color:var(--ce-on-accent);border:0;border-radius:8px;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}
-  .simbar button:hover,.d-simbtn:hover{background:var(--ce-accent-hi)}
-  body.sim .simbar{display:flex}
-  .d-simbtn{display:none;margin-top:18px}.d-simbtn.on{display:inline-block}
-  .plan .fx-layer{display:none}body.sim .plan .fx-layer{display:inline}
-  .simbar button.ghost{background:transparent;color:#e9e9ec;border:1px solid var(--ce-line)}.simbar button.ghost:hover{border-color:var(--ce-accent);background:transparent}
+  .d-simbtn{display:none;margin-top:18px;background:var(--ce-accent);color:var(--ce-on-accent);border:0;border-radius:10px;padding:10px 18px;font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
+  .d-simbtn.on{display:inline-block}.d-simbtn:hover{background:var(--ce-accent-hi)}
   .rig .bar.fix,.rig .bar.tray{stroke:#5a5d66;stroke-width:2.4;stroke-linecap:round}
   .rig .bar.grey{stroke:#9a9ca3;stroke-opacity:.45;stroke-width:7;stroke-linecap:round}
   .rig .bar-l{stroke:#d08b45;stroke-width:3;stroke-linecap:round}.rig .bar-e{fill:#d08b45}
   .rig .bar-eh{fill:transparent;cursor:move}.fx-layer:not(.mini) .rig .bar-e{stroke:#fff;stroke-width:1.2}.rig .bar-h:hover .bar-e{fill:#ffb26b;r:5.5}
   .rig .bar-hit{stroke:transparent;stroke-width:14;cursor:grab}
   .rig .bar.mov:hover .bar-l{stroke:#ffb26b}
-  body.sim .plan .fx:not(.fixed) .fx-core{cursor:grab}
-  .fx-layer.mini .rig{opacity:.85}.dk-studio{touch-action:none}.dk-studio .fx:not(.fixed) .fx-core{cursor:grab}
-  body.sim .plan .zone[data-k="luces"] .card,body.sim .plan .zone[data-k="breaker"] .card,body.sim .plan .zone[data-k="datapak"] .card{stroke:var(--ce-accent)}
+  .fx-layer.mini .rig{opacity:.9}.dk-studio{touch-action:none}.dk-studio .fx:not(.fixed) .fx-core{cursor:grab}
   /* wide screens: map docked on the left, card panel always on the right (no overlay on the map) */
   #d-empty{display:none}
   @media (min-width:1100px){
@@ -201,15 +189,14 @@
     .drawer:not(.on) #d-normal,.drawer:not(.on) #d-rack,.drawer:not(.on) .close{display:none!important}
     .drawer:not(.on) #d-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;color:var(--ce-muted);padding:0 40px}
     #d-empty svg{color:var(--ce-accent);margin-bottom:12px}#d-empty h2{color:#e9e9ec;font-size:18px;margin:0 0 6px}#d-empty p{margin:0;font-size:13.5px}
-    svg.plan{max-height:calc(100vh - 170px)}body.sim svg.plan{max-height:calc(100vh - 240px)}
+    svg.plan{max-height:calc(100vh - 170px)}
   }
 </style>
 </head>
 <body class="ce-base">
 <div class="wrap">
-  <div class="head"><h1>Studio &amp; Control Room</h1><span class="tag">interactive map</span><button class="simbtn" id="simbtn" aria-pressed="false"><i></i>Light simulation</button></div>
-  <p class="sub" id="sub">Tap any item to see what it is, what it's for and a photo.</p>
-  <div class="simbar" id="simbar"><span>Power the board, switch the desk on at the back and raise the faders — the lights on the map follow.</span><button id="sb-desk">Lighting desk</button><button id="sb-power">Power wall</button><button id="sb-reset" class="ghost">Reset light positions</button><button id="sb-copy" class="ghost">Copy positions</button></div>
+  <div class="head"><h1>Studio &amp; Control Room</h1><span class="tag">interactive map</span></div>
+  <p class="sub">Tap any item to see what it is, what it's for and a photo. The lighting desk and the breaker board open a simulator.</p>
 
   <div class="board">
   <svg class="plan" viewBox="-10 -42 792 812" role="img" aria-label="Studio and control room map">
@@ -402,7 +389,7 @@
     <div id="d-gallery"></div>
     <div class="body"><h2 id="d-name"></h2><div class="kind" id="d-kind"></div>
       <h3>What it is</h3><p id="d-what"></p><h3>What it's for</h3><p id="d-use"></p>
-      <button class="d-simbtn" id="d-simbtn">▶ Try it in the light simulation</button>
+      <button class="d-simbtn" id="d-simbtn">▶ Open the light simulator</button>
     </div>
   </div>
   <div id="d-rack">
@@ -427,8 +414,8 @@
 <script src="power.js"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
-    <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does.</p></div>
-    <div class="pwr-btns"><button id="dk-arrows">Hide teacher's arrows</button><button id="dk-power">Power wall</button></div></div>
+    <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
+    <div class="pwr-btns"><button id="dk-reset">Reset light positions</button><button id="dk-copy">Copy positions</button><button id="dk-arrows">Hide teacher's arrows</button><button id="dk-power">Power wall</button></div></div>
   <button class="close" id="dk-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   <div class="dsk-body"><div class="dsk-mini" id="dsk-mini"></div><div class="dsk-main"><div id="dsk-back"></div><div id="dsk-front"></div></div></div>
   <div class="pwr-status" id="dsk-diag"></div>
@@ -491,7 +478,6 @@ const drawer=document.getElementById('drawer'),scrim=document.getElementById('sc
 function open(k){
   document.querySelectorAll('.zone.sel').forEach(z=>z.classList.remove('sel'));document.querySelector(`.zone[data-k="${k}"]`)?.classList.add('sel');
   if(k==='breaker'||k==='datapak'){openPower();return;}
-  if(k==='luces'&&document.body.classList.contains('sim')){openDesk();return;}
   if(k==='rack'){buildRack();resetCard();document.querySelectorAll('.rhs.on').forEach(e=>e.classList.remove('on'));drawer.classList.add('rackmode','on');scrim.classList.add('on');return;}
   const d=DATA[k];if(!d)return;drawer.classList.remove('rackmode');
   const gal=document.getElementById('d-gallery');gal.innerHTML='';
@@ -512,16 +498,8 @@ function open(k){
 function close(){document.querySelectorAll('.zone.sel').forEach(z=>z.classList.remove('sel'));drawer.classList.remove('on');scrim.classList.remove('on');setTimeout(()=>drawer.classList.remove('rackmode'),260);}
 document.querySelectorAll('.zone').forEach(z=>z.addEventListener('click',()=>open(z.dataset.k)));
 document.getElementById('close').addEventListener('click',close);
-function setSim(on){document.body.classList.toggle('sim',on);const b=document.getElementById('simbtn');b.setAttribute('aria-pressed',on);
-  document.getElementById('sub').textContent=on?'Light simulation: the lights are drawn on the studio. Tap the lighting desk or the breaker board to operate them.':'Tap any item to see what it is, what it\'s for and a photo.';
-  try{localStorage.setItem('tvs-sim',on?'1':'0');}catch(e){}}
-document.getElementById('simbtn').addEventListener('click',()=>setSim(!document.body.classList.contains('sim')));
-document.getElementById('d-simbtn').addEventListener('click',()=>{close();setSim(true);openDesk();});
-document.getElementById('sb-desk').addEventListener('click',()=>openDesk());
-document.getElementById('sb-power').addEventListener('click',()=>openPower());
-document.getElementById('sb-reset').addEventListener('click',()=>RIG.reset());
-document.getElementById('sb-copy').addEventListener('click',e=>{RIG.copy();const b=e.currentTarget;b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy positions',1600);});
-try{if(localStorage.getItem('tvs-sim')==='1')setSim(true);}catch(e){}scrim.addEventListener('click',close);
+document.getElementById('d-simbtn').addEventListener('click',()=>{close();openDesk();});
+scrim.addEventListener('click',close);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pwr').classList.contains('on'))closePower();else{close();closeDesk();}}});
 </script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>

@@ -303,9 +303,10 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('dk-arrows').addEventListener('click',e=>{const on=svg.classList.toggle('noarrows');e.currentTarget.textContent=on?'Show teacher\'s arrows':'Hide teacher\'s arrows';});
   document.getElementById('dk-power').addEventListener('click',()=>window.openPower());
   document.getElementById('dk-close').addEventListener('click',()=>window.closeDesk());
+  document.getElementById('dk-reset').addEventListener('click',()=>window.RIG.reset());
+  document.getElementById('dk-copy').addEventListener('click',e=>{window.RIG.copy();const b=e.currentTarget;b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy positions',1600);});
   render();}
 document.addEventListener('power-change',()=>{lights();diag();});
-fxLayer(document.querySelector('svg.plan'),false);initRigDrag(document.querySelector('svg.plan'));
 window.openDesk=()=>{build();root.classList.add('on');render();};
 window.closeDesk=()=>{root.classList.remove('on');tip.classList.remove('on');};
 })();
