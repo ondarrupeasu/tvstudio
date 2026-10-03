@@ -76,15 +76,15 @@ function fxLayer(svg,mini){
   svg.appendChild(g);LAYERS.push({g,mini,fid});drawRig();}
 function drawRig(){LAYERS.forEach(({g,mini,fid})=>{
   g.querySelector('.rig').innerHTML=BARS.filter(b=>!b.tray).map(b=>{const [A,B]=ends(b);const l=`x1="${A[0].toFixed(1)}" y1="${A[1].toFixed(1)}" x2="${B[0].toFixed(1)}" y2="${B[1].toFixed(1)}"`;
-    return b.m?`<g class="bar mov" data-bar="${b.id}"><line class="bar-l" ${l}/><line class="bar-hit" ${l}><title>Movable bar — drag it to slide it along its rails</title></line>${[['a',A],['b',B]].map(([k,P])=>`<g class="bar-h" data-end="${k}"><circle class="bar-e" cx="${P[0]}" cy="${P[1]}" r="4.2"/><circle class="bar-eh" cx="${P[0]}" cy="${P[1]}" r="10"><title>Drag this end to angle the bar</title></circle></g>`).join('')}</g>`
-      :`<line class="bar ${b.grey?'grey':'fix'}" ${l}><title>${b.grey?'Fixed grey pipe':'Fixed rail'}</title></line>`;}).join('')+
-    `<path class="bar tray" d="M20 118 V58 Q20 22 56 22 H364 Q400 22 400 58 V118" fill="none"><title>Fixed tray of cyc lights</title></path>`;
+    return b.m?`<g class="bar mov" data-bar="${b.id}" data-name="Movable bar" data-tip="Drag the middle to slide it along its two rails · drag an end to angle it."><line class="bar-l" ${l}/><line class="bar-hit" ${l}></line>${[['a',A],['b',B]].map(([k,P])=>`<g class="bar-h" data-end="${k}"><circle class="bar-e" cx="${P[0]}" cy="${P[1]}" r="4.2"/><circle class="bar-eh" cx="${P[0]}" cy="${P[1]}" r="10"></circle></g>`).join('')}</g>`
+      :`<line class="bar ${b.grey?'grey':'fix'}" ${l} data-name="${b.grey?'Fixed grey pipe':'Fixed rail'}" data-tip="Fixed to the ceiling. Lights can hang from it."></line>`;}).join('')+
+    `<path class="bar tray" d="M20 118 V58 Q20 22 56 22 H364 Q400 22 400 58 V118" fill="none" data-name="Cyc-light tray" data-tip="Fixed tray along the chroma wall: 8 LED cyc panels + the two chroma backlights."></path>`;
   g.querySelector('.fxs').innerHTML=FX.map(f=>{const [x,y]=pos(f);let core;
     if(f.type==='cyc')core=CYC.map(([cx,cy,r])=>`<rect class="fx-core" x="${cx-9}" y="${cy-3.5}" width="18" height="7" rx="1.5" transform="rotate(${r} ${cx} ${cy})"/>`).join('');
     else if(f.type==='panel')core=`<rect class="fx-core" x="${x-9}" y="${y-5}" width="18" height="10" rx="2"/>`;
     else core=`<circle class="fx-core" cx="${x}" cy="${y}" r="${f.type==='big'?8:6}"/>`;
     const glow=f.type==='cyc'?CYC.map(([cx,cy])=>`<circle class="fx-glow" filter="url(#${fid})" cx="${cx}" cy="${cy}" r="20"/>`).join(''):`<circle class="fx-glow" filter="url(#${fid})" cx="${x}" cy="${y}" r="${f.type==='big'?34:26}"/>`;
-    return `<g class="fx${f.fixed?' fixed':''}" data-fx="${f.id}"><title>${f.name} · fader ${f.int}${f.temp?' (+ temp fader '+f.temp+')':''}${f.fixed?'':' — drag it along the bars'}</title>${glow}${core}${mini||f.type==='cyc'?'':`<text class="fx-n" x="${x}" y="${y+(f.type==='big'?20:18)}" text-anchor="middle">${f.int}</text>`}</g>`;}).join('');});
+    return `<g class="fx${f.fixed?' fixed':''}" data-fx="${f.id}" data-name="${f.name}">${glow}${core}${mini||f.type==='cyc'?'':`<text class="fx-n" x="${x}" y="${y+(f.type==='big'?20:18)}" text-anchor="middle">${f.int}</text>`}</g>`;}).join('');});
   lights();}
 /* drag fixtures (snap to the nearest bar) and movable bars (slide along their rails) — plan only */
 function initRigDrag(svg,always){
@@ -214,6 +214,7 @@ function deskSvg(){let s=`<svg class="dk-svg" viewBox="0 0 1000 690" role="img" 
   s+=T(624,566,'A','middle','lb2')+T(722,566,'B','middle','lb2');
   [['blind',640,'BLIND'],['home',704,'HOME'],['tap',770,'TAP SYNC'],['full',840,'FULL-ON'],['bo',910,'BLACK OUT']].forEach(([id,x,t])=>{s+=btn(id,x,592,t,TIP[id]);s+=`<rect x="${x-26}" y="606" width="52" height="${t.includes(' ')?20:14}" rx="2" fill="#151619"/>`+(t.includes(' ')?T(x,615,t.split(' ')[0],'middle','wt')+T(x,623,t.split(' ')[1],'middle','wt'):T(x,616,t,'middle','wt'));});
   s+=led('bo',884,580,3.6);
+  for(let i=0;i<24;i++){const top=i<12;s+=`<rect class="strip-hl" data-ch="${i+1}" x="${CX(i)-20}" y="${top?50:328}" width="40" height="${top?256:304}" rx="6"/>`;}
   // teacher's arrows (masking tape notes on the real desk)
   const ar=(x,y,rot,lab='')=>`<g class="dk-arrow"><rect class="tape" x="${x-16}" y="${y-11}" width="32" height="22" transform="rotate(${rot/8} ${x} ${y})"/><text class="hw" x="${x}" y="${y+5}" font-size="14" text-anchor="middle">${lab}</text></g>`;
   s+=ar(608,114,0,'→')+ar(726,226,0,'1→')+ar(613,330,0,'→')+ar(890,307,0,'←')+ar(790,368,0,'↘')+ar(620,438,0,'↑')+ar(740,440,0,'↑');
@@ -297,9 +298,24 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     const up=()=>{b.classList.remove('down');press(b.dataset.b,false);b.removeEventListener('pointerup',up);b.removeEventListener('pointercancel',up);};
     b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);});
   rear.querySelector('.dk-power').addEventListener('click',()=>{D.power=!D.power;if(!D.power){D.flash.clear();D.full=D.dark=D.btnA=D.shift=false;}render();});
-  root.addEventListener('mousemove',e=>{const m=e.target.closest('[data-name]');if(!m||!root.contains(m)){tip.classList.remove('on');return;}
-    tip.innerHTML=`<b>${m.dataset.name}</b>${m.dataset.tip?`<span>${m.dataset.tip}</span>`:''}`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});
-  root.addEventListener('mouseleave',()=>tip.classList.remove('on'));
+  let hlKey='';
+  const hl=(chs,fxs)=>{const k=chs.join()+'|'+fxs.join();if(k===hlKey)return;hlKey=k;
+    root.querySelectorAll('.strip-hl.on,.fx.hl').forEach(x=>x.classList.remove('on','hl'));
+    chs.forEach(c=>root.querySelector(`.strip-hl[data-ch="${c}"]`)?.classList.add('on'));
+    fxs.forEach(id=>root.querySelectorAll(`.fx[data-fx="${id}"]`).forEach(x=>x.classList.add('hl')));};
+  const barName=id=>{const b=BAR[id];return b.tray?'the cyc-light tray (fixed)':b.m?'a movable bar':b.grey?'a fixed grey pipe':'a fixed rail';};
+  root.addEventListener('mousemove',e=>{const m=e.target.closest('[data-name]');if(!m||!root.contains(m)){tip.classList.remove('on');hl([],[]);return;}
+    let tipTxt=m.dataset.tip||'';
+    if(m.matches('.fx')){const f=FX.find(x=>x.id===m.dataset.fx),pct=v=>Math.round(v*100)+' %';
+      tipTxt=`Fader ${f.int} = intensity (now ${pct(out[f.int-1])})`+(f.temp?` · fader ${f.temp} = colour temperature`:'')+
+        `<br>${f.zone==='c'?'LED · powered by the “LED” breaker':'Dimmed by Datapak 2 · “Dimmers” breaker'} · hangs on ${barName(f.bar)}`+(f.fixed?'':f.lock?' — drag to slide it along the tray':' — drag to move it');
+      hl([f.int,f.temp].filter(Boolean),[f.id]);}
+    else{const id=m.dataset.f||m.dataset.b||'',ch=/^c\d+$/.test(id)?+id.slice(1)+1:/^fl\d+$/.test(id)?+id.slice(2)+1:0;
+      if(ch){const fx=FX.filter(f=>f.int===ch||f.temp===ch);hl([ch],fx.map(f=>f.id));
+        if(fx.length)tipTxt+=`<br><b style="display:inline">Controls:</b> ${fx.map(f=>f.name+(f.temp===ch?' (colour temp)':' (intensity)')).join(', ')}`;}
+      else hl([],[]);}
+    tip.innerHTML=`<b>${m.dataset.name}</b>${tipTxt?`<span>${tipTxt}</span>`:''}`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});
+  root.addEventListener('mouseleave',()=>{tip.classList.remove('on');hl([],[]);});
   document.getElementById('dk-arrows').addEventListener('click',e=>{const on=svg.classList.toggle('noarrows');e.currentTarget.textContent=on?'Show teacher\'s arrows':'Hide teacher\'s arrows';});
   document.getElementById('dk-power').addEventListener('click',()=>window.openPower());
   document.getElementById('dk-close').addEventListener('click',()=>window.closeDesk());
@@ -307,6 +323,12 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('dk-copy').addEventListener('click',e=>{window.RIG.copy();const b=e.currentTarget;b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy positions',1600);});
   render();}
 document.addEventListener('power-change',()=>{lights();diag();});
-window.openDesk=()=>{build();root.classList.add('on');render();};
+/* fit the desk (rear + front) to the free space: as big as the window allows */
+function fit(){if(!root.classList.contains('on')||matchMedia('(max-width:900px)').matches)return;
+  const main=root.querySelector('.dsk-main'),body=root.querySelector('.dsk-body'),cs=getComputedStyle(body);
+  const h=body.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-6,w=main.clientWidth;
+  const W=Math.floor(Math.min(w,h*1000/810));['dsk-back','dsk-front'].forEach(id=>document.getElementById(id).style.width=W+'px');}
+addEventListener('resize',fit);
+window.openDesk=()=>{build();root.classList.add('on');render();fit();};
 window.closeDesk=()=>{root.classList.remove('on');tip.classList.remove('on');};
 })();
