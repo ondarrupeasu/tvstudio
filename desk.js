@@ -24,7 +24,7 @@ const BARS=[
   ['sM2','s',[367,648],[370,877],'x',['sH3','sH4']],['sM3','s',[408,648],[408,877],'x',['sH3','sH4']],['sM4','s',[632,645],[562,877],'x',['sH3','sH4']]
 ].map(([id,z,a,b,m,ride])=>{const M=z==='c'?MAPC:MAPS;return {id,z,a:M(a),b:M(b),grey:m==='grey',m:m==='grey'?null:m,ride};});
 /* cyc lights: three straight fixed grey bars set back from the cyclorama (left side, back wall, right side) */
-BARS.push({id:'trayL',z:'c',a:[48,64],b:[48,128],tray:true,grey:true},{id:'trayB',z:'c',a:[64,50],b:[356,50],tray:true,grey:true},{id:'trayR',z:'c',a:[372,64],b:[372,128],tray:true,grey:true});
+BARS.push({id:'trayL',z:'c',a:[48,50],b:[48,128],tray:true,grey:true},{id:'trayB',z:'c',a:[48,50],b:[372,50],tray:true,grey:true},{id:'trayR',z:'c',a:[372,50],b:[372,128],tray:true,grey:true});   // they meet at the corners
 /* the 8 LED cyc panels ("PANELES CHROMA", faders 1-2): one per side, one per corner, four on the back wall */
 const CYC=[['trayL',[48,96]],['trayB',[78,50]],['trayB',[130,50]],['trayB',[185,50]],['trayB',[240,50]],['trayB',[295,50]],['trayB',[342,50]],['trayR',[372,96]]];
 const BAR=Object.fromEntries(BARS.map(b=>[b.id,b]));
@@ -50,11 +50,15 @@ const FX=[
   {id:'s23',name:'Front 2 kW',int:23,zone:'s',bar:'sH4',at:[210,0],type:'big'},
   {id:'s24',name:'Panel (marked *)',int:24,zone:'s',bar:'sH3',at:[60,0],type:'panel'}
 ];
-const ends=b=>{const v=o=>b.m==='x'?[o,0]:b.m==='y'?[0,o]:[0,0],da=v(b.oa||0),db=v(b.ob||0);return [[b.a[0]+da[0],b.a[1]+da[1]],[b.b[0]+db[0],b.b[1]+db[1]]];};
+const anchors=b=>{const v=o=>b.m==='x'?[o,0]:b.m==='y'?[0,o]:[0,0],da=v(b.oa||0),db=v(b.ob||0);return [[b.a[0]+da[0],b.a[1]+da[1]],[b.b[0]+db[0],b.b[1]+db[1]]];};
+const unit=(A,B)=>{const dx=B[0]-A[0],dy=B[1]-A[1],l=Math.hypot(dx,dy)||1;return [dx/l,dy/l];};
+/* movable bars are longer than the gap between their rails: they overhang each rail by ea / eb (stretchable) */
+const EXT0=10,EXTMAX=90;
+const ends=b=>{const [A,B]=anchors(b);if(!b.m)return [A,B];const u=unit(A,B),ea=b.ea??EXT0,eb=b.eb??EXT0;return [[A[0]-u[0]*ea,A[1]-u[1]*ea],[B[0]+u[0]*eb,B[1]+u[1]*eb]];};
 function proj(b,p){const [A,B]=ends(b),dx=B[0]-A[0],dy=B[1]-A[1];return Math.min(.97,Math.max(.03,((p[0]-A[0])*dx+(p[1]-A[1])*dy)/(dx*dx+dy*dy)));}
 const ptOn=(b,t)=>{const [A,B]=ends(b);return [A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t];};
 const pos=f=>{const [A,B]=ends(BAR[f.bar]);return [A[0]+(B[0]-A[0])*f.t,A[1]+(B[1]-A[1])*f.t];};
-function defaults(){BARS.forEach(b=>b.oa=b.ob=0);
+function defaults(){BARS.forEach(b=>{b.oa=b.ob=0;b.ea=b.eb=EXT0;});
   FX.forEach(f=>{const b=BAR[f.bar=f.bar0||f.bar];f.bar0=f.bar;const [A,B]=ends(b);
     const p=f.at[0]===0?[A[0]+(B[0]-A[0])*((f.at[1]-A[1])/(B[1]-A[1])),f.at[1]]:f.at[1]===0?[f.at[0],A[1]+(B[1]-A[1])*((f.at[0]-A[0])/(B[0]-A[0]))]:f.at;
     f.t=proj(b,p);});}
@@ -64,9 +68,11 @@ function endRange(b,end){const k=b.m==='x'?0:1,P=end==='a'?b.a:b.b,o=1-k;
   return [Math.min(r.a[k],r.b[k])+3-P[k],Math.max(r.a[k],r.b[k])-3-P[k]];}
 const LKEY='tvs-layout';
 function save(){try{localStorage.setItem(LKEY,JSON.stringify(layout()));}catch(e){}}
-function layout(){return {bars:Object.fromEntries(BARS.filter(b=>b.m&&(b.oa||b.ob)).map(b=>[b.id,[+b.oa.toFixed(1),+b.ob.toFixed(1)]])),fx:Object.fromEntries(FX.map(f=>[f.id,[f.bar,+f.t.toFixed(3)]])),v:3};}
-function load(L){if(!L)return;Object.entries(L.bars||{}).forEach(([id,o])=>{if(BAR[id]){const [x,y]=Array.isArray(o)?o:[o,o];BAR[id].oa=x;BAR[id].ob=y;}});
-  Object.entries(L.fx||{}).forEach(([id,[bar,t]])=>{const f=FX.find(x=>x.id===id);if(f&&BAR[bar]&&(!f.lock||(BAR[bar].tray&&L.v===3))){f.bar=bar;f.t=t;}});}
+function layout(){return {bars:Object.fromEntries(BARS.filter(b=>b.m&&(b.oa||b.ob||b.ea!==EXT0||b.eb!==EXT0)).map(b=>[b.id,[b.oa,b.ob,b.ea,b.eb].map(v=>+v.toFixed(1))])),fx:Object.fromEntries(FX.map(f=>[f.id,[f.bar,+f.t.toFixed(3)]])),v:4};}
+function load(L){if(!L)return;Object.entries(L.bars||{}).forEach(([id,o])=>{if(BAR[id]){const [x,y,ea,eb]=Array.isArray(o)?o:[o,o];Object.assign(BAR[id],{oa:x,ob:y});if(ea!=null)Object.assign(BAR[id],{ea,eb});}});
+  Object.entries(L.fx||{}).forEach(([id,[bar,t]])=>{const f=FX.find(x=>x.id===id);if(f&&BAR[bar]&&(!f.lock||(BAR[bar].tray&&L.v>=3))){f.bar=bar;f.t=t;
+    /* layouts before v4: t was measured between the rail joints (no overhang) */
+    const b=BAR[bar];if(b.m&&(L.v||0)<4){const [A,B]=anchors(b);f.t=proj(b,[A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t]);}}});}
 defaults();try{load(JSON.parse(localStorage.getItem(LKEY)));}catch(e){}
 
 const mix=(a,b,t)=>{const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const A=p(a),B=p(b);
@@ -79,8 +85,11 @@ function fxLayer(svg,mini){
   svg.appendChild(g);LAYERS.push({g,mini,fid});drawRig();}
 function drawRig(){LAYERS.forEach(({g,mini,fid})=>{
   g.querySelector('.rig').innerHTML=BARS.map(b=>{const [A,B]=ends(b);const l=`x1="${A[0].toFixed(1)}" y1="${A[1].toFixed(1)}" x2="${B[0].toFixed(1)}" y2="${B[1].toFixed(1)}"`;
-    return b.m?`<g class="bar mov" data-bar="${b.id}" data-name="Movable bar" data-tip="Drag the middle to slide it along its two rails · drag an end to angle it."><line class="bar-l" ${l}/><line class="bar-hit" ${l}></line>${[['a',A],['b',B]].map(([k,P])=>`<g class="bar-h" data-end="${k}"><circle class="bar-e" cx="${P[0]}" cy="${P[1]}" r="4.2"/><circle class="bar-eh" cx="${P[0]}" cy="${P[1]}" r="10"></circle></g>`).join('')}</g>`
-      :`<line class="bar ${b.grey?'grey':'fix'}" ${l} data-name="${b.tray?'Cyc-light bar (fixed)':b.grey?'Fixed grey pipe':'Fixed rail'}" data-tip="${b.tray?'Fixed grey bar set back from the cyclorama: the 8 LED cyc panels + the two chroma backlights hang here.':'Fixed to the ceiling. Lights can hang from it.'}"></line>`;}).join('');
+    if(b.m){const [JA,JB]=anchors(b);
+      return `<g class="bar mov" data-bar="${b.id}" data-name="Movable bar" data-tip="Drag the middle to slide it along its two rails · drag a round joint (on a rail) to angle it · drag a square tip to stretch it out past the rail."><line class="bar-l" ${l}/><line class="bar-hit" ${l}></line>`+
+        [['a',A],['b',B]].map(([k,P])=>`<g class="bar-t" data-tipend="${k}"><rect class="bar-sq" x="${P[0]-3.4}" y="${P[1]-3.4}" width="6.8" height="6.8" rx="1"/><circle class="bar-eh" cx="${P[0]}" cy="${P[1]}" r="9"></circle></g>`).join('')+
+        [['a',JA],['b',JB]].map(([k,P])=>`<g class="bar-h" data-end="${k}"><circle class="bar-e" cx="${P[0]}" cy="${P[1]}" r="4.2"/><circle class="bar-eh" cx="${P[0]}" cy="${P[1]}" r="9"></circle></g>`).join('')+`</g>`;}
+    return `<line class="bar ${b.grey?'grey':'fix'}" ${l} data-name="${b.tray?'Cyc-light bar (fixed)':b.grey?'Fixed grey pipe':'Fixed rail'}" data-tip="${b.tray?'Fixed grey bar set back from the cyclorama: the 8 LED cyc panels + the two chroma backlights hang here.':'Fixed to the ceiling. Lights can hang from it.'}"></line>`;}).join('');
   g.querySelector('.fxs').innerHTML=FX.map(f=>{const [x,y]=pos(f);let core;
     if(f.type==='cyc'){const [A,B]=ends(BAR[f.bar]),a=Math.atan2(B[1]-A[1],B[0]-A[0])*180/Math.PI;core=`<rect class="fx-core" x="${x-9}" y="${y-3.5}" width="18" height="7" rx="1.5" transform="rotate(${a.toFixed(1)} ${x} ${y})"/>`;}
     else if(f.type==='panel')core=`<rect class="fx-core" x="${x-9}" y="${y-5}" width="18" height="10" rx="2"/>`;
@@ -95,11 +104,14 @@ function initRigDrag(svg,always){
     const fg=e.target.closest('.fx-layer .fx'),bg=e.target.closest('.fx-layer .bar.mov');
     if(!fg&&!bg)return;e.preventDefault();e.stopPropagation();
     const p0=pt(e);let moved=false;try{svg.setPointerCapture(e.pointerId);}catch(_){}
-    const f=fg&&FX.find(x=>x.id===fg.dataset.fx),b=bg&&BAR[bg.dataset.bar],end=bg&&e.target.closest('.bar-h')?.dataset.end,oa0=b?b.oa:0,ob0=b?b.ob:0;
+    const f=fg&&FX.find(x=>x.id===fg.dataset.fx),b=bg&&BAR[bg.dataset.bar],end=bg&&e.target.closest('.bar-h')?.dataset.end,tipEnd=bg&&e.target.closest('.bar-t')?.dataset.tipend,oa0=b?b.oa:0,ob0=b?b.ob:0;
     const mv=ev=>{const p=pt(ev);if(Math.hypot(p[0]-p0[0],p[1]-p0[1])>3)moved=true;if(!moved)return;
       if(f&&!f.fixed){let best=null;BARS.filter(x=>f.lock?x.tray:!x.tray).forEach(x=>{const t=proj(x,p),q=ptOn(x,t),d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(!best||d<best.d)best={x,t,d};});
         f.bar=best.x.id;f.t=best.t;}
-      if(b){const k=b.m==='x'?0:1,d=p[k]-p0[k],[la,ha]=endRange(b,'a'),[lb,hb]=endRange(b,'b'),cl=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+      if(b&&tipEnd){/* stretch: keep the hanging lights where they are */const hang=FX.filter(x=>x.bar===b.id).map(x=>[x,pos(x)]);
+        const [JA,JB]=anchors(b),u=unit(JA,JB),J=tipEnd==='a'?JA:JB,sgn=tipEnd==='a'?-1:1;
+        b['e'+tipEnd]=Math.min(EXTMAX,Math.max(0,sgn*((p[0]-J[0])*u[0]+(p[1]-J[1])*u[1])));hang.forEach(([x,q])=>x.t=proj(b,q));}
+      else if(b){const k=b.m==='x'?0:1,d=p[k]-p0[k],[la,ha]=endRange(b,'a'),[lb,hb]=endRange(b,'b'),cl=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
         if(end==='a')b.oa=cl(oa0+d,la,ha);else if(end==='b')b.ob=cl(ob0+d,lb,hb);
         else{const dd=cl(d,Math.max(la-oa0,lb-ob0),Math.min(ha-oa0,hb-ob0));b.oa=oa0+dd;b.ob=ob0+dd;}}
       drawRig();};
