@@ -11,7 +11,7 @@ const KEY='vh-state3';
 const SRCS={none:'— nothing —',cam1:'CAM 1',cam2:'CAM 2',cam3:'CAM 3',cam4:'CAM 4',cam5:'CAM 5',cam6:'CAM 6',cam7:'CAM 7',cam8:'CAM 8',
   vfill:'vMix FILL',vkey:'vMix KEY',atem:'ATEM PGM',hdk:'HyperDeck'};
 const SRCL={vfill:'vMix PC · DeckLink SDI 1 (Fill)',vkey:'vMix PC · DeckLink SDI 2 (Key)',atem:'ATEM Constellation · Program out',hdk:'HyperDeck Studio HD Pro · SDI out'};
-const DSTS={none:'— nothing —',atem1:'ATEM IN 1',atem2:'ATEM IN 2',atem3:'ATEM IN 3',atem4:'ATEM IN 4',atem5:'ATEM IN 5',atem6:'ATEM IN 6',atem7:'ATEM IN 7',atem8:'ATEM IN 8',
+const DSTS={none:'— nothing —',atem1:'ATEM IN 1',atem2:'ATEM IN 2',atem3:'ATEM IN 3',atem4:'ATEM IN 4',atem5:'ATEM IN 5',atem6:'ATEM IN 6',atem7:'ATEM IN 7',atem8:'ATEM IN 8',atem9:'ATEM IN 9',atem10:'ATEM IN 10',atem11:'ATEM IN 11',atem12:'ATEM IN 12',
   vmix:'vMix IN',hdk:'HyperDeck REC',mon:'Monitor wall',ult1:'Ultimatte 1',ult2:'Ultimatte 2'};
 /* proposed cabling (to be confirmed with the real room) */
 /* working assumption (Alex, 4-oct): IN/OUT 1-4 = cameras, 5-6 = vMix fill/key → ATEM IN 1-6. The rest is not known yet. */
@@ -72,7 +72,7 @@ function rear(){let s=`<svg viewBox="0 0 ${PW} ${PH+14}" class="vh-svg" id="vh-r
 function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.innerHTML=`<div class="pwr-hd"><div><h2>Video rack</h2><div class="kind">HyperDeck Studio HD Pro (recorder) · Smart Videohub 20×20 (router) · ATEM 2 M/E Constellation HD (switcher)</div>
     <p><b>Videohub:</b> DEST + number = where · SRC + number = which signal · TAKE confirms · <b>ATEM:</b> a number = preview (green) · CUT / AUTO = on air (red) · hover anything to learn what it does.</p></div>
-    <div class="pwr-btns"><button id="vh-mvbtn">Multiview on a 2nd screen ↗</button><button id="vh-hdbtn">HyperDeck</button><button id="vh-guidebtn">How to use</button><button id="vh-pack">Load the pack folder</button><button id="vh-reset">Reset routes</button></div></div>
+    <div class="pwr-btns"><button id="vh-patch" title="Admin: re-cable the rear panels and save the room cabling">Patch mode</button><span class="vh-pbtns"><button id="vh-exp">Export cabling</button><button id="vh-imp">Import</button><button id="vh-def">Default cabling</button></span><button id="vh-mvbtn">Multiview on a 2nd screen ↗</button><button id="vh-hdbtn">HyperDeck</button><button id="vh-guidebtn">How to use</button><button id="vh-pack">Load the pack folder</button><button id="vh-reset">Reset routes</button></div></div>
   <button class="close" id="vh-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   <div class="vh-body"><div class="vh-units">
     <div class="vh-hdwrap"><div class="vh-lab">HYPERDECK STUDIO HD PRO <span>— recorder (it will move to the control-room view, next to the ATEM panel)</span></div><div id="hd-front"></div><div id="hd-rear"></div></div>
@@ -99,7 +99,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       <li><b>FTB</b> fades everything to black. <b>MENU</b> → Outputs assigns what each of the 12 SDI outputs carries; Transitions = rate; Settings = cut-bus mode. <b>LOCK</b>: hold 2 s to lock the panel, 1 s to unlock.</li>
       <li>The <b>control-room monitor</b> at the bottom is the ATEM's MULTIVIEW 1: preview and programme on top, inputs 1-8 below with red / green tally. <i>Open on a second screen</i> puts it in its own window.</li>
     </ol></div>
-  <input type="file" id="vh-packdir" webkitdirectory multiple hidden>
+  <input type="file" id="vh-packdir" webkitdirectory multiple hidden><input type="file" id="vh-impfile" accept=".json,application/json" hidden>
   <div class="pwr-tip" id="vh-tip"></div>`;
   wire();if(window.HDR)HDR.mount();if(window.ATEMR)ATEMR.mount();if(window.CABLES)CABLES.start();}
 /* ---------- state → screen ---------- */
@@ -130,7 +130,7 @@ function draw(){const lit=U.menu?null:U.mode==='dest'?U.dest+1:(U.pend!=null?U.p
   root.querySelectorAll('.vh-sock').forEach(g=>{const d=g.dataset.s[0],k=+g.dataset.s.slice(1),v=d==='i'?st.cabIn[k]:st.cabOut[k];g.classList.toggle('plugged',v!=='none');
     g.classList.toggle('hl',d==='o'?k===U.dest:k===(U.pend!=null?U.pend:st.routes[U.dest]));});
   const tb=document.getElementById('vh-tbl');if(tb)tb.innerHTML='<span class="vh-th">ROUTING NOW</span>'+st.cabOut.map((v,o)=>v==='none'&&o!==U.dest?'':`<span class="vh-rt2${o===U.dest?' on':''}" title="${outLab(o)}"><b>OUT ${o+1}</b> ← <b>IN ${st.routes[o]+1}</b> ${inLab(st.routes[o])}${st.locks[o]?' 🔒':''}</span>`).join('');
-  const dg=document.getElementById('vh-diag');if(dg){const s=st.routes[U.dest];dg.innerHTML=`<span class="pw-chip ok"><i></i>Destination: OUT ${U.dest+1} · ${outLab(U.dest)}</span>`+
+  const dg=document.getElementById('vh-diag');if(dg&&!root.classList.contains('patch')){const s=st.routes[U.dest];dg.innerHTML=`<span class="pw-chip ok"><i></i>Destination: OUT ${U.dest+1} · ${outLab(U.dest)}</span>`+
     `<span class="pw-chip ${hasSig(s)?'ok':'bad'}"><i></i>carrying IN ${s+1} · ${inLab(s)}${hasSig(s)?'':' (no signal)'}</span>`+(U.pend!=null?`<span class="pw-chip bad"><i></i>Waiting: IN ${U.pend+1} ${inLab(U.pend)} → press TAKE or CLEAR</span>`:'')+
     (st.locks[U.dest]?'<span class="pw-chip bad"><i></i>Destination locked (hold DEST 2 s)</span>':'')+(U.msg?`<span class="mx-sel">${U.msg}</span>`:'');}
   drawLcd();}
@@ -163,9 +163,9 @@ function press(id){U.msg='';
 function plugMenu(s,ev){const m=document.getElementById('vh-plugmenu'),d=s[0],k=+s.slice(1),L=d==='i'?SRCS:DSTS,cur=d==='i'?st.cabIn[k]:st.cabOut[k];
   m.innerHTML=`<div class="mx-srchd"><b>${d==='i'?'SDI IN':'SDI OUT'} ${k+1}</b> — ${d==='i'?'what is cabled into it?':'what does it feed?'}</div>`+
     Object.entries(L).map(([v,l])=>`<button data-v="${v}" class="${v===cur?'on':''}">${l}${d==='i'&&SRCL[v]?` <i>${SRCL[v]}</i>`:''}</button>`).join('')+
-    (d==='i'?'<p class="mx-snote">Signals from vMix, the ATEM and the HyperDeck arrive when those simulators feed them (coming).</p>':'');
+    (d==='i'?'<p class="mx-snote">vMix fill / key arrive while vMix External is on; ATEM PGM = ATEM SDI OUT 1.</p>':'<p class="mx-snote">To cable it to an ATEM input you can also click this OUT and then the ATEM input on its rear panel.</p>');
   m.style.left=Math.min(ev.clientX,innerWidth-300)+'px';m.style.top=Math.max(10,Math.min(ev.clientY-40,innerHeight-m.offsetHeight-10))+'px';m.classList.add('on');
-  m.querySelectorAll('button').forEach(b=>b.onclick=()=>{(d==='i'?st.cabIn:st.cabOut)[k]=b.dataset.v;save();m.classList.remove('on');draw();});}
+  m.querySelectorAll('button').forEach(b=>b.onclick=()=>{const v=b.dataset.v;if(d==='o'&&v.startsWith('atem'))st.cabOut.forEach((x,o)=>{if(x===v)st.cabOut[o]='none';});(d==='i'?st.cabIn:st.cabOut)[k]=v;save();m.classList.remove('on');draw();});}
 function loadPack(files){let n=0;Object.values(PACK.v).forEach(v=>{v.pause();URL.revokeObjectURL(v.src);});PACK.v={};
   [...files].forEach(f=>{const m=f.name.match(/^CAM(\d)\.(mp4|mov|m4v|webm)$/i);if(!m)return;const v=document.createElement('video');v.src=URL.createObjectURL(f);v.muted=true;v.loop=true;v.playsInline=true;PACK.v[+m[1]]=v;n++;});
   const vs=Object.values(PACK.v);vs.forEach(v=>{v.currentTime=0;v.play().catch(()=>{});});   // all start together = in sync (the files are synced)
@@ -195,11 +195,12 @@ function wire(){const tip=document.getElementById('vh-tip'),fs=document.getEleme
       txt=d==='i'?`Cabled: ${st.cabIn[k]==='none'?'not known yet':SRCS[st.cabIn[k]]}${SRCL[st.cabIn[k]]?' ('+SRCL[st.cabIn[k]]+')':''}. Feeds: ${st.routes.map((r,o)=>r===k&&st.cabOut[o]!=='none'?'OUT '+(o+1):null).filter(Boolean).join(', ')||'no used output'}. `
         :`Feeds: ${st.cabOut[k]==='none'?'not known yet':DSTS[st.cabOut[k]]}. Carrying IN ${st.routes[k]+1} (${inLab(st.routes[k])}).`;}
     else if(t.classList.contains('vh-k'))name=(t.dataset.k.startsWith('n')?'Key '+t.dataset.k.slice(1):t.dataset.k.toUpperCase());
+    else if(t.classList.contains('vh-cab'))name='SDI cable (BNC)';
     else if(t.classList.contains('at-k'))name='ATEM · '+(t.querySelector('text')?[...t.querySelectorAll('text')].map(x=>x.textContent).join(' '):t.dataset.k);
     tip.innerHTML=(name?`<b>${name}</b>`:'')+`<span>${txt}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});
   root.addEventListener('mouseleave',()=>tip.classList.remove('on'));}
 let raf=0;function loop(){raf=requestAnimationFrame(loop);if(!root.classList.contains('on'))return;U.blink++;if(U.video||U.blink%30===0)drawLcd();}
 window.openVideohub=()=>{build();root.classList.add('on');draw();if(!raf)loop();};
 window.closeVideohub=()=>{root.classList.remove('on');document.getElementById('vh-tip')?.classList.remove('on');};
-window.VH={state:()=>st,inputLabel:inLab,outputLabel:outLab,frame:(o,c,w,h)=>sigFrame(c,st.routes[o],w,h)};   // for the ATEM / multiview later
+window.VH={plugMenu,save:()=>{save();draw();},DEF,state:()=>st,inputLabel:inLab,outputLabel:outLab,frame:(o,c,w,h)=>sigFrame(c,st.routes[o],w,h)};   // for the ATEM / multiview later
 })();

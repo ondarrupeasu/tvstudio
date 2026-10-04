@@ -21,12 +21,11 @@ function build(){const s=svg();if(!s)return;const L=stagger(list());ropes=L.map(
     const end=B||{x:A.x-6,y:A.y+c.hang};   // negative hang = the cable leaves upwards (into the space between the rear panels)
     const pts=[];for(let k=0;k<N;k++){const t=k/(N-1);pts.push({x:A.x+(end.x-A.x)*t,y:A.y+(end.y-A.y)*t+Math.sin(Math.PI*t)*20,px:0,py:0});pts[k].px=pts[k].x;pts[k].py=pts[k].y;}
     const g=c.hang<0?-G:G;const len=c.b?Math.hypot(B.x-A.x,B.y-A.y)*SLACK/(N-1):Math.abs(c.hang)*1.25/(N-1);return {...c,pts,len,g};}).filter(Boolean);
-  s.innerHTML=ropes.map((r,i)=>`<path class="vh-cab bnc" data-i="${i}"/>`+(r.tag?`<g class="vh-tg" data-i="${i}"><rect class="vh-tagbg" rx="2.5" height="12"/><text class="vh-tag"></text></g>`:'')+`<circle class="vh-plugc" r="6" data-i="${i}"/>`+(r.b?`<circle class="vh-plugc" r="6" data-j="${i}"/>`:'')).join('');
-  s.querySelectorAll('.vh-cab').forEach(p=>{p.addEventListener('mouseenter',e=>hl(+p.dataset.i,true,e));p.addEventListener('mousemove',e=>hl(+p.dataset.i,true,e));p.addEventListener('mouseleave',()=>hl(+p.dataset.i,false));});
+  s.innerHTML=ropes.map((r,i)=>`<path class="vh-cab bnc" data-i="${i}" data-tip="${r.info}"/>`+(r.tag?`<g class="vh-tg" data-i="${i}"><rect class="vh-tagbg" rx="2.5" height="12"/><text class="vh-tag"></text></g>`:'')+`<circle class="vh-plugc" r="6" data-i="${i}"/>`+(r.b?`<circle class="vh-plugc" r="6" data-j="${i}"/>`:'')).join('');
+  s.querySelectorAll('.vh-cab').forEach(p=>{p.addEventListener('mouseenter',()=>hl(+p.dataset.i,true));p.addEventListener('mouseleave',()=>hl(+p.dataset.i,false));});
   for(let k=0;k<80;k++)step();}
-function hl(i,on,e){const s=svg(),r=ropes[i],tip=document.getElementById('vh-tip');if(!r)return;s.querySelector(`.vh-cab[data-i="${i}"]`).classList.toggle('hl',on);
-  [r.a,r.b].forEach(q=>{const el=q&&wrap().querySelector(q);if(el)el.classList.toggle('hl',on);});
-  if(on&&e){tip.innerHTML=`<b>SDI cable (BNC)</b><span>${r.info}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');}else if(!on)tip.classList.remove('on');}
+function hl(i,on){const s=svg(),r=ropes[i];if(!r)return;s.querySelector(`.vh-cab[data-i="${i}"]`).classList.toggle('hl',on);   // the text comes from data-tip (shared tooltip)
+  [r.a,r.b].forEach(q=>{const el=q&&wrap().querySelector(q);if(el)el.classList.toggle('hl',on);});}
 function step(){ropes.forEach(r=>{const A=centre(r.a),B=r.b?centre(r.b):null;if(!A)return;const P=r.pts;
   for(let k=1;k<N;k++){const p=P[k];if(k===N-1&&B)continue;const vx=(p.x-p.px)*DAMP,vy=(p.y-p.py)*DAMP;p.px=p.x;p.py=p.y;p.x+=vx;p.y+=vy+r.g;}
   for(let it=0;it<ITER;it++){P[0].x=A.x;P[0].y=A.y;if(B){P[N-1].x=B.x;P[N-1].y=B.y;}
@@ -39,5 +38,26 @@ function render(){const s=svg();if(!s)return;const w=wrap();s.setAttribute('view
     const g=s.querySelector(`.vh-tg[data-i="${i}"]`);if(g){const t=g.querySelector('text'),e=P[N-1];t.textContent=r.tag;const tw=r.tag.length*5+7;g.querySelector('rect').setAttribute('width',tw);g.setAttribute('transform',`translate(${(e.x-tw/2).toFixed(1)} ${(r.g<0?e.y-13:e.y+1).toFixed(1)})`);t.setAttribute('x',3.5);t.setAttribute('y',9);}});}
 function loop(){raf=requestAnimationFrame(loop);const root=document.getElementById('vh');if(!root||!root.classList.contains('on'))return;
   const s2=window.VH?JSON.stringify([VH.state().cabIn,VH.state().cabOut,wrap().clientWidth]):'';if(s2!==sig){sig=s2;build();}step();render();}
-window.CABLES={start(){sig='';if(!raf)loop();}};
+/* ---------- PATCH MODE (admin): re-cable the rear and keep it ---------- */
+let sel=null,wired=false;
+function msg(t){const d=document.getElementById('vh-diag');if(d)d.innerHTML=`<span class="pw-chip bad"><i></i>PATCH MODE</span><span class="mx-sel">${t}</span>`;}
+function mark(){document.querySelectorAll('#vh-rearwrap .psel').forEach(e=>e.classList.remove('psel'));if(sel)document.querySelector(`#vh-rearwrap .vh-sock[data-s="${sel}"]`)?.classList.add('psel');}
+function wire(){if(wired)return;wired=true;const root=document.getElementById('vh');
+  document.getElementById('vh-patch').onclick=e=>{const on=!root.classList.contains('patch');if(on&&!confirm('Patch mode (admin): you can re-cable the rear panels. Changes are saved in this browser. Continue?'))return;
+    root.classList.toggle('patch',on);e.currentTarget.classList.toggle('on',on);e.currentTarget.textContent=on?'Exit patch mode':'Patch mode';sel=null;mark();if(on)msg('Click a router IN to choose what is cabled into it · click a router OUT and then an ATEM input to run a cable · click a plugged OUT / ATEM input to unplug it.');else VH.save();};
+  document.getElementById('vh-exp').onclick=()=>{const st=VH.state(),b=new Blob([JSON.stringify({tvstudio:'video-rack-cabling',v:1,cabIn:st.cabIn,cabOut:st.cabOut},null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='tvstudio-video-cabling.json';a.click();};
+  const fi=document.getElementById('vh-impfile');document.getElementById('vh-imp').onclick=()=>fi.click();
+  fi.onchange=async()=>{try{const d=JSON.parse(await fi.files[0].text());if(!Array.isArray(d.cabIn)||!Array.isArray(d.cabOut))throw 0;const st=VH.state();st.cabIn=d.cabIn;st.cabOut=d.cabOut;VH.save();msg('Cabling imported.');}catch(_){alert('That file is not a cabling file.');}fi.value='';};
+  document.getElementById('vh-def').onclick=()=>{if(!confirm('Put back the default (Tartanga) cabling?'))return;const st=VH.state();st.cabIn=[...VH.DEF.cabIn];st.cabOut=[...VH.DEF.cabOut];VH.save();msg('Default cabling restored.');};
+  wrap().addEventListener('click',e=>{if(!root.classList.contains('patch'))return;const h=e.target.closest('.vh-sock'),a=e.target.closest('.at-sock');if(!h&&!a)return;e.stopPropagation();const st=VH.state();
+    if(h){const d=h.dataset.s[0],k=+h.dataset.s.slice(1);
+      if(d==='i'){sel=null;mark();VH.plugMenu(h.dataset.s,e);return;}
+      if(st.cabOut[k]!=='none'&&sel!==h.dataset.s){st.cabOut[k]='none';sel=null;mark();VH.save();msg(`Router OUT ${k+1} unplugged.`);return;}
+      if(sel===h.dataset.s){sel=null;mark();VH.plugMenu(h.dataset.s,e);return;}   // second click = other destinations
+      sel=h.dataset.s;mark();msg(`Router OUT ${k+1} selected: click an ATEM input on the rear below (or click the OUT again for other destinations).`);return;}
+    const d=a.dataset.s[0],k=+a.dataset.s.slice(1);if(d!=='i'){msg('Only the ATEM SDI inputs take cables from the router here.');return;}
+    const v='atem'+(k+1),o=st.cabOut.indexOf(v);
+    if(sel){st.cabOut.forEach((x,i)=>{if(x===v)st.cabOut[i]='none';});st.cabOut[+sel.slice(1)]=v;const t=`Cable: router OUT ${+sel.slice(1)+1} → ATEM IN ${k+1}.`;sel=null;mark();VH.save();msg(t);return;}
+    if(o>=0){st.cabOut[o]='none';VH.save();msg(`ATEM IN ${k+1} unplugged.`);}else msg('Select a router OUT first.');},true);}
+window.CABLES={start(){sig='';wire();if(!raf)loop();}};
 })();
