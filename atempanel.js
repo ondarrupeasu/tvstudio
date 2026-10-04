@@ -3,8 +3,14 @@
  * FTB, LCD HOME (rates on the knobs) and AUX (output routing with the select row). Not affiliated with Blackmagic Design. */
 (function(){
 const VW=1000,VH=967,X=f=>f*VW,Y=f=>f*VH;
-const P={shift:false,menu:'home',aux:0,next:{bkgd:true,k1:false,k2:false,k3:false,k4:false},me:1,prev:false,msg:'',mt:0};
+const P={shift:false,menu:'home',aux:0,key:1,keySel:'fill',mapBtn:0,next:{bkgd:true,k1:false,k2:false,k3:false,k4:false},me:1,prev:false,msg:'',mt:0};
 const A=()=>window.ATEMR&&ATEMR.api;
+/* SETTINGS › button mapping: what each of the 20 crosspoint buttons (10 + SHIFT) selects — stored in the panel */
+const MAPK='atem-panel-map',SRC_ALL=[...Array.from({length:20},(_,i)=>i+1),'black','bars','mp1','mp2'];
+let MAP;try{MAP=JSON.parse(localStorage.getItem(MAPK));}catch(_){}if(!Array.isArray(MAP)||MAP.length!==20)MAP=Array.from({length:20},(_,i)=>i+1);
+const saveMap=()=>{try{localStorage.setItem(MAPK,JSON.stringify(MAP));}catch(_){}};
+const btnSrc=(n,shift)=>MAP[n+(shift?10:0)];
+const short=v=>typeof v==='number'?'Cam '+v:{black:'Black',bars:'Bars',mp1:'MP 1',mp2:'MP 2',pgm:'PGM',pvw:'PVW',clean1:'Clean 1'}[v]||v;
 const SYS=[['HOME','SETTINGS','KEYERS','◁','▷'],['MIX','WIPE','DVE','STINGER','DIP'],['FTB','MEDIA|PLAYERS','BORDER','COLOR',''],['MACRO','SUPER|SOURCE','CAMERA|CONTROL','AUDIO','AUX']];
 const key=(id,cx,cy,w,h,l,cls,tip)=>{const ls=String(l).split('|');return `<g class="ap-k ${cls}" data-k="${id}" data-tip="${tip}"><rect x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" rx="3"/>`+ls.map((t,i)=>`<text x="${cx}" y="${cy+2.6-(ls.length-1)*3.4+i*6.8}" class="ap-kt">${t}</text>`).join('')+'</g>';};
 /* the empty palm rest and logo area are cropped off so the controls can be drawn bigger */
@@ -24,7 +30,7 @@ function svg(){let s=`<svg viewBox="${VB.join(' ')}" class="cr-svg" id="ap-svg">
   s+=`<text x="${X(.051)}" y="${Y(.585)}" class="ap-lab">PROGRAM</text><text x="${X(.051)}" y="${Y(.664)}" class="ap-lab">PREVIEW</text>`;
   s+=key('shift1',X(.487),Y(.379),38,38,'SHIFT','ap-w','SHIFT: the rows show sources 11-20.')+key('shift2',X(.487),Y(.546),38,38,'SHIFT','ap-w','SHIFT: the rows show sources 11-20.')+key('prevtrans',X(.487),Y(.628),38,38,'PREV|TRANS','ap-w','PREV TRANS: rehearse the transition on the preview output with the T-bar.');
   [['macro','MACRO','MACRO: turns the select row into macro buttons (not simulated).'],['on1','ON','ON: upstream key 1 on / off air.'],['on2','ON','ON: upstream key 2.'],['on3','ON','ON: upstream key 3.'],['on4','ON','ON: upstream key 4.']].forEach(([id,l,t],i)=>s+=key(id,X([.550,.590,.629,.668,.708][i]),Y(.379),37,38,l,'ap-w',t));
-  [['bkgd','BKGD'],['k1','KEY 1'],['k2','KEY 2'],['k3','KEY 3'],['k4','KEY 4']].forEach(([id,l],i)=>s+=key(id,X([.550,.590,.629,.668,.708][i]),Y(.420),37,38,l,'ap-w','NEXT TRANSITION: what the next CUT / AUTO changes (background and/or keys).'));
+  [['bkgd','BKGD'],['k1','KEY 1'],['k2','KEY 2'],['k3','KEY 3'],['k4','KEY 4']].forEach(([id,l],i)=>s+=key(id,X([.550,.590,.629,.668,.708][i]),Y(.420),37,38,l,'ap-w','NEXT TRANSITION: what the next CUT / AUTO changes. Click = only this one; Shift+click = add it (on the real panel: press them together).'));
   ['M/E 1','M/E 2','M/E 3','M/E 4'].forEach((l,i)=>s+=key('me'+(i+1),X([.811,.851,.890,.930][i]),Y(.379),37,38,l,'ap-w','M/E: which mix-effects bus this panel controls (the Constellation HD here has 2).'));
   [['tdip','DIP',.550,.545],['tdve','DVE',.590,.545],['tsting','STING',.629,.545],['tmix','MIX',.550,.585],['twipe','WIPE',.590,.585],['arm','ARM',.629,.585]].forEach(([id,l,x,y])=>s+=key(id,X(x),Y(y),37,38,l,'ap-w',id==='arm'?'ARM: disabled in the real firmware.':'Transition type for AUTO and the T-bar.'));
   s+=key('cut',X(.550),Y(.687),37,38,'CUT','ap-w','CUT: preview and programme swap instantly.')+key('auto',X(.628),Y(.687),37,38,'AUTO','ap-w','AUTO: runs the selected transition at the AUTO RATE (red while it runs).');
@@ -38,12 +44,12 @@ function svg(){let s=`<svg viewBox="${VB.join(' ')}" class="cr-svg" id="ap-svg">
 const OUTS=12,INT=['pgm','pvw','clean1','bars','black','mp1','mp2'];
 function setK(id,cls,on){const g=document.querySelector(`#ap-svg .ap-k[data-k="${id}"]`);if(g)g.classList.toggle(cls,!!on);}
 function draw(){const a=A();if(!a)return;const S=a.S,st=a.st(),off=P.shift?10:0,now=performance.now();
-  for(let n=0;n<10;n++){const v=n+1+off;setK('pgm'+n,'red',S.pgm===v||(S.T&&S.pvw===v));setK('pvw'+n,'green',st.mode==='pp'&&S.pvw===v&&!S.T);setK('sel'+n,'white',P.menu==='aux'&&st.outs[P.aux]===v);
+  for(let n=0;n<10;n++){const v=btnSrc(n,P.shift);setK('pgm'+n,'red',S.pgm===v||(S.T&&S.pvw===v));setK('pvw'+n,'green',st.mode==='pp'&&S.pvw===v&&!S.T);setK('sel'+n,'white',(P.menu==='aux'&&st.outs[P.aux]===v)||(P.menu==='keyers'&&a.key(P.key).fill===v)||(P.menu==='settings'&&P.mapBtn===n+(P.shift?10:0)));
     const nm=(id,t,col)=>{const e=document.querySelector(`#ap-svg [data-nm="${id}"]`);if(e){e.textContent=t;e.setAttribute('class','ap-nm'+(col?' '+col:''));}};
-    nm('sel'+n,P.menu==='aux'?'Cam '+v:'');nm('pgm'+n,'Cam '+v,S.pgm===v?'red':'');nm('pvw'+n,'Cam '+v,S.pvw===v?'green':'');}
+    nm('sel'+n,['aux','keyers','settings'].includes(P.menu)?short(v):'');nm('pgm'+n,short(v),S.pgm===v?'red':'');nm('pvw'+n,short(v),S.pvw===v?'green':'');}
   setK('shift1','amber',P.shift);setK('shift2','amber',P.shift);setK('prevtrans','amber',P.prev);
   ['mix','dip','wipe','dve'].forEach(t=>setK('t'+t,S.T?'red':'amber',S.trans===t));if(!S.T)['mix','dip','wipe','dve'].forEach(t=>setK('t'+t,'red',false));
-  setK('auto','red',!!S.T);Object.keys(P.next).forEach(k=>setK(k,'amber',P.next[k]));[1,2,3,4].forEach(n=>setK('on'+n,'red',S['key'+n].on));setK('me1','amber',true);
+  setK('auto','red',!!S.T);Object.keys(S.next).forEach(k=>setK(k,'amber',S.next[k]));[1,2,3,4].forEach(n=>setK('on'+n,'red',S['key'+n].on));setK('me1','amber',true);
   setK('tie1','amber',S.dsk1.tie);setK('tie2','amber',S.dsk2.tie);setK('dcut1','red',S.dsk1.on);setK('dcut2','red',S.dsk2.on);setK('dauto1','red',S.dsk1.a>0&&S.dsk1.a<1);setK('dauto2','red',S.dsk2.a>0&&S.dsk2.a<1);
   setK('ftb','red',S.ftb.on&&Math.floor(now/400)%2===0);
   document.querySelectorAll('#ap-svg .ap-s').forEach(g=>g.classList.toggle('amber',g.dataset.k==='sys_'+{home:'HOME',aux:'AUX',mix:'MIX',dip:'DIP',wipe:'WIPE',dve:'DVE',ftb:'FTB'}[P.menu]));
@@ -63,30 +69,38 @@ function lcd(a,S,st){const c=document.querySelector('.ap-lcd');if(!c)return;cons
     bottom([['OUTPUT','Out '+(P.aux+1)],['INTERNAL',a.srcLabel(st.outs[P.aux]).slice(0,10)],['',''],['','']]);}
   else if(['mix','dip','wipe','dve'].includes(P.menu)){tabs([P.menu.toUpperCase(),'',''],0);g.font='700 20px sans-serif';g.fillStyle='#fff';g.fillText(P.menu.toUpperCase()+' transition',w/2,90);
     g.font='600 11px sans-serif';g.fillStyle='#8b949e';g.fillText('one rate for every type in this simulator',w/2,118);bottom([['RATE',fr(st.rate)],['','' ],['',''],['','']]);}
+  else if(P.menu==='keyers'){const K=a.key(P.key);tabs(['KEY '+P.key,'M/E 1','UPSTREAM'],0);g.font='700 18px sans-serif';g.fillStyle='#fff';g.fillText(K.type.toUpperCase()+' key',w/2,62);
+    g.font='600 12px sans-serif';g.fillStyle='#c9d1d9';g.fillText('Fill: '+short(K.fill)+(K.type==='luma'?'   ·   Key: '+short(K.key):''),w/2,86);g.fillStyle='#ffcf5a';g.fillText(P.msg||'Select row = '+(K.type==='luma'?P.keySel+' source (knob 3 switches)':'fill source')+' · ON = on air · KEY '+P.key+' = next transition',w/2,112);
+    bottom([['KEY','Key '+P.key],['TYPE',K.type.toUpperCase()],K.type==='dve'?['SIZE',Math.round(K.size*100)+'%']:['SELECT',P.keySel.toUpperCase()],K.type==='dve'?['POSITION X',K.x.toFixed(2)]:['','']]);}
+  else if(P.menu==='settings'){tabs(['SWITCHER','PANEL','BUTTON MAPPING'],2);const b=P.mapBtn;g.font='700 18px sans-serif';g.fillStyle='#fff';g.fillText('Button '+(b%10+1)+(b>=10?' + SHIFT':''),w*.3,80);g.fillText('→ '+a.srcLabel(MAP[b]),w*.7,80);
+    g.font='600 11px sans-serif';g.fillStyle='#ffcf5a';g.fillText('Knob 1 or a select-row button = which button · knob 2 = its source (saved in the panel)',w/2,116);bottom([['BUTTON',(b%10+1)+(b>=10?'+S':'')],['SOURCE',short(MAP[b])],['',''],['','']]);}
   else if(P.menu==='ftb'){tabs(['FTB','',''],0);g.font='700 20px sans-serif';g.fillStyle='#fff';g.fillText('Fade to black',w/2,90);bottom([['RATE',fr(st.ftbRate)],['AFV','off'],['',''],['','']]);}
   else{tabs([P.menu.toUpperCase(),'',''],0);g.font='600 14px sans-serif';g.fillStyle='#8b949e';g.fillText('This menu is not simulated yet',w/2,100);}}
 /* ---------- interaction ---------- */
 function msg(t){P.msg=t;clearTimeout(P.mt);P.mt=setTimeout(()=>{P.msg='';draw();},2500);}
 function press(k){const a=A();if(!a)return;const off=P.shift?10:0;
-  let m;if((m=/^pgm(\d)$/.exec(k)))a.pgm(+m[1]+1+off);else if((m=/^pvw(\d)$/.exec(k)))a.pvw(+m[1]+1+off);
-  else if((m=/^sel(\d)$/.exec(k))){if(P.menu==='aux'){a.setOut(P.aux,+m[1]+1+off);}else msg('Press AUX first to route an output with the select row');}
+  let m;if((m=/^pgm(\d)$/.exec(k)))a.pgm(btnSrc(+m[1],P.shift));else if((m=/^pvw(\d)$/.exec(k)))a.pvw(btnSrc(+m[1],P.shift));
+  else if((m=/^sel(\d)$/.exec(k))){const v=btnSrc(+m[1],P.shift);if(P.menu==='aux')a.setOut(P.aux,v);else if(P.menu==='keyers'){a.setKey(P.key,P.keySel==='key'?{key:v}:{fill:v});msg('Key '+P.key+' '+(P.keySel==='key'?'key':'fill')+' source: '+short(v));}else if(P.menu==='settings'){P.mapBtn=+m[1]+(P.shift?10:0);}else msg('Select row: press AUX (outputs) or KEYERS (fill / key source) first');}
   else if(k==='shift1'||k==='shift2')P.shift=!P.shift;else if(k==='cut')a.cut();else if(k==='auto')a.auto();
   else if(/^t(mix|dip|wipe|dve)$/.test(k)){a.trans(k.slice(1));P.menu=k.slice(1);}else if(k==='tsting')msg('STING needs a stinger clip in a media player — not simulated');else if(k==='arm')msg('ARM: disabled in the firmware');
-  else if((m=/^on(\d)$/.exec(k))){a.keyOn(+m[1]);if(+m[1]>0)msg('Upstream key '+m[1]+': no fill / key set up here');}
-  else if(k==='bkgd'||/^k\d$/.test(k))P.next[k]=!P.next[k];
+  else if((m=/^on(\d)$/.exec(k))){a.keyOn(+m[1]);}
+  else if(k==='bkgd'||/^k\d$/.test(k)){if(P.shiftClick)a.next({[k]:!a.S.next[k]});else a.next({bkgd:false,k1:false,k2:false,k3:false,k4:false,[k]:true});}   /* one button = only it (real: press several together = Shift+click here) */
   else if((m=/^tie(\d)$/.exec(k)))a.dskTie(+m[1]);else if((m=/^dcut(\d)$/.exec(k)))a.dskCut(+m[1]);else if((m=/^dauto(\d)$/.exec(k)))a.dskAuto(+m[1]);
   else if(k==='ftb')a.ftb();else if(k==='prevtrans'){P.prev=!P.prev;msg('PREV TRANS: rehearse on preview (not simulated)');}
   else if(/^me\d$/.test(k)){if(k!=='me1')msg(k==='me2'?'M/E 2: not used in this simulator':'This switcher has only 2 M/Es');}
   else if(k==='macro')msg('Macros: not simulated');
-  else if(k.startsWith('sys_')){const n=k.slice(4);const map={HOME:'home',AUX:'aux',MIX:'mix',DIP:'dip',WIPE:'wipe',DVE:'dve',FTB:'ftb'};if(map[n])P.menu=map[n];else if(n==='CAMERA CONTROL')msg('Use the camera control panel (CCU) on the right');else if(n!=='blank'&&n!=='◁'&&n!=='▷'){P.menu=n.toLowerCase();}}
+  else if(k.startsWith('sys_')){const n=k.slice(4);const map={HOME:'home',AUX:'aux',MIX:'mix',DIP:'dip',WIPE:'wipe',DVE:'dve',FTB:'ftb',KEYERS:'keyers',SETTINGS:'settings'};if(map[n])P.menu=map[n];else if(n==='CAMERA CONTROL')msg('Use the camera control panel (CCU) on the right');else if(n!=='blank'&&n!=='◁'&&n!=='▷'){P.menu=n.toLowerCase();}}
   else if(k.startsWith('kp'))msg('Keypad: not simulated');else if(k.startsWith('soft'))msg('');}
 function knob(i,d){const a=A();if(!a)return;const st=a.st();
   if(P.menu==='home'){const key=['rate','dskRate','dskRate','ftbRate'][i];a.setRate(key,st[key]+d);}
   else if(P.menu==='aux'){if(i===0)P.aux=(P.aux+d+OUTS)%OUTS;else if(i===1){const cur=st.outs[P.aux],j=INT.indexOf(cur);a.setOut(P.aux,INT[(j+d+INT.length)%INT.length]);}}
+  else if(P.menu==='keyers'){const K=a.key(P.key),T=['dve','luma','chroma'];if(i===0)P.key=((P.key-1+d+4)%4)+1;else if(i===1)a.setKey(P.key,{type:T[(T.indexOf(K.type)+d+3)%3]});
+    else if(i===2){if(K.type==='dve')a.setKey(P.key,{size:Math.max(.1,Math.min(1,K.size+d*.02))});else P.keySel=P.keySel==='fill'?'key':'fill';}else if(i===3&&K.type==='dve')a.setKey(P.key,{x:Math.max(-1,Math.min(1,K.x+d*.04))});}
+  else if(P.menu==='settings'){if(i===0)P.mapBtn=(P.mapBtn+d+20)%20;else if(i===1){const j=SRC_ALL.indexOf(MAP[P.mapBtn]);MAP[P.mapBtn]=SRC_ALL[(j+d+SRC_ALL.length)%SRC_ALL.length];saveMap();}}
   else if(['mix','dip','wipe','dve'].includes(P.menu)&&i===0)a.setRate('rate',st.rate+d);else if(P.menu==='ftb'&&i===0)a.setRate('ftbRate',st.ftbRate+d);}
 P.tbv=0;
 function mount(el){el.innerHTML=`<div class="cr-wrap ap-wrap">${svg()}</div>`;const s=el.querySelector('#ap-svg');
-  s.addEventListener('pointerdown',e=>{const k=e.target.closest('.ap-k');if(k){e.preventDefault();k.classList.add('down');const up=()=>{k.classList.remove('down');removeEventListener('pointerup',up);};addEventListener('pointerup',up);press(k.dataset.k);draw();return;}
+  s.addEventListener('pointerdown',e=>{const k=e.target.closest('.ap-k');if(k){e.preventDefault();k.classList.add('down');const up=()=>{k.classList.remove('down');removeEventListener('pointerup',up);};addEventListener('pointerup',up);P.shiftClick=e.shiftKey;press(k.dataset.k);draw();return;}
     const kn=e.target.closest('.ap-knob'),tb=e.target.closest('#ap-tbar');if(!kn&&!tb)return;e.preventDefault();
     if(kn&&e.shiftKey){const a=A(),i=+kn.dataset.k.slice(4);if(a&&P.menu==='home')a.setRate(['rate','dskRate','dskRate','ftbRate'][i],25);else if(a&&i===0&&['mix','dip','wipe','dve'].includes(P.menu))a.setRate('rate',25);else if(a&&i===0&&P.menu==='ftb')a.setRate('ftbRate',25);msg('Reset to 1:00');draw();return;}   /* simulator shortcut */
     let y0=e.clientY,acc=0;const r=s.getBoundingClientRect(),scale=VB[3]/r.height;

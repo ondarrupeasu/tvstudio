@@ -6,10 +6,12 @@
 const PW=1080,PH=100,X=f=>f*PW,Y=f=>f*PH,CW=480,CH=270;
 const ST_KEY='atem-state';
 const SRCN={bars:'Color Bars',black:'Black',mp1:'Media Player 1',mp2:'Media Player 2',pgm:'Program',pvw:'Preview',clean1:'Clean Feed 1',mv1:'Multiview 1'};
-const DEF={outs:['pgm','pvw','pgm','black','black','black','black','black','black','black','black','black'],mode:'pp',rate:25,dskRate:25,ftbRate:25,ip:[192,168,11,50]};
+const DEF={outs:['pgm','pvw','pgm','black','black','black','black','black','black','black','black','black'],mode:'pp',rate:25,dskRate:25,ftbRate:25,ip:[192,168,11,50],
+  keys:[{type:'dve',fill:2,key:null,size:.35,x:.58,y:-.55},{type:'luma',fill:9,key:10,size:.35,x:-.58,y:-.55},{type:'chroma',fill:1,key:null,size:1,x:0,y:0},{type:'dve',fill:3,key:null,size:.35,x:-.58,y:.55}]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(ST_KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
+if(!st.keys)st.keys=JSON.parse(JSON.stringify(DEF.keys));
 const save=()=>{try{localStorage.setItem(ST_KEY,JSON.stringify(st));}catch(_){}};
-const S={pgm:1,pvw:2,trans:'mix',T:null,ftb:{on:false,a:0},key1:{on:false,a:0},key2:{on:false,a:0},key3:{on:false,a:0},key4:{on:false,a:0},dsk1:{on:false,a:0,tie:false,cut:false},dsk2:{on:false,a:0,tie:false,cut:false},nextBg:true,locked:false,lockFlash:0,
+const S={pgm:1,pvw:2,trans:'mix',T:null,ftb:{on:false,a:0},key1:{on:false,a:0},key2:{on:false,a:0},key3:{on:false,a:0},key4:{on:false,a:0},dsk1:{on:false,a:0,tie:false,cut:false},dsk2:{on:false,a:0,tie:false,cut:false},next:{bkgd:true,k1:false,k2:false,k3:false,k4:false},locked:false,lockFlash:0,
   menu:null,master:0,audioSel:null,msg:''};
 const inName=n=>'Camera '+n;   // ATEM default input names
 const srcLabel=id=>typeof id==='number'?inName(id):SRCN[id]||id;
@@ -30,6 +32,14 @@ function dskOver(g,a){if(a<=0)return;const fg=fCv.getContext('2d',{willReadFrequ
   const fd=fg.getImageData(0,0,CW,CH),kd=kg.getImageData(0,0,CW,CH).data,d=fd.data;
   for(let i=0;i<d.length;i+=4)d[i+3]=(kd[i]*.2126+kd[i+1]*.7152+kd[i+2]*.0722)*a;   // linear key: the key signal's luminance = transparency
   fg.putImageData(fd,0,0);g.drawImage(fCv,0,0);}
+/* upstream keys (KEY 1-4 of M/E 1): DVE = picture in picture, LUMA = fill cut by the brightness of the key source, CHROMA = green removed */
+const kF=mk(),kK=mk();
+function keyOver(g,K,a){if(a<=0||K.fill==null)return;const fg=kF.getContext('2d',{willReadFrequently:true});if(!src(K.fill,fg,CW,CH))return;
+  if(K.type==='dve'){const w=CW*K.size,h=CH*K.size,x=(CW-w)/2+K.x*CW/2,y=(CH-h)/2+K.y*CH/2;g.globalAlpha=a;g.fillStyle='#fff';g.fillRect(x-2,y-2,w+4,h+4);g.drawImage(kF,x,y,w,h);g.globalAlpha=1;return;}
+  const fd=fg.getImageData(0,0,CW,CH),d=fd.data;let kd=null;if(K.type==='luma'&&K.key!=null){const kg=kK.getContext('2d',{willReadFrequently:true});if(src(K.key,kg,CW,CH))kd=kg.getImageData(0,0,CW,CH).data;}
+  for(let i=0;i<d.length;i+=4){let al;if(K.type==='chroma'){const gEx=d[i+1]-Math.max(d[i],d[i+2]);al=1-Math.min(1,Math.max(0,(gEx-20)/50));if(gEx>0)d[i+1]-=gEx*(1-al);}
+    else{const L=kd?kd[i]*.2126+kd[i+1]*.7152+kd[i+2]*.0722:d[i]*.2126+d[i+1]*.7152+d[i+2]*.0722;al=Math.min(1,Math.max(0,(L-40)/150));}d[i+3]=al*255*a;}
+  fg.putImageData(fd,0,0);g.drawImage(kF,0,0);}
 function render(){const g=pgmCv.getContext('2d'),T=S.T;
   src(S.pgm,g,CW,CH);
   if(T){const p=T.p,bg=tB.getContext('2d');src(S.pvw,bg,CW,CH);
@@ -37,6 +47,7 @@ function render(){const g=pgmCv.getContext('2d'),T=S.T;
     else if(T.fx==='dip'){if(p<.5){g.fillStyle=`rgba(0,0,0,${p*2})`;g.fillRect(0,0,CW,CH);}else{g.drawImage(tB,0,0);g.fillStyle=`rgba(0,0,0,${(1-p)*2})`;g.fillRect(0,0,CW,CH);}}
     else if(T.fx==='wipe'){g.save();g.beginPath();g.rect(0,0,CW*p,CH);g.clip();g.drawImage(tB,0,0);g.restore();}
     else{g.drawImage(tB,CW*(1-p),CH*(1-p)/2*0,CW*p+1,CH);}}   // DVE: push in from the right
+  [1,2,3,4].forEach(n=>keyOver(g,st.keys[n-1],S['key'+n].a));
   cleanCv.getContext('2d').drawImage(pgmCv,0,0);
   dskOver(g,S.dsk1.a);
   if(S.ftb.a>0){g.fillStyle=`rgba(0,0,0,${S.ftb.a})`;g.fillRect(0,0,CW,CH);}
@@ -119,8 +130,9 @@ function draw(){for(let n=1;n<=20;n++){setK('s'+n,'pgm',S.pgm===n||(S.T&&S.pvw==
   document.querySelectorAll('#at-rsvg .at-sock').forEach(g=>{const d=g.dataset.s[0],k=+g.dataset.s.slice(1);g.classList.toggle('plugged',d==='i'?hubOutFor(k+1)>=0:d==='m'?k===0:aoUsed(k));});
   drawLcd();}
 function ties(){['dsk1','dsk2'].forEach(k=>{if(S[k].tie){S[k].on=!S[k].on;S[k].tie=false;}});}
-function take(){if(S.T)return;const a=S.pgm;S.pgm=S.pvw;S.pvw=a;['dsk1','dsk2'].forEach(k=>{if(S[k].tie){S[k].on=!S[k].on;S[k].a=S[k].on?1:0;S[k].tie=false;}});}
-function auto(){if(S.T)return;S.T={t0:performance.now(),ms:st.rate*40,p:0,fx:S.trans};ties();}
+function nextKeys(cut){[1,2,3,4].forEach(n=>{if(S.next['k'+n]){const k=S['key'+n];k.on=!k.on;if(cut)k.a=k.on?1:0;}});}
+function take(){if(S.T)return;nextKeys(true);if(!S.next.bkgd){draw();return;}const a=S.pgm;S.pgm=S.pvw;S.pvw=a;['dsk1','dsk2'].forEach(k=>{if(S[k].tie){S[k].on=!S[k].on;S[k].a=S[k].on?1:0;S[k].tie=false;}});}
+function auto(){if(S.T)return;nextKeys(false);if(!S.next.bkgd)return;S.T={t0:performance.now(),ms:st.rate*40,p:0,fx:S.trans};ties();}
 function press(id){S.msg='';
   if(S.locked&&!['lock','menu','set','ptalk','etalk','call','pgmmix','up','dn'].includes(id)){S.lockFlash=performance.now()+600;return;}
   if(id==='menu'){S.menu=S.menu?(S.menu.page==='main'?null:{page:'main',i:S.menu.back??0}):{page:'main',i:0};return;}
@@ -134,7 +146,7 @@ function press(id){S.msg='';
   if(id==='cut')take();else if(id==='auto')auto();
   else if(id.startsWith('t')&&['tmix','twipe','tdip','tdve'].includes(id))S.trans=id.slice(1);
   else if(id==='ftb')S.ftb.on=!S.ftb.on;
-  else if(id==='key1'||id==='dsk1'||id==='dsk2'){S[id].on=!S[id].on;if(id!=='dsk1')S.msg=(id==='key1'?'Key 1':'DSK 2')+': no fill/key set up';}}
+  else if(id==='key1'||id==='dsk1'||id==='dsk2'){S[id].on=!S[id].on;if(id==='dsk2')S.msg='DSK 2: no fill/key set up';}}
 function spin(d){const m=S.menu;
   if(!m){S.master=Math.max(-60,Math.min(10,S.master+d*.5));return;}
   if(m.page==='main')m.i=(m.i+d+MENU.length)%MENU.length;else if(m.page==='outs')m.i=(m.i+d+12)%12;else if(m.page==='outsrc')m.i=(m.i+d+OUTSRC.length)%OUTSRC.length;
@@ -168,7 +180,7 @@ let last=0;
 function loop(now){requestAnimationFrame(loop);const vis=document.getElementById('vh')?.classList.contains('on'),pop=mvWin&&!mvWin.closed,cr=document.getElementById('cr')?.classList.contains('on');if(!vis&&!pop&&!cr)return;
   if(now-last<38)return;last=now;   // ~25 fps
   if(S.T&&!S.T.manual){S.T.p=Math.min(1,(now-S.T.t0)/S.T.ms);if(S.T.p>=1){const a=S.pgm;S.pgm=S.pvw;S.pvw=a;S.T=null;draw();}}
-  const ease=(o,ms=st.rate*40)=>{const t=o.on?1:0;o.a+=Math.sign(t-o.a)*Math.min(Math.abs(t-o.a),38/ms);};ease(S.ftb,st.ftbRate*40);ease(S.dsk1,st.dskRate*40);ease(S.key1);ease(S.dsk2,st.dskRate*40);
+  const ease=(o,ms=st.rate*40)=>{const t=o.on?1:0;o.a+=Math.sign(t-o.a)*Math.min(Math.abs(t-o.a),38/ms);};ease(S.ftb,st.ftbRate*40);ease(S.dsk1,st.dskRate*40);[1,2,3,4].forEach(n=>ease(S['key'+n]));ease(S.dsk2,st.dskRate*40);
   render();if(pop||cr)drawMV();
   if(vis){drawLcd();if(S.ftb.on||S.lockFlash>now)draw();}
   if(pop){const c=mvWin.document.getElementById('mv');if(c)c.getContext('2d').drawImage(mvCv,0,0);}}
@@ -180,6 +192,6 @@ const API={S,st:()=>st,mvOpen:()=>!!(mvWin&&!mvWin.closed),inName,srcLabel,progr
   tbar(v){if(!S.T){if(Math.abs(v-tbStart)<.01)return;S.T={manual:true,p:0,fx:S.trans};ties();}if(!S.T.manual)return;S.T.p=Math.min(1,Math.abs(v-tbStart));
     if(S.T.p>=1){const a=S.pgm;S.pgm=S.pvw;S.pvw=a;S.T=null;tbStart=v;}draw();},
   ftb(){S.ftb.on=!S.ftb.on;draw();},dskCut(n){const d=S['dsk'+n];d.on=!d.on;d.a=d.on?1:0;draw();},dskAuto(n){const d=S['dsk'+n];d.on=!d.on;draw();},dskTie(n){S['dsk'+n].tie=!S['dsk'+n].tie;draw();},
-  keyOn(n){const k=S['key'+n];k.on=!k.on;k.a=k.on?1:0;draw();},setRate(k,v){st[k]=Math.max(1,Math.min(250,v));save();},setOut(o,v){st.outs[o]=v;save();draw();}};
+  keyOn(n){const k=S['key'+n];k.on=!k.on;k.a=k.on?1:0;draw();},next(o){Object.assign(S.next,o);if(!Object.values(S.next).some(Boolean))S.next.bkgd=true;draw();},key:n=>st.keys[n-1],setKey(n,o){Object.assign(st.keys[n-1],o);save();},setRate(k,v){st[k]=Math.max(1,Math.min(250,v));save();},setOut(o,v){st.outs[o]=v;save();draw();}};
 window.ATEMR={mount,api:API,redraw:()=>draw(),outFrame:(k,g,w,h)=>outFrame(st.outs[k],g,w,h),outLabel:k=>srcLabel(st.outs[k]),state:()=>st,program:()=>pgmCv};
 })();
