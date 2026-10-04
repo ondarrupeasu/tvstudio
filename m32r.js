@@ -78,7 +78,7 @@ function surface(){let s=`<svg class="mx-svg" viewBox="0 -304 1000 1529" role="i
   s+=`<defs><linearGradient id="mxbody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26272c"/><stop offset="1" stop-color="#1b1c20"/></linearGradient></defs>`;
   s+=`<rect x="2" y="78" width="996" height="490" rx="22" fill="url(#mxbody)" stroke="#0c0c0e" stroke-width="3"/>`;
   // TALKBACK
-  s+=panel(16,105,230,200,'TALKBACK')+btn('talkA',48,165,'TALK A','fn',40,20,'TALK A: the talkback mic goes to mix buses 1-6 (studio monitors / earpieces). The control-room monitors dim while talking.')+btn('talkB',98,165,'TALK B','fn',40,20,'TALK B: the talkback mic goes to the main L/R mix.')+knob('talk',182,150,15,'TALK|LEVEL'.replace('|',' '),'Talkback mic level (rear TALKBACK MIC input).');
+  s+=panel(16,105,230,200,'TALKBACK')+btn('talkA',48,165,'TALK A','fn',40,20,'TALK A: the talkback mic goes to mix buses 1-6 (studio monitors / earpieces), not to the main. To hear it here, SOLO one of buses 1-6. The control-room monitors dim while talking.')+btn('talkB',98,165,'TALK B','fn',40,20,'TALK B: the talkback mic goes to the main L/R mix (you hear it here if MAIN is up). The control-room monitors dim -10 dB while talking.')+knob('talk',182,150,15,'TALK|LEVEL'.replace('|',' '),'Talkback mic level (rear TALKBACK MIC input).');
   // MONITOR
   s+=panel(237,105,448,200,'MONITOR')+knob('mon',275,150,15,'MONITOR LEVEL','Level of the control-room speakers (MONITOR L/R outputs). Here: the volume you hear.')+btn('dim',327,160,'DIM','fn',34,20,'DIM: lowers the monitor/phones level (−20 dB) without touching the mix.')+knob('phones',380,150,15,'PHONES LEVEL','Headphones level. Here: also the volume you hear.')+btn('vmon',425,182,'VIEW','view',32,18);
   // REC + BUS SEND
@@ -91,7 +91,7 @@ function surface(){let s=`<svg class="mx-svg" viewBox="0 -304 1000 1529" role="i
   s+=`<rect x="591" y="115" width="260" height="166" rx="4" fill="#050608" stroke="#000"/><g id="mx-screen" transform="translate(595,119)"></g>`;
   // main meter (M/C SOLO, L, R)
   ['M/C','L','R'].forEach((l,c)=>{const x=874+c*14;s+=T(x,128,l,'mx-xs');for(let k=0;k<18;k++)s+=led('mm:'+c+':'+k,x,272-k*7.6,9,4.6,k>=17?'r':k>=13?'y':'g');});
-  for(let e=0;e<6;e++)s+=knob('enc'+e,616+e*42,312,12,'');
+  for(let e=0;e<6;e++)s+=knob('enc'+e,616+e*42,312,12,'Screen encoder '+(e+1),'Screen encoder '+(e+1)+': turn it (drag up/down or scroll) to change the parameter shown above it on the screen; push it (click without dragging) for its push action.');
   s+=btn('cur:up',915,298,'▲','scrb',18,15)+btn('cur:down',915,326,'▼','scrb',18,15)+btn('cur:left',896,312,'◀','scrb',18,15)+btn('cur:right',934,312,'▶','scrb',18,15);
   // CONFIG / PREAMP
   s+=panel(16,206,234,359,'CONFIG/PREAMP')+knob('gain',52,262,17,'GAIN','Preamp GAIN (0 to +60 dB): raise it until the meter next to it peaks around −12/−6 without CLIP.')+knob('lcf',172,262,17,'FREQUENCY','LOW CUT frequency (20-400 Hz): removes rumble below it when LOW CUT is on.');
@@ -256,7 +256,7 @@ function applyMain(){if(!A)return;const t=A.ctx.currentTime,anySolo=Object.value
   g2(A.talk.lvl.gain,G.talk*G.talk*4);g2(A.talk.a.gain,G.talkA?1:0);g2(A.talk.b.gain,G.talkB?1:0);
   for(let k=1;k<=16;k++){const b=A.bus[k],s=S['bus'+k];b.fad.gain.setTargetAtTime(db2g(f2db(s.fader)),t,.015);b.mute.gain.setTargetAtTime(s.mute?0:1,t,.015);b.solo.gain.setTargetAtTime(s.solo?1:0,t,.015);}
   A.mainF.gain.setTargetAtTime(db2g(f2db(S.main.fader)),t,.015);A.mainM.gain.setTargetAtTime(S.main.mute?0:1,t,.015);
-  const lvl=Math.max(G.mon,G.phones),v=lvl*lvl*(G.dim||G.talkA||G.talkB?0.1:1);   // talking dims the monitors
+  const lvl=Math.max(G.mon,G.phones),v=lvl*lvl*(G.dim?0.1:G.talkA||G.talkB?0.32:1);   // DIM = -20 dB; talking dims the monitors -10 dB (so you still hear TALK B in the main)
   A.mon.gain.setTargetAtTime(G.power?v:0,t,.02);A.mainToMon.gain.setTargetAtTime(anySolo?0:1,t,.02);A.soloToMon.gain.setTargetAtTime(anySolo?1:0,t,.02);}
 function applyAll(){Object.keys(P).forEach(applyCh);applyMain();}
 /* ---------- input sources (the patch: what arrives at IN 1-8) ---------- */
@@ -298,7 +298,7 @@ async function setSource(id,kind,opt={}){SRC[id]=kind;const meta=SOURCES[kind];i
       A.pbufs=A.pbufs||{};const ck=f.name+':'+f.size;if(!A.pbufs[ck])A.pbufs[ck]=await ctx.decodeAudioData(await f.arrayBuffer());const b=A.pbufs[ck];
       A.clipDur=A.clipDur||{};A.clipDur[id]=b.duration;if(A.packT0==null)A.packT0=ctx.currentTime;if(A.packPaused!=null)return;
       const x=ctx.createBufferSource();x.buffer=b;x.loop=true;x.connect(lv);x.start(0,clockAt(b.duration));n.srcNodes.push(x);}   // same clock as the other files: they play together
-    else if(kind==='tb'){lv.gain.value=db2g(-20);A.bufs=A.bufs||{};const u='audio/talk.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
+    else if(kind==='tb'){lv.gain.value=db2g(-6);A.bufs=A.bufs||{};const u='audio/talk.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
     else if(kind==='pres'||kind==='guest'){lv.gain.value=db2g(-40);A.bufs=A.bufs||{};const u='audio/'+kind+'.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
     else if(kind==='music'){lv.gain.value=db2g(-14);A.music=A.music||musicBuffer(ctx);loop(A.music);}
     else if(kind==='amb'){lv.gain.value=db2g(-46);A.noise=A.noise||noiseBuffer(ctx);loop(A.noise);}
