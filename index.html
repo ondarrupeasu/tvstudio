@@ -200,6 +200,32 @@
     background:var(--ce-accent);color:var(--ce-on-accent);border:0;border-radius:10px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.4)}
   .swbtn.on{display:inline-flex}.swbtn:hover{background:var(--ce-accent-hi)}
   @media (max-width:900px){.swbtn{top:auto;bottom:14px}}
+  /* Midas M32R */
+  .mx{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.mx.on{display:flex}
+  .mx .pwr-hd{padding:8px 16px 6px;align-items:center}.mx .pwr-hd p{font-size:11.5px}.mx .pwr-btns button{padding:6px 10px;font-size:12px}
+  .mx-body{flex:1;min-height:0;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  #mx-back,#mx-front{width:min(1100px,100%)}.mx-rear,.mx-svg{display:block;width:100%}
+  .mx-photo{display:none;max-width:100%;max-height:calc(100vh - 140px);object-fit:contain}.mx.photo .mx-photo{display:block}.mx.photo #mx-back,.mx.photo #mx-front{display:none}
+  .mx .pwr-status{padding:6px 16px}.mx-sel{margin-left:auto;font-size:12px;color:var(--ce-muted)}.mx-sel b{color:#fff}
+  .mx-svg,.mx-rear{user-select:none;-webkit-user-select:none;touch-action:none}
+  .mx-svg text,.mx-rear text{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;pointer-events:none}
+  .mx-pan{fill:none;stroke:#6b6e76;stroke-width:1.2}.mx-pt{font-size:9.5px;font-weight:800;fill:#e9e9eb;letter-spacing:.02em}
+  .mx-l{font-size:8px;font-weight:700;fill:#dcdde0}.mx-xs{font-size:6.6px;font-weight:700;fill:#c9cace}.mx-sc{font-size:6.6px;fill:#bfc0c4}
+  .mx-logo{font-size:10px;font-weight:800;fill:#e6e6e8;letter-spacing:.12em}.mx-wt{font-size:8px;font-weight:700;fill:#eee}
+  .mx-tick{stroke:#8a8c92;stroke-width:1}
+  .mx-b{cursor:pointer}.mx-b rect{fill:#8d9097;stroke:#2b2c31;stroke-width:1}.mx-bt{font-size:6.8px;font-weight:800;fill:#1b1c20}
+  .mx-b.sel rect{fill:#9aa3ad}.mx-b.sel.lit rect{fill:#7fd3ff}.mx-b.solo rect{fill:#b8b07e}.mx-b.solo.lit rect{fill:#ffd23a}
+  .mx-b.mute rect{fill:#b99a9e}.mx-b.mute.lit rect{fill:#ff3b3b}.mx-b.fn.lit rect,.mx-b.lay.lit rect{fill:#ff8f8a}.mx-b.asg.lit rect{fill:#6fb0ff}
+  .mx-b.view rect{fill:#6f7279}.mx-b.scrb rect{fill:#3a3c43}.mx-b.scrb .mx-bt{fill:#e4e5e8}.mx-b.scrb.lit rect{fill:#b36c69}
+  .mx-b:hover rect{stroke:var(--ce-accent);stroke-width:1.6}
+  .mx-k{cursor:ns-resize}.mx-kb{fill:#121316;stroke:#3c3e45}.mx-kc{fill:#1d1f24}.mx-kp{stroke:#f2f2f2;stroke-width:2;stroke-linecap:round}
+  .mx-ring{fill:none;stroke:#2d2f35;stroke-width:3}.mx-ringv{fill:none;stroke:#ffae3d;stroke-width:3}.mx-k:hover .mx-kb{stroke:var(--ce-accent)}
+  .mx-led{fill:#25262b}.mx-led.lit.g{fill:#3be07a}.mx-led.lit.y{fill:#ffd23a}.mx-led.lit.r{fill:#ff3b2f}
+  .mx-lcdbg{fill:#050506}.mx-lcd1{font-size:11px;font-weight:800;fill:#fff}.mx-lcd2{font-size:8.6px;font-weight:700;fill:#fff}
+  .mx-cap{transition:transform .45s cubic-bezier(.3,.7,.3,1)}.mx-cap.drag{transition:none}.mx-f{cursor:ns-resize}
+  .mx-s{font-size:8px;fill:#e5ecf7}.mx-st{font-size:6.6px;fill:#a9bad3}.mx-sv{font-size:8px;font-weight:700;fill:#ffffff}.mx-samb{font-size:8px;fill:#ffb347}
+  .mx-sbig{font-size:13px;font-weight:800;fill:#fff}.mx-warn{font-size:8px;font-weight:700;fill:#ffb347}.mx-micbtn{cursor:pointer}
+  .mx-power{cursor:pointer}.mx-power .pr1{fill:#2b2b2e}.mx-power .pr2{fill:#4c4c52}.mx-rear.on .pr1{fill:#4c4c52}.mx-rear.on .pr2{fill:#2b2b2e}.mx-power:hover>rect:first-child{stroke:var(--ce-accent);stroke-width:2}
 </style>
 </head>
 <body class="ce-base">
@@ -431,6 +457,16 @@
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
 <script src="desk.js"></script>
+<div class="mx" id="mx">
+  <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
+    <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
+    <div class="pwr-btns"><button id="mx-photo">Real photo</button></div></div>
+  <button class="close" id="mx-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  <div class="mx-body"><div id="mx-back"></div><div id="mx-front"></div><img class="mx-photo" src="img/mesa-audio.jpg" alt="Midas M32R in the control room (photo)"></div>
+  <div class="pwr-status" id="mx-diag"></div>
+  <div class="pwr-tip" id="mx-tip"></div>
+</div>
+<script src="m32r.js"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
@@ -509,14 +545,14 @@ function open(k){
     gal.appendChild(f);});
   document.getElementById('d-name').textContent=d.name;document.getElementById('d-kind').textContent=d.kind;document.getElementById('d-what').textContent=d.what;document.getElementById('d-use').textContent=d.use;
   document.getElementById('d-normal').classList.toggle('notext',!!d.notext);
-  document.getElementById('d-simbtn').classList.toggle('on',k==='luces');
+  const sb=document.getElementById('d-simbtn');sb.classList.toggle('on',k==='luces'||k==='audio');sb.dataset.k=k;sb.textContent=k==='audio'?'▶ Open the M32R simulator':'▶ Open the light simulator';
   drawer.classList.add('on');scrim.classList.add('on');}
 function close(){document.querySelectorAll('.zone.sel').forEach(z=>z.classList.remove('sel'));drawer.classList.remove('on');scrim.classList.remove('on');setTimeout(()=>drawer.classList.remove('rackmode'),260);}
 document.querySelectorAll('.zone').forEach(z=>z.addEventListener('click',()=>open(z.dataset.k)));
 document.getElementById('close').addEventListener('click',close);
-document.getElementById('d-simbtn').addEventListener('click',()=>{close();openDesk();});
+document.getElementById('d-simbtn').addEventListener('click',e=>{const k=e.currentTarget.dataset.k;close();k==='audio'?openMixer():openDesk();});
 scrim.addEventListener('click',close);
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pwr').classList.contains('on'))closePower();else{close();closeDesk();}}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pwr').classList.contains('on'))closePower();else{close();closeDesk();closeMixer();}}});
 </script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
 </body>
