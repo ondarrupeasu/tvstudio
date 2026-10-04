@@ -205,6 +205,28 @@
   .swbtn.on{display:inline-flex}.swbtn:hover{background:var(--ce-accent-hi)}
   @media (max-width:900px){.swbtn{top:auto;bottom:14px}}
   /* Midas M32R */
+  .rc-sim{border:0;cursor:pointer;font-family:inherit}
+  /* Smart Videohub 20x20 simulator */
+  .vh{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.vh.on{display:flex}
+  .vh .pwr-hd{padding:8px 16px 6px;align-items:center}.vh .pwr-hd p{font-size:11.5px}.vh .pwr-btns button{padding:6px 10px;font-size:12px}.vh .pwr-status{padding:6px 16px;flex-wrap:wrap}
+  .vh-body{flex:1;min-height:0;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .vh-lab{align-self:stretch;max-width:1400px;margin:6px auto 0;width:100%;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ce-muted)}.vh-lab span{font-weight:400;letter-spacing:0}
+  .vh-front,.vh-rear{position:relative;width:100%;max-width:1400px}.vh-svg{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;touch-action:none}
+  .vh-svg text{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;pointer-events:none}
+  #vh-lcd{position:absolute;left:66.2%;top:9%;width:9.8%;height:80%;border-radius:2px;pointer-events:none}
+  .vh-face{fill:#7d8288;stroke:#3a3d42;stroke-width:1.2}.vh-rface{fill:#5d6166}.vh-rin{fill:#2a2c30;stroke:#1a1b1e}.vh-fold{stroke:#5f6368;stroke-width:1}.vh-hole{fill:#0b0c0f}
+  .vh-name{font-size:15px;fill:#fff}.vh-logo{font-size:10.5px;font-weight:600;fill:#e2e4e7}.vh-bmd{fill:none;stroke:#f29a2e;stroke-width:1.8}
+  .vh-k{cursor:pointer}.vh-k rect{fill:#c3c9cf;stroke:#6c7178;stroke-width:1}.vh-kt{font-size:6.6px;font-weight:700;fill:#3a3f46;text-anchor:middle}
+  .vh-k:hover rect{stroke:var(--ce-accent);stroke-width:1.6}.vh-k.lit rect{fill:#fff;filter:drop-shadow(0 0 3px #fff)}.vh-k.down rect{fill:#e9edf1}
+  .vh-k.flash rect{animation:vhfl .7s steps(1) infinite}.vh-k[data-k="take"].flash rect{animation-name:vhred}
+  @keyframes vhfl{50%{fill:#fff}}@keyframes vhred{50%{fill:#ff3b30}}
+  .vh-lcdb{fill:#050506}.vh-knob{cursor:ns-resize}.vh-kn{fill:#1a1b1e;stroke:#0c0d0f}.vh-kn2{fill:#26282c}.vh-knd{stroke:#9aa0a6;stroke-width:1.6;stroke-linecap:round}.vh-knob:hover .vh-kn{stroke:var(--ce-accent)}
+  .vh-iec{fill:#3a3c40;stroke:#18191b}.vh-iec2{fill:#141518}.vh-rj{fill:#141518;stroke:#5a5d63}.vh-rt{font-size:5.6px;font-weight:600;fill:#c9ccd1;text-anchor:middle}.vh-rn{font-size:5.6px;font-weight:600;fill:#c9ccd1}
+  .vh-bnc{fill:#9da2a8;stroke:#4a4d52}.vh-bnc2{fill:#c9cdd2;stroke:#6a6e74}.vh-bnc3{fill:#2a2c30}.vh-brk{fill:none;stroke:#9aa0a6;stroke-width:.8}
+  .vh-sock{cursor:pointer}.vh-sock:hover .vh-bnc{stroke:var(--ce-accent);stroke-width:2}.vh-plug{fill:none;stroke:none}
+  .vh-sock.plugged .vh-plug{fill:#1d1f23;stroke:#e8e8ea;stroke-width:2}.vh-sock.plugged.hl .vh-plug{stroke:#3c86ef;stroke-width:3}
+  .vh-tbl{width:100%;max-width:1400px;display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.vh-th{width:100%;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ce-muted)}
+  .vh-rt2{font-size:12px;color:var(--ce-muted);border:1px solid var(--ce-line);border-radius:8px;padding:4px 9px}.vh-rt2 b{color:#fff;font-weight:650}.vh-rt2.on{border-color:#3c86ef;background:#13233d}
   .mx{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.mx.on{display:flex}
   .mx .pwr-hd{padding:8px 16px 6px;align-items:center}.mx .pwr-hd p{font-size:11.5px}.mx .pwr-btns button{padding:6px 10px;font-size:12px}
   .mx-body{flex:1;min-height:0;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -568,6 +590,8 @@
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
 <script src="m32r.js"></script>
+<div class="vh" id="vh"></div>
+<script src="videohub.js"></script>
 <div class="vx" id="vx"></div>
 <script src="vmix.js"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
@@ -627,7 +651,7 @@ function showDev(d,z){
   if(z){document.querySelectorAll('.rhs.on').forEach(e=>e.classList.remove('on'));z.classList.add('on');}
   document.getElementById('rackcard').innerHTML=`${d.prod?`<img class="rc-img" src="${d.prod}" alt="${escAttr(d.name)}">`:''}`+
     `<div class="rc-txt"><div class="rc-name">${d.name}</div><div class="rc-desc">${d.desc}</div>`+
-    `<div class="rc-btns">${d.link?`<a class="rc-btn" href="${d.link}" target="_blank" rel="noopener">Maker's site ↗</a>`:''}${d.sim?`<span class="rc-soon">▶ Simulator — coming soon</span>`:''}</div></div>`;
+    `<div class="rc-btns">${d.link?`<a class="rc-btn" href="${d.link}" target="_blank" rel="noopener">Maker's site ↗</a>`:''}${d.sim?`<button class="rc-btn rc-sim" onclick="openVideohub()">▶ Open the simulator</button>`:''}</div></div>`;
 }
 function resetCard(){document.getElementById('rackcard').innerHTML='<div class="rc-hint">Hover a unit to see its name · click it to see its card here.</div>';}
 const drawer=document.getElementById('drawer'),scrim=document.getElementById('scrim');
