@@ -106,7 +106,7 @@ function surface(){let s=`<svg class="mx-svg" viewBox="0 -304 1000 1529" role="i
   s+=panel(237,206,445,541,'EQUALISER');
   ['HCUT','HSHV','VEQ','PEQ','LSHV','LCUT'].forEach((l,k)=>{const y=244+k*16;s+=led('eqm:'+l,262,y,8,6,'r')+T(272,y+2.5,l,'mx-xs','start');});
   s+=btn('eqmode',268,380,'MODE','fn',38,18,'MODE: filter type of the selected band (shelf, parametric, cut…).');
-  s+=knob('eqw',340,250,17,'WIDTH','WIDTH (Q) of the selected band.')+knob('eqf',340,330,17,'FREQUENCY','FREQUENCY of the selected band (20 Hz-20 kHz).')+knob('eqg',340,410,17,'GAIN','GAIN of the selected band (±15 dB). Simulator: double-click = 0 dB.');
+  s+=knob('eqw',340,250,17,'WIDTH','WIDTH (Q) of the selected band.')+knob('eqf',340,330,17,'FREQUENCY','FREQUENCY of the selected band (20 Hz-20 kHz).')+knob('eqg',340,410,17,'GAIN','GAIN of the selected band (±15 dB). Simulator: Shift+click = 0 dB.');
   s+=btn('eq',340,478,'EQ','fn',34,18,'EQ on/off for the selected channel.');
   [['high','HIGH',256],['himid','HI MID',292],['lomid','LO MID',350],['low','LOW',386]].forEach(([k,l,y])=>s+=btn('band:'+k,410,y,l,'fn',40,20,'Selects the '+l+' band for the three knobs.'));
   s+=T(394,276,'HIGH 2','mx-xs','end')+T(394,372,'LOW 2','mx-xs','end')+btn('veq',412,520,'VIEW','view',32,18);
@@ -114,7 +114,7 @@ function surface(){let s=`<svg class="mx-svg" viewBox="0 -304 1000 1529" role="i
   s+=panel(455,352,598,541,'ASSIGN');for(let i=0;i<8;i++)s+=btn('asg:'+i,487+(i%2)*44,388+Math.floor(i/2)*38,i+1,'asg',30,22,'User-assignable key '+(i+1)+'. Drawn only.');
   s+=btn('vasg',576,520,'VIEW','view',30,18);
   // MAIN BUS
-  s+=panel(603,352,775,541,'MAIN BUS')+knob('mcl',648,412,17,'M/C LEVEL','Send level to the mono/centre bus (Main C).')+knob('pan',730,412,17,'PAN/BAL','Pan of the selected channel in the stereo mix. Endless encoder, no centre click: watch the LED ring. Simulator: double-click = centre.');
+  s+=panel(603,352,775,541,'MAIN BUS')+knob('mcl',648,412,17,'M/C LEVEL','Send level to the mono/centre bus (Main C).')+knob('pan',730,412,17,'PAN/BAL','Pan of the selected channel in the stereo mix. Endless encoder, no centre click: watch the LED ring. Simulator: Shift+click = centre.');
   s+=btn('mono',648,478,'MONO|CENTRE','fn',46,24,'MONO CENTRE: sends the channel to the mono/centre bus.')+btn('st',716,478,'MAIN|STEREO','fn',46,24,'MAIN STEREO: sends the channel to the main L/R mix. Without it, the channel is not heard in the main mix.')+btn('vmain',756,520,'VIEW','view',30,18);
   // FADER LAYER
   s+=panel(781,352,983,541,'FADER LAYER');
@@ -540,13 +540,17 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   const pt=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());};
   svg.addEventListener('pointerdown',e=>{G.shiftDown=e.shiftKey;
     const f=e.target.closest('.mx-f');
-    if(f&&G.power&&!G.boot){const sid=stripId(f.dataset.slot);if(!sid)return;e.preventDefault();try{svg.setPointerCapture(e.pointerId);}catch(_){}
+    if(f&&G.power&&!G.boot){const sid=stripId(f.dataset.slot);if(!sid)return;e.preventDefault();
+      if(e.shiftKey){fSet(f.dataset.slot,sid,.75);liveTip(e,S[sid].num+' '+(S[sid].name||''),(G.flip&&fVal(f.dataset.slot,sid)!==S[sid].fader?'Send':'Fader')+': 0.0 dB');if(S[sid].type==='dca'||G.flip)applyAll();else if(S[sid].type==='in')applyCh(sid);applyMain();draw();return;}   // simulator shortcut: Shift+click = 0 dB
+      try{svg.setPointerCapture(e.pointerId);}catch(_){}
       const cap=f.querySelector('.mx-cap');cap.classList.add('drag');G.dragging=true;
       const set=ev=>{const q=svg.createSVGPoint();q.x=ev.clientX;q.y=ev.clientY;const y=q.matrixTransform(f.getScreenCTM().inverse()).y;fSet(f.dataset.slot,sid,cl((FY1-y)/(FY1-FY0)));{const v=fVal(f.dataset.slot,sid),fl=G.flip&&v!==S[sid].fader;liveTip(ev,S[sid].num+' '+(S[sid].name||''),(fl?'Send '+(G.flip.mode==='bus'?'→ '+S['bus'+G.flip.bus].name:'→ '+S[sid].name)+': ':'Fader: ')+fmtDb(f2db(v))+' dB');}if(S[sid].type==='dca'||G.flip)applyAll();else if(S[sid].type==='in')applyCh(sid);applyMain();draw();};set(e);
       const up=()=>{cap.classList.remove('drag');G.dragging=false;svg.removeEventListener('pointermove',set);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);};
       svg.addEventListener('pointermove',set);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);return;}
     const k=e.target.closest('.mx-k');
-    if(k&&G.power&&!G.boot){e.preventDefault();try{svg.setPointerCapture(e.pointerId);}catch(_){}let y0=e.clientY,moved=false;G.dragging=true;const ei=k.dataset.k.startsWith('enc')?+k.dataset.k.slice(3):null;if(ei!=null&&G.page==='mutegrp')G.holdEnc=ei;
+    if(k&&G.power&&!G.boot){e.preventDefault();
+      if(e.shiftKey&&['pan','eqg'].includes(k.dataset.k)){const p=P[G.sel],b=p&&p.b[p.band];if(!p)return;k.dataset.k==='pan'?p.pan=0:b.g=0;applyCh(G.sel);applyMain();draw();liveTip(e,KNAME[k.dataset.k],knobText(k.dataset.k));return;}   // simulator shortcut: Shift+click = centre
+      try{svg.setPointerCapture(e.pointerId);}catch(_){}let y0=e.clientY,moved=false;G.dragging=true;const ei=k.dataset.k.startsWith('enc')?+k.dataset.k.slice(3):null;if(ei!=null&&G.page==='mutegrp')G.holdEnc=ei;
       const mv=ev=>{const d=(y0-ev.clientY);if(Math.abs(d)>=2){moved=true;knobSet(k.dataset.k,Math.round(d/2));y0=ev.clientY;}const kk=k.dataset.k;liveTip(ev,KNAME[kk]||('Screen encoder '+(+kk.slice(3)+1)),knobText(kk));};
       const up=()=>{G.dragging=false;svg.removeEventListener('pointermove',mv);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);
         if(ei!=null){const hadAssign=G.holdEnc!=null&&G.mgAssigned;G.holdEnc=null;G.mgAssigned=false;if(!moved&&!hadAssign)encPress(ei);}};
@@ -557,8 +561,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     if(e.ctrlKey){e.preventDefault();const p=toVB(e);zoomAt(p.x,p.y,Math.exp(-e.deltaY*.012));return;}   // trackpad pinch / ctrl+wheel = zoom the desk
     const k=e.target.closest('.mx-k');if(k&&G.power){e.preventDefault();knobSet(k.dataset.k,e.deltaY<0?2:-2);return;}
     if(root.classList.contains('zoomed')){e.preventDefault();const [x,y,w,h]=curVB(),s2=w/svg.clientWidth;setVB([x+e.deltaX*s2,y+e.deltaY*s2,w,h]);}},{passive:false});
-  svg.addEventListener('dblclick',e=>{const kk=e.target.closest('.mx-k');if(kk&&G.power){const p=P[G.sel],b=p&&p.b[p.band];   // simulator shortcut: back to centre
-    if(p&&kk.dataset.k==='pan'){p.pan=0;}else if(b&&kk.dataset.k==='eqg'){b.g=0;}else return;applyCh(G.sel);applyMain();draw();liveTip(e,KNAME[kk.dataset.k],knobText(kk.dataset.k));return;}
+  svg.addEventListener('dblclick',e=>{
     if(e.target.closest('[data-b],.mx-k,.mx-f,.mx-sock,.mx-power'))return;const p=toVB(e);root.classList.contains('zoomed')?setVB(VB0,true):(()=>{const [x,y,w,h]=curVB(),f=2.4;setVB([p.x-w/f/2,p.y-h/f/2,w/f,h/f],true);})();});
   svg.addEventListener('pointerdown',e=>{if(!root.classList.contains('zoomed')||e.target.closest('[data-b],.mx-k,.mx-f,.mx-sock,.mx-power'))return;
     const x0=e.clientX,y0=e.clientY,v0=curVB().slice(),s2=v0[2]/svg.clientWidth;try{svg.setPointerCapture(e.pointerId);}catch(_){}svg.classList.add('panning');
@@ -572,7 +575,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.addEventListener('mousemove',e=>{if(G.dragging)return;const m=e.target.closest('[data-name]');if(!m||!root.contains(m)){tip.classList.remove('on');return;}
     let name=m.dataset.name,t=m.dataset.tip||TIPS[m.dataset.b||m.dataset.k]||'';
     if(m.dataset.k&&KNAME[m.dataset.k])name=KNAME[m.dataset.k];
-    if(m.classList.contains('mx-f')){const s=S[stripId(m.dataset.slot)];name=s?s.num+' '+s.name:'(empty)';t=s?'Fader: '+fmtDb(f2db(s.fader))+' dB — drag it.':'';}
+    if(m.classList.contains('mx-f')){const s=S[stripId(m.dataset.slot)];name=s?s.num+' '+s.name:'(empty)';t=s?'Fader: '+fmtDb(f2db(s.fader))+' dB — drag it. Simulator: Shift+click = 0 dB.':'';}
     if(m.dataset.b?.startsWith('sel:'))t='Selects this channel: the knobs above and the screen now edit it.';
     if(m.dataset.b?.startsWith('solo:'))t='SOLO: listen to this channel alone (PFL) in the monitors / phones.';
     if(m.dataset.b?.startsWith('mute:'))t='MUTE: cuts this channel.';
