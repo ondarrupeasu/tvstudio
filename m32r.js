@@ -276,8 +276,12 @@ const PACK={};          // name → File, from the multicam pack folder chosen b
 const PACKLEN=211;      // every file in the pack lasts 211 s and starts at the same instant
 const SONG_AT=12.5;     // in the pack the band starts playing 12.5 s in (same moment as in the camera files)
 /* multitrack playback of the pack (like the computer/recorder playing it into the desk): one clock for all pack files */
-const packIds=()=>Object.keys(SRC).filter(id=>SRC[id].startsWith('pk:'));
-function packPos(){if(!A||A.packT0==null)return 0;return A.packPaused!=null?A.packPaused:((A.ctx.currentTime-A.packT0)%PACKLEN+PACKLEN)%PACKLEN;}
+/* every audio file plugged into the desk (pack files or any file) plays on ONE clock, like a multitrack player:
+   files that start together stay together (no hidden adjustments — they just start/stop/loop together) */
+const packIds=()=>Object.keys(SRC).filter(id=>SRC[id].startsWith('pk:')||SRC[id]==='file');
+const clipLen=()=>{let L=0;packIds().forEach(id=>{const d=A&&A.clipDur&&A.clipDur[id];if(d)L=Math.max(L,d);});return L||PACKLEN;};
+function clockAt(len){return ((A.ctx.currentTime-A.packT0)%len+len)%len;}
+function packPos(){if(!A||A.packT0==null)return 0;return A.packPaused!=null?A.packPaused:clockAt(clipLen());}
 function packPlayFrom(pos){if(!A)return;A.packPaused=null;A.packT0=A.ctx.currentTime-pos;packIds().forEach(id=>setSource(id,SRC[id]));}
 function packPause(){if(!A||A.packPaused!=null)return;A.packPaused=packPos();packIds().forEach(stopSource);}
 function registerPack(files){let n=0;[...files].forEach(f=>{const m=f.name.match(/^(STEM_\w+|MIX_synced|CAM\d)\.(m4a|mp4|wav|mp3)$/i);if(!m)return;const key=m[1];PACK[key]=f;n++;
@@ -289,10 +293,11 @@ async function setSource(id,kind,opt={}){SRC[id]=kind;const meta=SOURCES[kind];i
   if(!A){draw();return;}const ctx=A.ctx,n=id==='talk'?A.talk:A.ch[id];stopSource(id);
   const lv=ctx.createGain();lv.connect(n.in);n.srcNodes=[lv];const loop=b=>{const x=ctx.createBufferSource();x.buffer=b;x.loop=true;x.connect(lv);x.start();n.srcNodes.push(x);};
   try{
-    if(kind.startsWith('pk:')){if(A.packPaused!=null)return;lv.gain.value=db2g(-20);const key=kind.slice(3),f=PACK[key];if(!f)throw new Error('Load the pack folder first');
-      A.pbufs=A.pbufs||{};if(!A.pbufs[key])A.pbufs[key]=await ctx.decodeAudioData(await f.arrayBuffer());
-      if(A.packT0==null)A.packT0=ctx.currentTime;const x=ctx.createBufferSource();x.buffer=A.pbufs[key];x.loop=true;x.loopEnd=Math.min(PACKLEN,x.buffer.duration);x.connect(lv);
-      x.start(0,((ctx.currentTime-A.packT0)%PACKLEN+PACKLEN)%PACKLEN);n.srcNodes.push(x);}   // same position as the other pack files: they play together
+    if(kind.startsWith('pk:')||kind==='file'){const f=kind==='file'?(opt.file||(SRCX[id]||{}).file):PACK[kind.slice(3)];if(!f)throw new Error(kind==='file'?'Choose the file again':'Load the pack folder first');
+      if(kind==='file')SRCX[id]={fileName:f.name,file:f};lv.gain.value=db2g(-20);
+      A.pbufs=A.pbufs||{};const ck=f.name+':'+f.size;if(!A.pbufs[ck])A.pbufs[ck]=await ctx.decodeAudioData(await f.arrayBuffer());const b=A.pbufs[ck];
+      A.clipDur=A.clipDur||{};A.clipDur[id]=b.duration;if(A.packT0==null)A.packT0=ctx.currentTime;if(A.packPaused!=null)return;
+      const x=ctx.createBufferSource();x.buffer=b;x.loop=true;x.connect(lv);x.start(0,clockAt(b.duration));n.srcNodes.push(x);}   // same clock as the other files: they play together
     else if(kind==='tb'){lv.gain.value=db2g(-20);A.bufs=A.bufs||{};const u='audio/talk.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
     else if(kind==='pres'||kind==='guest'){lv.gain.value=db2g(-40);A.bufs=A.bufs||{};const u='audio/'+kind+'.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
     else if(kind==='music'){lv.gain.value=db2g(-14);A.music=A.music||musicBuffer(ctx);loop(A.music);}
@@ -300,8 +305,6 @@ async function setSource(id,kind,opt={}){SRC[id]=kind;const meta=SOURCES[kind];i
     else if(kind==='tone'){lv.gain.value=db2g(-18);const o=ctx.createOscillator();o.frequency.value=1000;o.connect(lv);o.start();n.srcNodes.push(o);}
     else if(kind==='dev'){lv.gain.value=db2g(-20);const st=await navigator.mediaDevices.getUserMedia({audio:{deviceId:opt.deviceId?{exact:opt.deviceId}:undefined,echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
       n.streams=[st];const m=ctx.createMediaStreamSource(st);m.connect(lv);n.srcNodes.push(m);SRCX[id]={deviceId:opt.deviceId,label:st.getAudioTracks()[0]?.label};}
-    else if(kind==='file'&&opt.file){lv.gain.value=db2g(-20);const el=document.createElement('audio');el.src=URL.createObjectURL(opt.file);el.loop=true;el.crossOrigin='anonymous';
-      const m=ctx.createMediaElementSource(el);m.connect(lv);n.srcNodes.push(m);n.media=el;await el.play();SRCX[id]={fileName:opt.file.name};}
     else if(kind==='tab'){lv.gain.value=db2g(-20);const st=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});st.getVideoTracks().forEach(t=>t.stop());
       if(!st.getAudioTracks().length)throw new Error('The shared tab has no audio (tick "Share tab audio").');n.streams=[st];const m=ctx.createMediaStreamSource(st);m.connect(lv);n.srcNodes.push(m);}
     SRCX[id]=Object.assign(SRCX[id]||{},{err:null});
@@ -331,8 +334,9 @@ function peakDb(an){an.getFloatTimeDomainData(buf);let m=0;for(let i=0;i<buf.len
 const lev={};   // smoothed meter levels
 function trpTick(){const tr=document.getElementById('mx-trp');if(!tr)return;const on=packIds().length>0&&G.power;tr.hidden=!on;if(!on)return;
   const p=packPos(),f=t=>String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t%60)).padStart(2,'0');
-  tr.querySelector('.mx-tt').textContent=f(p)+' / '+f(PACKLEN)+(p<SONG_AT?' · the song starts at 00:12':'');tr.querySelector('[data-t="pp"]').textContent=A&&A.packPaused!=null?'▶':'❚❚';
-  tr.querySelector('.mx-tbar i').style.width=(p/PACKLEN*100)+'%';}
+  const L=clipLen(),pk=packIds().some(id=>SRC[id].startsWith('pk:'));tr.querySelector('[data-t="song"]').hidden=!pk;
+  tr.querySelector('.mx-tt').textContent=f(p)+' / '+f(L)+(pk&&p<SONG_AT?' · the song starts at 00:12':'');tr.querySelector('[data-t="pp"]').textContent=A&&A.packPaused!=null?'▶':'❚❚';
+  tr.querySelector('.mx-tbar i').style.width=(p/L*100)+'%';}
 function meterTick(){requestAnimationFrame(meterTick);if(!root.classList.contains('on'))return;trpTick();
   const L=(k,on)=>{const e=svg.querySelector(`[data-l="${k}"]`);if(e)e.classList.toggle('lit',!!on);};
   const sm=(k,v)=>lev[k]=Math.max(v,(lev[k]??-120)-1.4);
@@ -574,7 +578,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('mx-photo').addEventListener('click',e=>{const on=root.classList.toggle('photo');e.currentTarget.textContent=on?'Recreation':'Real photo';});
   document.getElementById('mx-close').addEventListener('click',()=>window.closeMixer());
   document.getElementById('mx-trp').addEventListener('click',e=>{const b=e.target.closest('[data-t]'),bar=e.target.closest('.mx-tbar');if(!A)return;
-    if(bar){const r=bar.getBoundingClientRect();return packPlayFrom((e.clientX-r.left)/r.width*PACKLEN);}
+    if(bar){const r=bar.getBoundingClientRect();return packPlayFrom((e.clientX-r.left)/r.width*clipLen());}
     if(!b)return;const t=b.dataset.t;if(t==='pp')A.packPaused!=null?packPlayFrom(A.packPaused):packPause();else if(t==='start')packPlayFrom(0);else if(t==='song')packPlayFrom(SONG_AT-.5);});
   document.getElementById('mx-lay').addEventListener('click',()=>{LAY=LAY==='side'?'real':'side';fit();});
   document.getElementById('mx-guidebtn').addEventListener('click',()=>{document.getElementById('mx-guide').classList.toggle('on');});
