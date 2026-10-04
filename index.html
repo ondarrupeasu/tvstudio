@@ -99,6 +99,7 @@
   .rc-desc{font-size:13px;color:var(--ce-muted);margin-top:4px;line-height:1.45}
   .rc-btn{display:inline-block;margin-top:9px;background:var(--ce-accent);color:var(--ce-on-accent);font-weight:650;font-size:12.5px;text-decoration:none;border-radius:8px;padding:7px 14px}
   .rc-btn:hover{background:var(--ce-accent-hi)}
+  .rc-btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px}.rc-btns .rc-btn{margin-top:0}.rc-soon{font-size:12px;color:var(--ce-muted2);border:1px dashed var(--ce-line);border-radius:8px;padding:6px 10px}
   /* power wall (breaker board + 2 Datapak) — full screen */
   .pwr{position:fixed;inset:0;z-index:20;background:#0b0c0f;display:none;flex-direction:column}
   .pwr.on{display:flex}
@@ -447,11 +448,11 @@
   </div>
   <div id="d-rack">
     <div class="rack-hd"><h2>Technical rack</h2><div class="kind">The signal chain</div>
-      <p>Slide over a unit to see it below · click it to open the maker's site.</p></div>
+      <p>Hover a unit to see its name · click it to see its card below.</p></div>
     <div class="rackwrap show" id="rackwrap">
       <div class="rackscroll"><div class="rackstage" id="rackstage"><img class="rackimg" src="img/rack-v2.jpg" alt="Technical rack"><div class="racktip" id="racktip"></div></div></div>
     </div>
-    <div class="rackcard" id="rackcard"><div class="rc-hint">Click a unit on the rack to see its card here.</div></div>
+    <div class="rackcard" id="rackcard"><div class="rc-hint">Hover a unit to see its name · click it to see its card here.</div></div>
   </div>
 </aside>
 <div class="pwr" id="pwr">
@@ -544,7 +545,7 @@ const RACK=[
   {name:"Ultimatte Smart Remote 4",prod:"img/producto/smart-remote.jpg",link:"https://www.blackmagicdesign.com/products/ultimatte",desc:"Touch remote to set up the Ultimatte units.",y:17,h:13,x:8,w:84},
   {name:"Caymon PSR119GS — power distribution",prod:"img/producto/caymon.png",link:"https://caymon.eu/products/d/psr119gs---19inch-power-distribution-unit---9-x-german-sockets-plus-rear-switch",desc:"The rack's switched power strip (9× sockets).",y:35,h:8.5,x:8,w:84},
   {name:"HyperDeck Studio HD Pro",prod:"img/producto/hyperdeck.jpg",link:"https://www.blackmagicdesign.com/products/hyperdeckstudio",desc:"Records the programme to cards / SSD.",y:43.7,h:4,x:8,w:84},
-  {name:"Smart Videohub 20×20",prod:"img/producto/videohub.jpg",link:"https://www.blackmagicdesign.com/es/products/blackmagicvideohub",desc:"SDI matrix: routes any source to any destination.",y:47.9,h:3.9,x:8,w:84},
+  {name:"Smart Videohub 20×20",prod:"img/producto/videohub.jpg",link:"https://www.blackmagicdesign.com/es/products/blackmagicvideohub",desc:"SDI matrix: routes any source to any destination. Its front panel has a small screen to check the routed signal.",sim:true,y:47.9,h:3.9,x:8,w:84},
   {name:"ATEM 2 M/E Constellation HD",prod:"img/producto/constellation.jpg",link:"https://www.blackmagicdesign.com/es/products/atemconstellation",desc:"The actual vision mixer (driven by the ATEM panel).",y:52,h:4.5,x:8,w:84},
   {name:"NewTek TriCaster TCXD450 — unused",prod:"img/producto/tricaster.jpg",link:"https://downloads.newtek.com/LiveProductionSystems/Legacy/850/TCXD.pdf",desc:"All-in-one switcher/streaming unit. Currently not in use. (Link = manual, discontinued.)",y:76,h:7.5,x:8,w:84},
   {name:"Lapara Rack 1000VA — UPS (SAI)",prod:"img/producto/lapara.jpg",link:"https://lapara.es/sais/sai-online/sai-rack-1000-va-online-lcd-lapara",desc:"Uninterruptible power supply: keeps the rack running through a mains cut.",y:85,h:8,x:8,w:84}
@@ -552,10 +553,10 @@ const RACK=[
 const rackStage=document.getElementById('rackstage'),racktip=document.getElementById('racktip');
 function buildRack(){
   if(rackStage.dataset.built)return; rackStage.dataset.built="1";
-  RACK.forEach(d=>{const z=document.createElement(d.link?'a':'div');z.className='rhs';
-    z.style.cssText=`left:${d.x}%;top:${d.y}%;width:${d.w}%;height:${d.h}%;cursor:${d.link?'pointer':'default'}`;
-    if(d.link){z.href=d.link;z.target='_blank';z.rel='noopener';}
-    z.addEventListener('mouseenter',()=>{showDev(d,z);racktip.textContent=d.name;racktip.classList.add('on');});
+  RACK.forEach(d=>{const z=document.createElement('div');z.className='rhs';
+    z.style.cssText=`left:${d.x}%;top:${d.y}%;width:${d.w}%;height:${d.h}%;cursor:pointer`;
+    z.addEventListener('click',()=>showDev(d,z));
+    z.addEventListener('mouseenter',()=>{racktip.textContent=d.name;racktip.classList.add('on');});
     z.addEventListener('mousemove',e=>{const r=rackStage.getBoundingClientRect();racktip.style.left=(e.clientX-r.left)+'px';racktip.style.top=(e.clientY-r.top)+'px';});
     z.addEventListener('mouseleave',()=>racktip.classList.remove('on'));
     rackStage.appendChild(z);});
@@ -564,9 +565,10 @@ function escAttr(s){return String(s).replace(/"/g,'&quot;');}
 function showDev(d,z){
   if(z){document.querySelectorAll('.rhs.on').forEach(e=>e.classList.remove('on'));z.classList.add('on');}
   document.getElementById('rackcard').innerHTML=`${d.prod?`<img class="rc-img" src="${d.prod}" alt="${escAttr(d.name)}">`:''}`+
-    `<div class="rc-txt"><div class="rc-name">${d.name}</div><div class="rc-desc">${d.desc}</div></div>`;
+    `<div class="rc-txt"><div class="rc-name">${d.name}</div><div class="rc-desc">${d.desc}</div>`+
+    `<div class="rc-btns">${d.link?`<a class="rc-btn" href="${d.link}" target="_blank" rel="noopener">Maker's site ↗</a>`:''}${d.sim?`<span class="rc-soon">▶ Simulator — coming soon</span>`:''}</div></div>`;
 }
-function resetCard(){document.getElementById('rackcard').innerHTML='<div class="rc-hint">Slide over a unit to see it here · click it to open the maker\'s site.</div>';}
+function resetCard(){document.getElementById('rackcard').innerHTML='<div class="rc-hint">Hover a unit to see its name · click it to see its card here.</div>';}
 const drawer=document.getElementById('drawer'),scrim=document.getElementById('scrim');
 function open(k){
   document.querySelectorAll('.zone.sel').forEach(z=>z.classList.remove('sel'));document.querySelector(`.zone[data-k="${k}"]`)?.classList.add('sel');
