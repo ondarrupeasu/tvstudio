@@ -215,6 +215,14 @@
   .cr-hd{flex:1;min-width:0;padding-bottom:22px}.cr-hd .vh-lab{margin:0 0 4px}
   .cr.mvout .cr-wall{display:none}.cr.mvout .cr-hd{max-width:1100px;margin:0 auto}#cr-ccu{order:-1}   /* as in the room: CCU on the left, vision mixer on the right */
   .cr.f-atem #cr-ccu,.cr.f-ccu #cr-atem,.cr.f-ccu .cr-hd{display:none}.cr.mvout.f-ccu .cr-top-row{display:none}.cr.f-atem .cr-desk>div,.cr.f-ccu .cr-desk>div{max-width:100%}
+  /* one operator: multiview and that panel side by side (ATEM only: HyperDeck on top, as tall as it needs) */
+  .cr.f-ccu:not(.mvout) .cr-body,.cr.f-atem:not(.mvout) .cr-body{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;justify-items:center}
+  .cr.f-ccu:not(.mvout) .cr-top-row,.cr.f-atem:not(.mvout) .cr-top-row{display:contents}
+  .cr.f-ccu:not(.mvout) .cr-wall,.cr.f-atem:not(.mvout) .cr-wall{grid-column:1;width:100%;height:auto;max-width:100%}
+  .cr.f-ccu:not(.mvout) .cr-desk{grid-column:2;grid-row:1;height:calc(100vh - 150px);width:auto}
+  .cr.f-atem:not(.mvout) .cr-body{grid-template-rows:auto 1fr}.cr.f-atem:not(.mvout) .cr-hd{grid-column:1/3;grid-row:1;width:min(100%,1000px)}
+  .cr.f-atem:not(.mvout) .cr-wall{grid-row:2}.cr.f-atem:not(.mvout) .cr-desk{grid-column:2;grid-row:2;height:calc(100vh - 318px);width:auto}
+  .cr.f-ccu:not(.mvout) .cr-desk>div,.cr.f-atem:not(.mvout) .cr-desk>div{max-width:none}
   .cr-seg{display:inline-flex;gap:0}.cr-seg button{border-radius:0!important}.cr-seg button:first-child{border-radius:8px 0 0 8px!important}.cr-seg button:last-child{border-radius:0 8px 8px 0!important}.cr-seg button.on{background:var(--ce-accent);color:var(--ce-on-accent)}#cr-mv{width:100%;height:100%;display:block}
   .cr-desk{flex:1;min-height:0;display:flex;gap:14px;justify-content:center;align-items:flex-start;width:100%}.cr-desk>div{height:100%;max-width:49%}
   .cr-wrap{position:relative;height:100%;aspect-ratio:940/657.6;max-width:100%}.cc-wrap{aspect-ratio:930/731.5}.cr-svg{display:block;width:100%;height:100%;user-select:none;-webkit-user-select:none;touch-action:none}
@@ -371,6 +379,8 @@
   .vx-isprev{width:100%;aspect-ratio:16/9;background:#333;display:block;margin-top:8px;cursor:crosshair}.vx-hint{color:#9aa4ae;font-size:11.5px}
   .vx-kr{display:flex;align-items:center;gap:8px}.vx-kc{width:22px;height:22px;border:1px solid #fff;display:inline-block}.vx-kcp{position:relative;cursor:pointer}.vx-kcp input{position:absolute;opacity:0;inset:0}
   .vx-kbox{display:grid;grid-template-columns:1fr 1fr;gap:12px;border:1px solid #3a434d;padding:8px;margin-top:6px}
+  .vx-vs{margin-top:10px;border:1px solid #3a434d;padding:8px;display:flex;flex-direction:column;gap:6px}.vx-vst{font-weight:700;color:#9fb3c8}.vx-shots,.vx-speed{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+  .vx-shots button.on,.vx-speed button.on{background:#FF8C00;color:#000}.vx-vs label{display:flex;justify-content:space-between;gap:10px}.vx-vsl{display:flex;flex-direction:column;gap:8px}
   .vx-otab{width:100%;border-collapse:collapse}.vx-otab td,.vx-otab th{padding:4px 6px;text-align:left;border-bottom:1px solid #2f3842}.vx-otab tr.na{opacity:.45}.vx-otab select{width:100%}
   .vx-ovs{display:flex;flex-direction:column;gap:6px}.vx-ovs label{display:flex;justify-content:space-between;gap:10px;align-items:center}.vx-ovs input[type=number]{width:90px}
   .ov-frame{position:relative;width:100%;aspect-ratio:16/9;background:#0A0F14;border:1px solid #3a434d;margin:6px 0;overflow:hidden}.ov-box{position:absolute;border:2px solid #2f7cff;background:rgba(47,124,255,.25)}
@@ -606,7 +616,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=64"></script>
+<script src="power.js?v=66"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -616,7 +626,7 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=64"></script>
+<script src="desk.js?v=66"></script>
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
@@ -651,18 +661,18 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=64"></script>
+<script src="m32r.js?v=66"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=64"></script>
-<script src="constellation.js?v=64"></script>
-<script src="hyperdeck.js?v=64"></script>
-<script src="cables.js?v=64"></script>
+<script src="videohub.js?v=66"></script>
+<script src="constellation.js?v=66"></script>
+<script src="hyperdeck.js?v=66"></script>
+<script src="cables.js?v=66"></script>
 <div class="cr" id="cr"></div>
-<script src="ccu.js?v=64"></script>
-<script src="atempanel.js?v=64"></script>
-<script src="controlroom.js?v=64"></script>
+<script src="ccu.js?v=66"></script>
+<script src="atempanel.js?v=66"></script>
+<script src="controlroom.js?v=66"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=64"></script>
+<script src="vmix.js?v=66"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');

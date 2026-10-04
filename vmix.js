@@ -251,7 +251,7 @@ function draw(){if(!root.dataset.built)return;
 /* ---------- main loop ---------- */
 let last=performance.now(),acc=0,frames=0;
 function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on'))return;const t0=performance.now();
-  packSync();
+  packSync();V.inputs.forEach(x=>{if(x.type==='vset')renderVset(x);});
   if(V.T&&!V.T.manual){const p=Math.min(1,(now-V.T.t0)/V.T.ms);V.T.p=p;if(p>=1)finishTrans();}
   V.ov.forEach((o,n)=>{const S=V.ovset[n],sp=S.fx==='Cut'||!S.ms?1:Math.min(1,(now-(V.lastNow||now)+1)/S.ms);o.a+=Math.sign(o.target-o.a)*Math.min(Math.abs(o.target-o.a),sp);
     if(o.target>0&&o.a>=1&&S.dur>0){o.t1=o.t1||now;if(now-o.t1>S.dur){o.target=0;o.t1=0;draw();}}else if(o.target===0)o.t1=0;});V.lastNow=now;   // effect duration + auto close (Duration)
@@ -290,15 +290,23 @@ function alertBox(t,msg){modal(t,`<p>${msg}</p>`,{w:420,cancel:false});}
 function confirmBox(t,msg,fn){modal(t,`<p>${msg}</p>`,{w:380,onOk:()=>{fn();}});}
 function bigPreview(inp){const m=modal('Input '+inp.num+' — '+inp.name,`<canvas class="vx-big" width="${W}" height="${H}"></canvas><p class="vx-hint">Click the image to close.</p>`,{w:820,ok:null,cancel:false});
   const c=$('.vx-big',m);c.onclick=closeModal;const tick=()=>{if(!m.classList.contains('on')||!m.contains(c))return;scene(c,{a:inp});requestAnimationFrame(tick);};tick();}
-function ctxMenu(inp,e){const items=inp.type==='title'?[['Title Editor',()=>titleEditor(inp)],['TransitionIn',()=>toggleOverlay(0,inp)],['TransitionOut',()=>{V.ov.forEach(o=>{if(o.inp===inp)o.target=0;});draw();}]]
+function ctxMenu(inp,e){const items=inp.type==='vset'?[...inp.vs.zooms.map((z,i)=>['Camera: '+z.name,()=>vsShot(inp,i)]),['Input Settings (Setup)',()=>inputSettings(inp)]]:inp.type==='title'?[['Title Editor',()=>titleEditor(inp)],['TransitionIn',()=>toggleOverlay(0,inp)],['TransitionOut',()=>{V.ov.forEach(o=>{if(o.inp===inp)o.target=0;});draw();}]]
     :inp.type==='video'?[['Restart',()=>{inp.el.currentTime=0;}],['Play / Pause',()=>{inp.el.paused?inp.el.play():inp.el.pause();}]]:[['Input Settings',()=>inputSettings(inp)]];
   const p=pop(items.map((x,i)=>`<button data-i="${i}">${x[0]}</button>`).join(''),{getBoundingClientRect:()=>({left:e.clientX,bottom:e.clientY})});$$('[data-i]',p).forEach(b=>b.onclick=()=>{p.classList.remove('on');items[+b.dataset.i][1]();draw();});}
 
 /* Add Input — the real list of types; the ones not simulated are disabled */
-const TYPES=[['Video',1],['DVD',0],['List',0],['Camera',1],['NDI / Desktop Capture',0],['Stream / SRT',0],['Instant Replay',0,'Not available in the HD edition.'],['Image Sequence / Stinger',0],['Video Delay',0],['Image',1],['Photos',0],['PowerPoint',0],['Colour',1],['Audio',0],['Audio Input',0],['Title / XAML',1],['Flash / RTMP',0],['Virtual Set',0],['Web Browser',0],['Video Call',0]];
+const TYPES=[['Video',1],['DVD',0],['List',0],['Camera',1],['NDI / Desktop Capture',0],['Stream / SRT',0],['Instant Replay',0,'Not available in the HD edition.'],['Image Sequence / Stinger',0],['Video Delay',0],['Image',1],['Photos',0],['PowerPoint',0],['Colour',1],['Audio',0],['Audio Input',0],['Title / XAML',1],['Flash / RTMP',0],['Virtual Set',1],['Web Browser',0],['Video Call',0]];
 function addInputDialog(){const m=modal('Input Select',`<div class="vx-is"><div class="vx-isl">${TYPES.map(([n,ok,why],i)=>`<button data-t="${i}" ${ok?'':'class="na"'} title="${ok?'':(why||'Not simulated yet')}">${n}</button>`).join('')}</div><div class="vx-isr"><div class="vx-ish"></div><div class="vx-isp"></div></div></div>`,{w:860,onOk:()=>V.addOk&&V.addOk()});
   const sel=i=>{const [n,ok,why]=TYPES[i];$$('.vx-isl button',m).forEach(b=>b.classList.toggle('on',+b.dataset.t===i));const ph=$('.vx-isp',m),hd=$('.vx-ish',m);V.addOk=null;
     if(!ok){hd.textContent=n;ph.innerHTML=`<p class="vx-hint">${why||'This input type is not simulated yet.'}</p>`;return;}
+    if(n==='Virtual Set'){hd.textContent='Virtual Set — choose a set';ph.innerHTML=`<div class="vx-vsl"><label><input type="radio" name="vs" value="demo" checked> <b>Demo Studio</b> — example exported by SetFrameR (2 screens + presenter)</label>
+        <label><input type="radio" name="vs" value="browse"> Browse… a set folder (exported by <b>SetFrameR</b> or any vMix virtual set: config.xml + PNG files) <input type="file" class="vx-vsdir" webkitdirectory multiple hidden></label><div class="vx-files"></div></div>
+        <p class="vx-hint">Then, in the input's settings: <b>Setup</b> = which input goes in each layer (the presenter camera needs its <b>Chroma Key</b> on) and <b>Camera</b> = the shots (Full, Medium, Close Up) with speed F / M / S / C.</p>`;
+      let files=null;const dir=$('.vx-vsdir',ph);$$('input[name=vs]',ph).forEach(r=>r.onchange=()=>{if(r.value==='browse')dir.click();});
+      dir.onchange=()=>{files=[...dir.files];const c=files.find(f=>f.name==='config.xml');$('.vx-files',ph).textContent=c?(c.webkitRelativePath.split('/')[0]+' — '+files.length+' files'):'No config.xml in that folder';};
+      V.addOk=async()=>{try{if($('input[name=vs]:checked',ph).value==='demo'){await loadVset('Demo Studio',f=>fetch('vsets/DemoStudio/'+f).then(r=>{if(!r.ok)throw Error(f);return r.blob();})).then(x=>x.vsrc='demo');}
+          else{if(!files)return;const by=Object.fromEntries(files.map(f=>[f.name,f]));if(!by['config.xml'])return alertBox('Virtual Set','That folder has no config.xml.');
+            await loadVset(files[0].webkitRelativePath.split('/')[0]||'Virtual Set',f=>{if(!by[f])throw Error('Missing '+f);return Promise.resolve(by[f]);});}}catch(e){alertBox('Virtual Set','Could not load the set: '+(e.message||e));}};return;}
     if(n==='Video'){hd.textContent='Select the Video file(s) to open.';ph.innerHTML=`<label class="vx-browse">Browse… <input type="file" accept="video/*" multiple hidden></label><div class="vx-files"></div>
         <div class="vx-packbox"><b>Multicam pack (8 cameras, already in sync)</b><br><a href="https://apps.cinemafilmak.com/tvstudio/tvstudio-multicam-pack.zip">Download pack</a> (107 MB) · unzip it · then <b>Browse…</b> and select CAM1.mp4 … CAM8.mp4 together. They start together and loop together.</div>`;
       let files=[];$('input',ph).onchange=e=>{files=[...e.target.files];$('.vx-files',ph).textContent=files.map(f=>f.name).join(' · ');};
@@ -326,6 +334,13 @@ function inputSettings(inp){const k=inp.key,p=inp.pos,hex=c=>'#'+c.map(v=>Math.r
         <label>GO Action <select disabled><option>QuickPlay</option></select></label><label><input type="checkbox" class="vx-afvc" ${inp.afv?'checked':''}> Automatically mix audio</label>
         ${['video','image','missing'].includes(inp.type)?`<label>Source <span>${inp.file||'—'}</span> <button class="vx-chg">Change…</button></label>`:''}`;
       $('.vx-chg',ph)?.addEventListener('click',()=>changeSource(inp,()=>show(0)));
+      if(inp.type==='vset'){const S=inp.vs,opts=id=>`<option value="">(blank)</option>`+V.inputs.filter(x=>x!==inp&&x.type!=='vset').map(x=>`<option value="${x.id}" ${x.id===id?'selected':''}>${x.num} ${x.name}${x.key.on?' (keyed)':''}</option>`).join('');
+        ph.insertAdjacentHTML('beforeend',`<div class="vx-vs"><div class="vx-vst">Camera</div><div class="vx-shots">${S.zooms.map((z,i)=>`<button data-shot="${i}" class="${S.shot===i?'on':''}">${z.name}</button>`).join('')}</div>
+          <div class="vx-speed">${['F','M','S','C'].map(k=>`<button data-sp="${k}" class="${S.speed===k?'on':''}" title="${{F:'Fast',M:'Medium',S:'Slow',C:'Cut'}[k]}">${k}</button>`).join('')}<span>${S.speed==='C'?'cut':'00:0'+VS_SPEED[S.speed]/1000}</span></div>
+          <div class="vx-vst">Setup</div>${S.layers.filter(L=>L.dynamic).map(L=>`<label>${L.name} <select data-ly="${L.name}">${opts(L.input)}</select></label>`).join('')}
+          <p class="vx-hint">Talent = the presenter camera with its <b>Chroma Key</b> on (Colour Key tab). Screens = any input (a video, a title, another camera…).</p></div>`);
+        $$('[data-shot]',ph).forEach(b=>b.onclick=()=>{vsShot(inp,+b.dataset.shot);show(0);});$$('[data-sp]',ph).forEach(b=>b.onclick=()=>{S.speed=b.dataset.sp;show(0);});
+        $$('[data-ly]',ph).forEach(sel=>sel.onchange=()=>{S.layers.find(L=>L.name===sel.dataset.ly).input=+sel.value||null;});}
       $('.vx-name',ph).oninput=e=>{inp.name=e.target.value;draw();};$('.vx-catsel',ph).onchange=e=>{inp.cat=+e.target.value;draw();};$('.vx-afvc',ph).onchange=e=>{inp.afv=e.target.checked;applyAudio();};}
     else if(i===2){ph.innerHTML=`<div class="vx-kr"><label><input type="checkbox" class="vx-kon" ${k.on?'checked':''}> Colour Key</label><span class="vx-kc" style="background:${hex(k.col)}"></span><button class="vx-pk" data-tip="Auto Colour Key: then click on the image below to pick the key colour">💧</button><label class="vx-kcp">▦<input type="color" value="${hex(k.col)}"></label></div>
         <div class="vx-kbox"><div>${sl('Chroma Key',k.chroma,0,1,.01,v=>k.chroma=v)}<label><input type="checkbox" class="vx-kf" ${k.filter?'checked':''}> Chroma Key Filter</label>${sl('',k.filt,0,1,.01,v=>k.filt=v)}
@@ -453,9 +468,51 @@ function fullscreenMenu(b){const p=pop(['Output','Preview','MultiView'].map(s=>`
 function snapshot(){const a=document.createElement('a');a.href=outCv.toDataURL('image/png');a.download='snapshot.png';a.click();}
 
 /* ---------- open / close ---------- */
+/* ---------- Virtual Sets (vMix Virtual Set spec 1.0 — what SetFrameR exports) ----------
+ * config.xml = layers bottom→top (static image or dynamic slot with a 16-bit UV map) + <zoom> camera shots.
+ * UV map: u = R/65536, v = G/65536 (v from the top), coverage = A/65535 — decoded here at 16 bits (no library). */
+async function png16(buf){const d=new DataView(buf),u8=new Uint8Array(buf);let p=8,w=0,h=0,bd=8,ct=6;const idat=[];
+  while(p<u8.length){const len=d.getUint32(p),type=String.fromCharCode(...u8.subarray(p+4,p+8));if(type==='IHDR'){w=d.getUint32(p+8);h=d.getUint32(p+12);bd=u8[p+16];ct=u8[p+17];}else if(type==='IDAT')idat.push(u8.subarray(p+8,p+8+len));else if(type==='IEND')break;p+=12+len;}
+  const raw=new Uint8Array(await new Response(new Blob(idat).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+  const ch={6:4,2:3,4:2,0:1}[ct],bpp=ch*bd/8,stride=w*bpp,out=new Uint8Array(h*stride);
+  for(let y=0;y<h;y++){const f=raw[y*(stride+1)],src=raw.subarray(y*(stride+1)+1,(y+1)*(stride+1)),o=y*stride;
+    for(let x=0;x<stride;x++){const a=x>=bpp?out[o+x-bpp]:0,b=y?out[o-stride+x]:0,c=x>=bpp&&y?out[o-stride+x-bpp]:0;let v=src[x];
+      if(f===1)v+=a;else if(f===2)v+=b;else if(f===3)v+=(a+b)>>1;else if(f===4){const pp=a+b-c,pa=Math.abs(pp-a),pb=Math.abs(pp-b),pc=Math.abs(pp-c);v+=pa<=pb&&pa<=pc?a:pb<=pc?b:c;}out[o+x]=v&255;}}
+  return {w,h,bd,ch,data:out};}
+const VSV=`attribute vec2 p;varying vec2 st;void main(){st=p;gl_Position=vec4(p.x*2.-1.,1.-p.y*2.,0.,1.);}`;
+const VSF=`precision highp float;varying vec2 st;uniform sampler2D uv;uniform sampler2D cv;uniform sampler2D src;uniform float mode;
+void main(){if(mode<.5){gl_FragColor=texture2D(src,st);return;}float cov=texture2D(cv,st).a;if(cov<=0.){discard;}vec4 m=floor(texture2D(uv,st)*255.+.5);
+ vec2 q=vec2(m.r*256.+m.g,m.b*256.+m.a)/65536.;gl_FragColor=texture2D(src,q)*cov;}`;
+let vsProg=null,vsU=null;
+function vsInit(){if(vsProg)return;vsProg=gl.createProgram();gl.attachShader(vsProg,sh(gl.VERTEX_SHADER,VSV));gl.attachShader(vsProg,sh(gl.FRAGMENT_SHADER,VSF));gl.linkProgram(vsProg);
+  vsU={uv:gl.getUniformLocation(vsProg,'uv'),cv:gl.getUniformLocation(vsProg,'cv'),src:gl.getUniformLocation(vsProg,'src'),mode:gl.getUniformLocation(vsProg,'mode'),p:gl.getAttribLocation(vsProg,'p')};}
+function mkTex(filter){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);['TEXTURE_WRAP_S','TEXTURE_WRAP_T'].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,gl[k],gl.CLAMP_TO_EDGE));gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,filter);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,filter);return t;}
+/* UV map → two RGBA8 textures: u and v at full 16 bits (hi/lo bytes, nearest sampling) + coverage (alpha) */
+function uvTexture(img){const {w,h,data,bd,ch}=img,n=w*h,t=new Uint8Array(n*4),c=new Uint8Array(n*4),rd=bd===16?(i,k)=>(data[(i*ch+k)*2]<<8)|data[(i*ch+k)*2+1]:(i,k)=>data[i*ch+k]*257;
+  for(let i=0;i<n;i++){const u=rd(i,0),v=rd(i,1);t[i*4]=u>>8;t[i*4+1]=u&255;t[i*4+2]=v>>8;t[i*4+3]=v&255;c[i*4+3]=ch===4?rd(i,3)>>8:255;}
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);const tx=mkTex(gl.NEAREST);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,t);
+  const cx=mkTex(gl.LINEAR);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,c);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);return {tx,cx};}
+async function loadVset(name,get){vsInit();const xml=new DOMParser().parseFromString(await (await get('config.xml')).text(),'text/xml');
+  const layers=[];for(const el of xml.querySelectorAll('input')){const dyn=el.getAttribute('dynamic')==='true',L={name:el.getAttribute('name'),dynamic:dyn,input:null};
+    if(dyn){const uvf=el.getAttribute('uvmap');if(!uvf)continue;L.uv=uvTexture(await png16(await (await get(uvf)).arrayBuffer()));L.tex=mkTex(gl.LINEAR);L.cv=mkCanvas();}
+    else{const blob=await get(el.textContent.trim());const im=new Image();await new Promise((ok,ko)=>{im.onload=ok;im.onerror=()=>ko(Error('Cannot read '+el.textContent.trim()));im.src=URL.createObjectURL(blob);});L.tex=mkTex(gl.LINEAR);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,im);}
+    layers.push(L);}
+  const zooms=[...xml.querySelectorAll('zoom')].map(z=>({name:z.getAttribute('name'),x:+z.getAttribute('x')||0,y:+z.getAttribute('y')||0,zoom:+z.getAttribute('zoom')||1}));if(!zooms.length)zooms.push({name:'Full',x:0,y:0,zoom:1});
+  const inp=addInput({type:'vset',name,el:mkCanvas(),vs:{layers,zooms,shot:0,z:zooms[0].zoom,x:0,y:0,from:null,t0:0,ms:0,speed:'M'}});return inp;}
+function renderVset(inp){const S=inp.vs;
+  S.layers.forEach(L=>{if(!L.dynamic)return;const src=L.input&&byId(L.input);L.live=!!src&&src!==inp&&src.type!=='vset';if(!L.live)return;
+    scene(L.cv,{a:src,transparent:true});gl.bindTexture(gl.TEXTURE_2D,L.tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,L.cv);});   // the live input with its own chroma key
+  gl.useProgram(vsProg);gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.enableVertexAttribArray(vsU.p);gl.vertexAttribPointer(vsU.p,2,gl.FLOAT,false,0,0);gl.viewport(0,0,W,H);gl.disable(gl.SCISSOR_TEST);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniform1i(vsU.src,0);gl.uniform1i(vsU.uv,1);gl.uniform1i(vsU.cv,2);
+  S.layers.forEach(L=>{if(L.dynamic&&!L.live)return;gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,L.tex);if(L.dynamic){gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,L.uv.tx);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,L.uv.cx);}gl.uniform1f(vsU.mode,L.dynamic?1:0);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);});
+  gl.activeTexture(gl.TEXTURE0);gl.useProgram(prog);gl.vertexAttribPointer(pl,2,gl.FLOAT,false,0,0);
+  if(S.from){const k=S.ms?Math.min(1,(performance.now()-S.t0)/S.ms):1,e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2,to=S.zooms[S.shot];S.z=S.from.z+(to.zoom-S.from.z)*e;S.x=S.from.x+(to.x-S.from.x)*e;S.y=S.from.y+(to.y-S.from.y)*e;if(k>=1)S.from=null;}
+  const g=inp.el.getContext('2d'),cw=W/S.z,chh=H/S.z,sx=(W-cw)/2+S.x*W/4,sy=(H-chh)/2+S.y*H/4;g.clearRect(0,0,W,H);g.drawImage(gc,Math.max(0,Math.min(W-cw,sx)),Math.max(0,Math.min(H-chh,sy)),cw,chh,0,0,W,H);inp.dirty=true;inp.ready=true;}
+const VS_SPEED={F:1000,M:2000,S:4000,C:0};
+function vsShot(inp,i){const S=inp.vs;S.from={z:S.z,x:S.x,y:S.y};S.shot=i;S.t0=performance.now();S.ms=VS_SPEED[S.speed];draw();}
 /* ---------- Presets: New · Open · Save · Save As · Last (a whole production in one file) ---------- */
 const KEEP=['type','name','cat','key','pos','ca','cc','layers','hex','tpl','fields','loop','vol','mute','afv','bus','file','pack','id'];
-function presetData(){return {app:'tvstudio-vmix',v:1,name:V.preset||'Preset',inputs:V.inputs.map(x=>{const o={};KEEP.forEach(k=>{if(x[k]!==undefined)o[k]=JSON.parse(JSON.stringify(x[k]));});if(x.type==='colour'&&!x.hex)o.bars=true;if(x.type==='camera')o.label=x.name;return o;}),
+function presetData(){return {app:'tvstudio-vmix',v:1,name:V.preset||'Preset',inputs:V.inputs.map(x=>{const o={};KEEP.forEach(k=>{if(x[k]!==undefined)o[k]=JSON.parse(JSON.stringify(x[k]));});if(x.type==='colour'&&!x.hex)o.bars=true;if(x.type==='camera')o.label=x.name;if(x.type==='vset')o.vs={src:x.vsrc||null,shot:x.vs.shot,speed:x.vs.speed,layers:x.vs.layers.map(L=>({name:L.name,input:L.input}))};return o;}),
   pv:V.pv?.id,pgm:V.pgm?.id,trans:V.trans,ovset:V.ovset,ov:V.ov.map(o=>({id:o.inp?.id||null,on:o.target>0})),catLabels:V.catLabels||null};}
 function clearAll(){[...V.inputs].forEach(x=>{V.lock=false;removeInput(x);});V.ov.forEach(o=>{o.inp=null;o.a=o.target=0;o.pend=null;});V.pv=V.pgm=null;}
 /* video / image / camera can't be stored in a file: they come back as a placeholder — Input Settings > General > Change… */
@@ -471,6 +528,9 @@ function loadPreset(d){if(!d||d.app!=='tvstudio-vmix')return alertBox('Open','Th
   d.inputs.forEach(o=>{let x;if(o.type==='title')x=titleInput(o.tpl,TITLES[o.tpl].f.map(k=>o.fields?.[k]));else if(o.type==='colour')x=o.bars?barsInput():colourInput(o.name,o.hex||'#000');else x=missingInput(o);
     ['name','cat','key','pos','ca','cc','layers','loop','vol','mute','afv','bus'].forEach(k=>{if(o[k]!==undefined)x[k]=o[k];});if(x.type==='title')drawTitle(x);map[o.id]=x;});
   V.inputs.forEach(x=>(x.layers||[]).forEach(L=>{L.id=L.id&&map[L.id]?map[L.id].id:null;}));
+  d.inputs.filter(o=>o.type==='vset'&&o.vs&&o.vs.src==='demo').forEach(async o=>{const ph=map[o.id];const x=await loadVset(o.name,f=>fetch('vsets/DemoStudio/'+f).then(r=>r.blob()));x.vsrc='demo';   // the built-in set comes back by itself
+    x.vs.speed=o.vs.speed;x.vs.shot=o.vs.shot;x.vs.z=x.vs.zooms[o.vs.shot]?.zoom||1;o.vs.layers.forEach(l=>{const L=x.vs.layers.find(k=>k.name===l.name);if(L)L.input=l.input&&map[l.input]?map[l.input].id:null;});
+    V.inputs=V.inputs.filter(i=>i!==x);V.inputs.splice(V.inputs.indexOf(ph),1,x);if(V.pgm===ph)V.pgm=x;if(V.pv===ph)V.pv=x;renumber();draw();});
   V.pgm=map[d.pgm]||V.inputs[0]||null;V.pv=map[d.pv]||null;if(d.trans)V.trans=d.trans;if(d.ovset)V.ovset=d.ovset;if(d.catLabels)V.catLabels=d.catLabels;
   (d.ov||[]).forEach((o,n)=>{if(o.on&&map[o.id]){V.ov[n].inp=map[o.id];V.ov[n].target=V.ov[n].a=1;}});V.preset=d.name;applyAudio();draw();}
 function savePreset(as){let name=V.preset||'Preset';if(as||!V.preset){const n=prompt('Save preset as:',name);if(!n)return;name=n.trim()||name;}V.preset=name;const d=presetData();
