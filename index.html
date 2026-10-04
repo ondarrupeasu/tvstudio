@@ -248,6 +248,54 @@
   .mx-steps{margin:4px 0 0;padding-left:20px;font-size:12.5px;color:#d9dbe0;line-height:1.45}.mx-steps li{margin:3px 0}.mx-steps b{color:#fff}
   .mx-snote{font-size:11.5px;color:var(--ce-muted);margin:8px 0 0;line-height:1.4}
   .mx-power{cursor:pointer}.mx-power .pr1{fill:#2b2b2e}.mx-power .pr2{fill:#4c4c52}.mx-rear.on .pr1{fill:#4c4c52}.mx-rear.on .pr2{fill:#2b2b2e}.mx-power:hover>rect:first-child{stroke:var(--ce-accent);stroke-width:2}
+  /* vMix-style simulator (drawn by us; layout & colours from the vMix 29 manual) */
+  .vx{position:fixed;inset:0;z-index:21;display:none;flex-direction:column;background:#1E2328;color:#fff;font:12px "Segoe UI",Tahoma,Arial,sans-serif;user-select:none;-webkit-user-select:none}
+  .vx.on{display:flex}.vx button{font:inherit;font-weight:700;color:#fff;background:#293038;border:0;cursor:pointer;padding:4px 9px}.vx button:hover{background:#38424d}
+  .vx button:disabled{opacity:.35;cursor:default}.vx-sp{flex:1}
+  .vx-top,.vx-bot{display:flex;align-items:center;gap:3px;background:#0A0F14;padding:3px 6px;flex:none}.vx-lbl{color:#bbb;margin-right:4px}.vx-exit{background:#7a1e1e!important;margin-left:8px}
+  .vx-main{flex:none;display:grid;grid-template-columns:43fr 9.5fr 43fr;gap:12px;padding:6px 12px 2px}
+  .vx-view{min-width:0}.vx-vt{display:flex;align-items:center;gap:6px;height:24px;padding:0 6px;font-weight:700}.vx-vt .vx-n{background:rgba(0,0,0,.25);padding:1px 6px}
+  .vx-vi{margin-left:auto;display:flex;gap:6px;opacity:.9;cursor:pointer}.vx-scr{background:#000;aspect-ratio:16/9}.vx-scr canvas{width:100%;height:100%;display:block}
+  .vx-tp{height:24px;display:flex;align-items:center;gap:4px}.vx-tp button{padding:2px 7px}.vx-pos{flex:1;height:6px;background:#293038}.vx-posf{height:100%;background:#0087FF}.vx-tc{font-size:11px;color:#ccc;width:96px;text-align:right}
+  .vx-mid{display:flex;flex-direction:column;gap:6px;padding-top:24px}.vx-tb{background:#404B56!important;border:1px solid #56626e!important;padding:7px 4px!important;width:100%}
+  .vx-tr{display:flex}.vx-tr .vx-tb{flex:1}.vx-dd{background:#404B56!important;border:1px solid #56626e!important;border-left:0!important;padding:0 6px!important}
+  .vx-tb.on,.vx-ovg button.on{background:#b31b1b!important}.vx-ovg{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}.vx-ovg button{background:#404B56;padding:5px 0}.vx-ovg button.pend{outline:2px solid #FF8C00}
+  .vx-tbar{position:relative;flex:1;min-height:70px;margin:2px auto 0;width:34px;cursor:ns-resize}.vx-tbt{position:absolute;left:15px;top:0;bottom:0;width:4px;background:#0087FF}
+  .vx-tbh{position:absolute;left:0;width:34px;height:12px;background:#616161;border:1px solid #888;top:-6px}
+  .vx-cats{display:flex;align-items:center;gap:3px;padding:6px 12px 3px;flex:none}.vx-cat{width:24px;height:20px;padding:0!important;font-size:10px!important}
+  .vx-cat.sel{outline:2px solid #fff;outline-offset:-2px}.vx-cat:not(.vx-srch){min-width:24px;width:auto}.vx-amt.on{background:#006400!important}
+  .vx-sepl{height:3px;margin:0 12px;flex:none}
+  .vx-low{flex:1;min-height:0;display:flex;gap:6px;padding:6px 12px}.vx-ins{flex:1;min-width:0;overflow:auto;display:flex;flex-wrap:wrap;align-content:flex-start;gap:8px}
+  .vx-box{width:200px;background:#2D343C}.vx-it{display:flex;align-items:center;gap:5px;height:22px;padding:0 0 0 4px;font-weight:700;cursor:default}.vx-it .vx-n{background:rgba(0,0,0,.25);padding:0 5px}
+  .vx-in{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vx-it button{background:transparent;padding:2px 6px}
+  .vx-th{position:relative;cursor:pointer;background:#000}.vx-th canvas{display:block;width:100%;aspect-ratio:16/9}.vx-box.col .vx-th,.vx-box.col .vx-ib{display:none}
+  .vx-im{position:absolute;right:2px;top:2px;bottom:2px;width:8px;display:flex;gap:1px;align-items:flex-end}.vx-im i{flex:1;background:#33dd33;height:0}
+  .vx-ib{display:flex;flex-direction:column;gap:1px;padding:2px}.vx-ib span{display:flex;gap:1px}.vx-ib button{flex:1;padding:3px 0;background:#3a434d;font-size:11px}
+  .vx-ib .vx-o.on{background:#006400}.vx-ib .vx-o.pend{background:#FF8C00}.vx-ib button.on{background:#006400}.vx-ib .vx-au{flex:2.4}.vx.basic .vx-ib [data-a="ib-cog"],.vx.basic .vx-ib [data-a="ib-mon"]{display:none}
+  .vx-empty{color:#9aa4ae;padding:14px}.vx-mix{display:none;gap:6px;overflow:auto}.vx.mixer .vx-mix{display:flex}.vx.mixer .vx-ins{flex:0 0 40%}
+  .vx-mxb{display:flex;gap:3px;background:#2D343C}.vx-mxl{writing-mode:vertical-rl;transform:rotate(180deg);background:#0087FF;font-weight:700;padding:4px 2px;font-size:10px}
+  .vx-strip{width:78px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:3px;position:relative}.vx-sth{width:100%;background:#404B56;font-size:10.5px;text-align:center;white-space:nowrap;overflow:hidden;padding:2px 0}
+  .vx-strip button{width:100%;padding:3px 0;background:#3a434d}.vx-strip button.on{background:#006400}.vx-afv.on{background:#FF8C00!important}
+  .vx-fd{writing-mode:vertical-lr;direction:rtl;height:110px;width:22px}.vx-mm{position:absolute;right:4px;top:84px;height:110px;width:8px;display:flex;gap:1px;align-items:flex-end}.vx-mm i{flex:1;background:#33dd33;height:0}
+  .vx-bus{display:flex;gap:1px;width:100%}.vx-bus button{padding:2px 0;font-size:10px}
+  .vx-bot button.live{background:#b31b1b}.vx-bg{display:inline-flex}.vx-c{padding:4px 5px!important;background:#20262d!important}.vx-ic{padding:4px 6px!important}.vx-ic.lock{background:#FF8C00!important}
+  .vx-st{display:flex;gap:14px;background:#0A0F14;padding:2px 8px;font-size:11px;color:#ccc;flex:none}.vx-fmt{color:#33DD33;font-weight:700}.vx-note{color:#7b8590}
+  .vx-pop{position:absolute;z-index:5;display:none;flex-direction:column;min-width:200px;background:#1E2328;border:1px solid #56626e;box-shadow:0 10px 30px rgba(0,0,0,.6)}.vx-pop.on{display:flex}
+  .vx-pop button{text-align:left;background:transparent;font-weight:400}.vx-pop button.on{color:#33DD33}.vx-ph{padding:5px 9px;color:#9aa4ae;font-size:11px}.vx-pdur{padding:6px 9px;border-top:1px solid #333}.vx-pdur input{width:70px}
+  .vx-modal{position:absolute;inset:0;z-index:6;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center}.vx-modal.on{display:flex}
+  .vx-win{background:#1E2328;border:1px solid #56626e;box-shadow:0 20px 60px rgba(0,0,0,.7);max-height:94vh;display:flex;flex-direction:column}
+  .vx-wt{background:#f2f2f2;color:#111;padding:5px 8px;font-weight:600;display:flex}.vx-wt button{margin-left:auto;background:transparent!important;color:#111!important;padding:0 6px}
+  .vx-wb{padding:10px;overflow:auto}.vx-wb p{margin:4px 0}.vx-wf{display:flex;justify-content:flex-end;gap:6px;padding:8px 10px;border-top:1px solid #333}.vx-wf button{min-width:76px}
+  .vx-wb label{display:flex;align-items:center;gap:8px;margin:6px 0}.vx-wb input,.vx-wb select{background:#0A0F14;color:#fff;border:1px solid #56626e;padding:3px 5px;font:inherit}
+  .vx-is,.vx-iset{display:flex;gap:10px;min-height:340px}.vx-isl{display:flex;flex-direction:column;background:#0A0F14;width:190px;flex:none}.vx-isl button{text-align:left;background:transparent;font-weight:400;padding:6px 10px}
+  .vx-isl button.on{background:#006400}.vx-isl button.na{color:#7b8590}.vx-isr{flex:1;min-width:0}.vx-ish{background:#0A0F14;padding:6px 8px;margin-bottom:8px}
+  .vx-browse{display:inline-block!important;background:#404B56;padding:5px 12px;cursor:pointer}.vx-files{color:#9aa4ae;margin:6px 0}.vx-packbox{margin-top:14px;border:1px dashed #56626e;padding:9px;color:#ccc;line-height:1.5}.vx-packbox a{color:#4fb3ff}
+  .vx-gal{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.vx-gal button{text-align:left;background:#2D343C;padding:10px}.vx-gal button.on{outline:2px solid #006400}.vx-gt{background:#0087FF;padding:0 4px;margin-right:6px;font-size:10px}
+  .vx-isprev{width:100%;aspect-ratio:16/9;background:#333;display:block;margin-top:8px;cursor:crosshair}.vx-hint{color:#9aa4ae;font-size:11.5px}
+  .vx-kr{display:flex;align-items:center;gap:8px}.vx-kc{width:22px;height:22px;border:1px solid #fff;display:inline-block}.vx-kcp{position:relative;cursor:pointer}.vx-kcp input{position:absolute;opacity:0;inset:0}
+  .vx-kbox{display:grid;grid-template-columns:1fr 1fr;gap:12px;border:1px solid #3a434d;padding:8px;margin-top:6px}.vx-sl{display:grid!important;grid-template-columns:90px 1fr}.vx-kp{display:flex;gap:4px;align-items:center;margin-top:6px;flex-wrap:wrap}
+  .vx-big{width:100%;display:block;cursor:pointer}.vx-te label{display:grid!important;grid-template-columns:110px 1fr}.vx-cd label span{width:18px;height:18px;display:inline-block}
+  .vx-tip{position:absolute;z-index:9;pointer-events:none;background:rgba(10,11,13,.95);border:1px solid var(--ce-accent);color:#fff;font-size:12px;padding:5px 9px;max-width:280px;transform:translate(14px,14px);opacity:0}.vx-tip.on{opacity:1}
 </style>
 </head>
 <body class="ce-base">
@@ -257,6 +305,7 @@
   <div class="sims"><span>Simulators:</span>
     <button class="simgo" data-sim="light"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>Lighting</button>
     <button class="simgo" data-sim="sound"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Sound</button>
+    <button class="simgo" data-sim="vmix"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="1"/><path d="M8 21h8M12 17v4"/></svg>vMix</button>
     <button class="simgo" data-sim="vision" disabled title="Coming soon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="m16 10 6-3v10l-6-3"/></svg>Vision · soon</button>
   </div>
 
@@ -519,6 +568,8 @@
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
 <script src="m32r.js"></script>
+<div class="vx" id="vx"></div>
+<script src="vmix.js"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
@@ -603,7 +654,7 @@ function open(k){
 function close(){document.querySelectorAll('.zone.sel').forEach(z=>z.classList.remove('sel'));drawer.classList.remove('on');scrim.classList.remove('on');setTimeout(()=>drawer.classList.remove('rackmode'),260);}
 document.querySelectorAll('.zone').forEach(z=>z.addEventListener('click',()=>open(z.dataset.k)));
 document.getElementById('close').addEventListener('click',close);
-document.querySelectorAll('.simgo').forEach(b=>b.addEventListener('click',()=>{close();b.dataset.sim==='light'?openDesk():b.dataset.sim==='sound'?openMixer():0;}));
+document.querySelectorAll('.simgo').forEach(b=>b.addEventListener('click',()=>{close();b.dataset.sim==='light'?openDesk():b.dataset.sim==='sound'?openMixer():b.dataset.sim==='vmix'?openVmix():0;}));
 document.getElementById('d-simbtn').addEventListener('click',e=>{const k=e.currentTarget.dataset.k;close();k==='audio'?openMixer():openDesk();});
 scrim.addEventListener('click',close);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pwr').classList.contains('on'))closePower();else{close();closeDesk();closeMixer();}}});
