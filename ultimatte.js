@@ -16,7 +16,8 @@ const R={unit:0,tab:'MATTE',alt:false,msg:'',mt:0};
 const val=(u,page,i)=>u.vals[page][i];
 /* ---------- the test chroma camera: presenter on a green cyc (wrinkles, floor shadow, a bit of spill) ---------- */
 const gsC=mk(480,270);
-function chromaCam(t){const g=gsC.getContext('2d'),w=480,h=270,sw=Math.sin(t/900)*6;
+const CV={v:null,name:''};
+function chromaCam(t){const g=gsC.getContext('2d'),w=480,h=270,sw=Math.sin(t/900)*6;if(CV.v&&CV.v.readyState>=2){g.drawImage(CV.v,0,0,w,h);return gsC;}   // a green-screen video loaded by the student
   const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#2fae4a');gr.addColorStop(.75,'#36b84f');gr.addColorStop(1,'#2a9c43');g.fillStyle=gr;g.fillRect(0,0,w,h);
   g.strokeStyle='rgba(20,90,35,.35)';g.lineWidth=3;for(let i=0;i<5;i++){g.beginPath();g.moveTo(60+i*90,0);g.bezierCurveTo(80+i*90,90,40+i*90,160,70+i*90,210);g.stroke();}   // wrinkles
   const sh=g.createRadialGradient(240+sw,250,10,240+sw,250,120);sh.addColorStop(0,'rgba(0,40,10,.45)');sh.addColorStop(1,'rgba(0,40,10,0)');g.fillStyle=sh;g.fillRect(0,200,w,70);   // floor shadow
@@ -67,7 +68,7 @@ function hdRear(i){const W=475,H=100,X=f=>f*W,Y=f=>f*H,T=(x,y,t)=>`<text x="${X(
   return `<svg viewBox="0 0 ${W} ${H}" class="vh-svg"><rect x="1" y="1" width="${W-2}" height="${H-2}" rx="6" class="at-face"/>
     <g data-tip="IEC power inlet (100-240 V)."><rect x="${X(.02)}" y="${Y(.15)}" width="${X(.105)}" height="${Y(.65)}" rx="3" class="vh-iec2"/></g>
     <g data-tip="GPIO (DE-15): tally input from a GPI interface."><rect x="${X(.217)-14}" y="${Y(.27)-6}" width="28" height="12" rx="4" class="vh-rj"/></g>${T(.217,.42,'GPIO')}
-    <g class="um-s" data-s="u${i}:eth" data-tip="ETHERNET: control from the Smart Remote 4 / software, through the 16-port switch."><rect x="${X(.207)-10}" y="${Y(.68)-8}" width="20" height="16" rx="2" class="vh-rj"/></g>${T(.207,.92,'ETHERNET')}
+    <g class="um-s" data-s="u${i}:eth" data-tip="ETHERNET: to the rack network switch — the Smart Remote 4 (and Ultimatte Software Control) control the unit over the network."><rect x="${X(.207)-10}" y="${Y(.68)-8}" width="20" height="16" rx="2" class="vh-rj"/></g>${T(.207,.92,'ETHERNET')}
     ${sock('refo',.392,.27,'REF OUT','Reference output.')}${sock('refi',.392,.68,'REF IN','Reference input (same sync as the ATEM).')}
     ${sock('bg',.5,.68,'BACKGROUND','BACKGROUND: the picture that goes behind the presenter.')}${sock('fgl',.587,.27,'CAMERA FG LOOP','Loop of the camera input.')}${sock('fg',.587,.68,'CAMERA FG','CAMERA FG: the camera on the green screen.')}
     ${sock('fill',.675,.27,'PGM FILL','PGM FILL: foreground with the green removed (for a linear key in the switcher).')}${sock('gm',.675,.68,'G MATTE','Garbage matte input.')}
@@ -84,13 +85,13 @@ function srRear(){const W=1000,H=56,X=f=>f*W,T=(x,t)=>`<text x="${X(x)}" y="52" 
     <g class="um-s" data-s="sr:eth1" data-tip="ETHERNET 1: to the network switch (the Ultimattes are on the same network)."><rect x="${X(.405)-10}" y="13" width="20" height="16" rx="2" class="vh-rj"/></g><g class="um-s" data-s="sr:eth2" data-tip="ETHERNET 2"><rect x="${X(.44)-10}" y="13" width="20" height="16" rx="2" class="vh-rj"/></g>${T(.42,'ETHERNET')}
     <g data-tip="HDMI out: an extra monitor."><rect x="${X(.49)-11}" y="16" width="22" height="9" rx="2" class="vh-rj"/></g>${T(.49,'HDMI OUT')}</svg>`;}
 /* the cables (rope physics shared with the video rack) */
-function cableList(){const L=[{a:'[data-s="u0:eth"]',b:'[data-s="sw:0"]',info:'Ethernet: Ultimatte 1 → switch port 1'},{a:'[data-s="u1:eth"]',b:'[data-s="sw:1"]',info:'Ethernet: Ultimatte 2 → switch port 2'},
-    {a:'[data-s="sr:eth1"]',b:'[data-s="sw:2"]',info:'Ethernet: Smart Remote 4 → switch port 3 (it finds the Ultimattes on the network)'}];
+function cableList(){const L=[{a:'[data-s="u0:eth"]',hang:34,tag:'Network',info:'Ethernet → the rack network switch: the Smart Remote 4 controls this unit through it'},{a:'[data-s="u1:eth"]',hang:34,tag:'Network',info:'Ethernet → the rack network switch'}];
   const st=window.VH?VH.state():null;if(st){const o=d=>st.cabOut.indexOf(d),i=v=>st.cabIn.indexOf(v);
-    if(o('u1fg')>=0)L.push({a:'[data-s="u0:fg"]',hang:34,tag:'Router OUT '+(o('u1fg')+1),info:`Router OUT ${o('u1fg')+1} → Ultimatte 1 CAMERA FG`});
-    if(o('u1bg')>=0)L.push({a:'[data-s="u0:bg"]',hang:34,tag:'Router OUT '+(o('u1bg')+1),info:`Router OUT ${o('u1bg')+1} → Ultimatte 1 BACKGROUND`});
-    if(i('ult1')>=0)L.push({a:'[data-s="u0:pgm"]',hang:-30,tag:'Router IN '+(i('ult1')+1),info:`Ultimatte 1 PGM OUT → Router IN ${i('ult1')+1}`});
-    if(o('u2fg')>=0)L.push({a:'[data-s="u1:fg"]',hang:34,tag:'Router OUT '+(o('u2fg')+1),info:'Router → Ultimatte 2 CAMERA FG'});if(i('ult2')>=0)L.push({a:'[data-s="u1:pgm"]',hang:-30,tag:'Router IN '+(i('ult2')+1),info:'Ultimatte 2 PGM OUT → router'});}
+    const src=k=>{const r=st.routes[o(k)];return window.VH?VH.inputLabel(r):'';};
+    if(o('u1fg')>=0)L.push({a:'[data-s="u0:fg"]',hang:34,tag:'← Videohub OUT '+(o('u1fg')+1),info:`${src('u1fg')} → Videohub → OUT ${o('u1fg')+1} → Ultimatte 1 CAMERA FG (the camera arrives through the Videohub)`});
+    if(o('u1bg')>=0)L.push({a:'[data-s="u0:bg"]',hang:34,tag:'← Videohub OUT '+(o('u1bg')+1),info:`${src('u1bg')} → Videohub → OUT ${o('u1bg')+1} → Ultimatte 1 BACKGROUND`});
+    if(i('ult1')>=0)L.push({a:'[data-s="u0:pgm"]',hang:-30,tag:'→ Videohub IN '+(i('ult1')+1),info:`Ultimatte 1 PGM OUT → Videohub IN ${i('ult1')+1} (from there to the ATEM)`});
+    if(o('u2fg')>=0)L.push({a:'[data-s="u1:fg"]',hang:34,tag:'← Videohub OUT '+(o('u2fg')+1),info:'Videohub → Ultimatte 2 CAMERA FG'});if(i('ult2')>=0)L.push({a:'[data-s="u1:pgm"]',hang:-30,tag:'→ Videohub IN '+(i('ult2')+1),info:'Ultimatte 2 PGM OUT → Videohub'});}
   return L;}
 let ropes=null;
 /* ---------- Smart Remote 4 ---------- */
@@ -146,14 +147,14 @@ function hdPress(i,k){const u=U[i];if(u.lock&&k!=='lock')return;
 function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.innerHTML=`<div class="pwr-hd"><div><h2>Chroma keying — Ultimatte</h2><div class="kind">2 × Ultimatte 12 HD · Ultimatte Smart Remote 4 (video rack)</div>
     <p><b>FILE CLEAR</b> = Auto Key · the 8 knobs = the 8 controls on the screen · tabs MATTE / FOREGROUND / BACKGROUND · <b>MONITOR OUTPUT</b> = what the monitor shows (Combined Matte to judge the key) · hover anything.</p></div>
-    <div class="pwr-btns"><button id="um-guidebtn">How to use</button><button id="um-rack">Video rack</button></div></div>
+    <div class="pwr-btns"><button id="um-load">Load a chroma video…</button><input type="file" id="um-file" accept="video/*" hidden><button id="um-guidebtn">How to use</button><button id="um-rack">Video rack</button></div></div>
     <button class="close" id="um-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     <div class="um-body" id="um-wrap"><div class="um-row"><div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 1 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(0)}</div>${hdRear(0)}</div>
         <div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 2 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(1)}</div>${hdRear(1)}</div></div>
-      <div class="um-sw"><div class="vh-lab">16-PORT GIGABIT SWITCH <span>— same case (the remote and both units share the network)</span></div>${switchFront()}</div>
-      <div class="um-row2"><div class="um-srw"><div class="vh-lab">SMART REMOTE 4 <span>— connectors (bottom edge) · front below</span></div>${srRear()}<div class="um-srf">${sr4()}</div></div><div class="um-monw"><div class="vh-lab" id="um-monl"></div><canvas id="um-mon" width="640" height="360"></canvas>
-        <p class="um-note">Hover a cable to see what it carries. Cabling (router): <b>OUT 15 → CAMERA FG</b> (IN 11, the test chroma camera) · <b>OUT 16 → BACKGROUND</b> (CAM 3) · <b>PGM OUT → IN 12</b>. To put the keyed picture on air, route IN 12 to an ATEM input on the router front panel. Unit 2 has nothing cabled.</p></div></div><svg class="vh-cables" id="um-cables"></svg></div>
+      <div class="um-row2"><div class="um-srw"><div class="vh-lab">SMART REMOTE 4 <span>— controls the Ultimattes over Ethernet (rack network switch) · its HDMI OUT copies the touch screen to a monitor</span></div><div class="um-srf">${sr4()}</div></div><div class="um-monw"><div class="vh-lab" id="um-monl"></div><canvas id="um-mon" width="640" height="360"></canvas>
+        <p class="um-note">Signal path: <b>chroma camera → Videohub IN 11 → OUT 15 → CAMERA FG</b> · <b>CAM 3 → Videohub OUT 16 → BACKGROUND</b> · <b>PGM OUT → Videohub IN 12</b> → (route it on the Videohub front panel) → ATEM. Unit 2 has nothing cabled. Hover a cable to see what it carries.</p></div></div><svg class="vh-cables" id="um-cables"></svg></div>
     <div class="mx-src mx-guide" id="um-guide"><div class="mx-srchd"><b>How to key with the Ultimatte</b> <button id="um-guideclose" aria-label="Close">✕</button></div><ol class="mx-steps">
+      <li>Your own footage: <b>Load a chroma video…</b> (a clip shot on green or blue). It replaces the test chroma camera on Videohub IN 11, so it goes Videohub → Ultimatte like a real camera. For a blue screen: SETTINGS › Blue, then Auto Key.</li>
       <li><b>FILE CLEAR</b> (or ⟲ auto key on the screen): the Ultimatte samples the green and makes the key.</li>
       <li><b>MONITOR OUTPUT › Combined Matte</b>: the presenter must be solid <b>black</b>, the green <b>white</b>. Raise <b>Matte Density</b> until no grey is left inside the presenter.</li>
       <li><b>Clean Up</b> removes the wrinkles of the cyc (little by little), <b>Shadow Level</b> keeps the floor shadow on the background, <b>Black Gloss</b> removes green reflections in dark areas.</li>
@@ -161,7 +162,10 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       <li><b>ALT + QUICK LOAD n</b> saves the look; <b>QUICK LOAD n</b> (or 1 / 2 / 3 on the unit) recalls it. Shift+click a knob = its default.</li>
       <li>On air: router front panel, DEST = an ATEM input, SRC = IN 12 (Ultimatte 1), TAKE — then cut to it on the ATEM.</li></ol></div>
     <div class="pwr-tip" id="um-tip"></div>`;
-  document.getElementById('um-close').onclick=()=>window.closeUltimatte();document.getElementById('um-rack').onclick=()=>{window.closeUltimatte();window.openVideohub&&openVideohub();};
+  document.getElementById('um-close').onclick=()=>window.closeUltimatte();
+  const fi=document.getElementById('um-file');document.getElementById('um-load').onclick=()=>fi.click();
+  fi.onchange=()=>{const f=fi.files[0];if(!f)return;if(CV.v){CV.v.pause();URL.revokeObjectURL(CV.v.src);}const v=document.createElement('video');v.src=URL.createObjectURL(f);v.loop=true;v.muted=true;v.playsInline=true;v.play().catch(()=>{});CV.v=v;CV.name=f.name;
+    document.getElementById('um-load').textContent='Chroma video: '+f.name.slice(0,22);flash('Chroma camera (Videohub IN 11) now plays '+f.name+' — press FILE CLEAR (Auto Key)');fi.value='';};document.getElementById('um-rack').onclick=()=>{window.closeUltimatte();window.openVideohub&&openVideohub();};
   const gd=document.getElementById('um-guide');document.getElementById('um-guidebtn').onclick=()=>gd.classList.toggle('on');document.getElementById('um-guideclose').onclick=()=>gd.classList.remove('on');
   root.addEventListener('pointerdown',e=>{const k=e.target.closest('.um-k');if(k){e.preventDefault();if(k.dataset.u!=null)hdPress(+k.dataset.u,k.dataset.k);else srPress(k.dataset.k);
       if(k.dataset.k==='lock'){const u=U[+k.dataset.u],t0=performance.now(),tm=setInterval(()=>{const t=performance.now()-t0;if(!u.lock&&t>=1000){u.lock=true;clearInterval(tm);}else if(u.lock&&t>=2000){u.lock=false;clearInterval(tm);}},50);addEventListener('pointerup',()=>clearInterval(tm),{once:true});}return;}
