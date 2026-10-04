@@ -6,7 +6,7 @@
 (function(){
 const root=document.getElementById('vh');if(!root)return;
 const N=20,PW=1080,PH=100;                    // panel drawing units (1 RU ≈ 10.8 : 1)
-const KEY='vh-state';
+const KEY='vh-state2';
 /* ---------- what can be cabled ---------- */
 const SRCS={none:'— nothing —',cam1:'CAM 1',cam2:'CAM 2',cam3:'CAM 3',cam4:'CAM 4',cam5:'CAM 5',cam6:'CAM 6',cam7:'CAM 7',cam8:'CAM 8',
   vfill:'vMix FILL',vkey:'vMix KEY',atem:'ATEM PGM',hdk:'HyperDeck'};
@@ -14,9 +14,10 @@ const SRCL={vfill:'vMix PC · DeckLink SDI 1 (Fill)',vkey:'vMix PC · DeckLink S
 const DSTS={none:'— nothing —',atem1:'ATEM IN 1',atem2:'ATEM IN 2',atem3:'ATEM IN 3',atem4:'ATEM IN 4',atem5:'ATEM IN 5',atem6:'ATEM IN 6',atem7:'ATEM IN 7',atem8:'ATEM IN 8',
   vmix:'vMix IN',hdk:'HyperDeck REC',mon:'Monitor wall',ult1:'Ultimatte 1',ult2:'Ultimatte 2'};
 /* proposed cabling (to be confirmed with the real room) */
-const DEF={cabIn:['cam1','cam2','cam3','cam4','vfill','vkey','atem','hdk',...Array(12).fill('none')],
-  cabOut:['atem1','atem2','atem3','atem4','atem5','atem6','vmix','hdk','mon',...Array(11).fill('none')],
-  routes:[0,1,2,3,4,5,6,6,6,...Array(11).fill(0)],locks:Array(N).fill(false),useTake:true,net:[[192,168,11,50],[255,255,255,0],[192,168,11,1]]};
+/* known so far: IN 1-4 = studio cameras (patch-panel VIDEO 1-5 → CAM labels). The rest of the Tartanga cabling is not known yet. */
+const DEF={cabIn:['cam1','cam2','cam3','cam4',...Array(16).fill('none')],
+  cabOut:Array(N).fill('none'),
+  routes:[...Array(N).keys()],locks:Array(N).fill(false),useTake:true,net:[[192,168,11,50],[255,255,255,0],[192,168,11,1]]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(_){}};   // routes survive a power cut (real: "power fail protection")
 const inLab=i=>st.cabIn[i]==='none'?'Input '+(i+1):SRCS[st.cabIn[i]];
@@ -70,8 +71,8 @@ function rear(){let s=`<svg viewBox="0 0 ${PW} ${PH+14}" class="vh-svg" id="vh-r
   return s+'</svg>';}
 function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.innerHTML=`<div class="pwr-hd"><div><h2>Video router</h2><div class="kind">Blackmagic Smart Videohub 20×20 · SDI matrix · rack</div>
-    <p><b>DEST</b> + number = where the signal goes · <b>SRC</b> + number = which signal · <b>TAKE</b> confirms · <b>VIDEO</b> shows it on the screen · click a rear BNC to re-cable it · hover anything.</p></div>
-    <div class="pwr-btns"><button id="vh-guidebtn">How to use</button><button id="vh-pack">Load the pack folder</button><button id="vh-reset">Factory cabling</button></div></div>
+    <p><b>DEST</b> + number = where the signal goes · <b>SRC</b> + number = which signal · <b>TAKE</b> confirms · <b>VIDEO</b> shows it on the screen · the rear cabling is fixed: you only choose which IN goes to which OUT · hover anything.</p></div>
+    <div class="pwr-btns"><button id="vh-guidebtn">How to use</button><button id="vh-pack">Load the pack folder</button><button id="vh-reset">Reset routes</button></div></div>
   <button class="close" id="vh-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   <div class="vh-body"><div class="vh-lab">FRONT</div><div class="vh-front">${front()}<canvas id="vh-lcd" width="320" height="240"></canvas></div>
     <div class="vh-lab">REAR <span>(as seen from behind)</span></div><div class="vh-rear">${rear()}</div>
@@ -87,7 +88,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       <li><b>VIDEO</b>: with SRC or DEST, shows that signal as live video on the little screen — check it before you TAKE. Press VIDEO again for the labels.</li>
       <li><b>Lock</b> a destination so nobody changes it by mistake: select it and <b>hold DEST 2 s</b> (a padlock appears). Same again to unlock.</li>
       <li><b>MENU</b>: <i>network</i> (IP address, subnet, gateway) and <i>use take</i> (off = the source switches as soon as you pick it). Knob to move, TAKE to select / confirm, MENU to go back.</li>
-      <li><b>Rear panel:</b> click an IN BNC to choose what is cabled into it, or an OUT BNC to choose what it feeds. The cabling shown is a <b>proposal</b> until we copy the real Tartanga one.</li>
+      <li><b>Rear panel:</b> the cables stay where they are — routing happens <b>inside</b> the router. Hover a BNC to see what is cabled there. Known so far: IN 1-4 = studio cameras; the rest of the Tartanga cabling is still to be confirmed.</li>
       <li>Cameras show a test image; <b>Load the pack folder</b> (multicam pack, CAM1-8) to see the real footage.</li>
     </ol></div>
   <input type="file" id="vh-packdir" webkitdirectory multiple hidden>
@@ -120,7 +121,7 @@ function draw(){const lit=U.menu?null:U.mode==='dest'?U.dest+1:(U.pend!=null?U.p
   setKey('take','flash',pending||menuSel);setKey('clear','flash',pending);
   root.querySelectorAll('.vh-sock').forEach(g=>{const d=g.dataset.s[0],k=+g.dataset.s.slice(1),v=d==='i'?st.cabIn[k]:st.cabOut[k];g.classList.toggle('plugged',v!=='none');
     g.classList.toggle('hl',d==='o'?k===U.dest:k===(U.pend!=null?U.pend:st.routes[U.dest]));});
-  const tb=document.getElementById('vh-tbl');if(tb)tb.innerHTML='<div class="vh-th">Routing now (output ← input)</div>'+st.cabOut.map((v,o)=>v==='none'?'':`<span class="vh-rt2${o===U.dest?' on':''}"><b>OUT ${o+1}</b> ${outLab(o)} ← <b>IN ${st.routes[o]+1}</b> ${inLab(st.routes[o])}${st.locks[o]?' 🔒':''}</span>`).join('');
+  const tb=document.getElementById('vh-tbl');if(tb)tb.innerHTML='<div class="vh-th">Routing now (output ← input)</div>'+st.cabOut.map((v,o)=>`<span class="vh-rt2${o===U.dest?' on':''}"><b>OUT ${o+1}</b> ${outLab(o)} ← <b>IN ${st.routes[o]+1}</b> ${inLab(st.routes[o])}${st.locks[o]?' 🔒':''}</span>`).join('');
   const dg=document.getElementById('vh-diag');if(dg){const s=st.routes[U.dest];dg.innerHTML=`<span class="pw-chip ok"><i></i>Destination: OUT ${U.dest+1} · ${outLab(U.dest)}</span>`+
     `<span class="pw-chip ${hasSig(s)?'ok':'bad'}"><i></i>carrying IN ${s+1} · ${inLab(s)}${hasSig(s)?'':' (no signal)'}</span>`+(U.pend!=null?`<span class="pw-chip bad"><i></i>Waiting: IN ${U.pend+1} ${inLab(U.pend)} → press TAKE or CLEAR</span>`:'')+
     (st.locks[U.dest]?'<span class="pw-chip bad"><i></i>Destination locked (hold DEST 2 s)</span>':'')+(U.msg?`<span class="mx-sel">${U.msg}</span>`:'');}
@@ -166,7 +167,7 @@ function wire(){const tip=document.getElementById('vh-tip'),fs=document.getEleme
   document.getElementById('vh-close').onclick=()=>window.closeVideohub();
   const gd=document.getElementById('vh-guide');document.getElementById('vh-guidebtn').onclick=()=>gd.classList.toggle('on');document.getElementById('vh-guideclose').onclick=()=>gd.classList.remove('on');
   const pd=document.getElementById('vh-packdir');document.getElementById('vh-pack').onclick=()=>pd.click();pd.onchange=()=>{loadPack(pd.files);pd.value='';};
-  document.getElementById('vh-reset').onclick=()=>{if(!confirm('Restore the proposed cabling and routes?'))return;st=JSON.parse(JSON.stringify(DEF));save();U.pend=null;draw();};
+  document.getElementById('vh-reset').onclick=()=>{if(!confirm('Put every output back on its own input (OUT n ← IN n)?'))return;st=JSON.parse(JSON.stringify(DEF));save();U.pend=null;draw();};
   fs.addEventListener('pointerdown',e=>{const k=e.target.closest('.vh-k');if(!k)return;e.preventDefault();const id=k.dataset.k;if(id==='blank')return;
     k.classList.add('down');const up=()=>{k.classList.remove('down');clearTimeout(U.holdT);removeEventListener('pointerup',up);};addEventListener('pointerup',up);
     press(id);if(id==='dest'&&!U.menu){U.holdT=setTimeout(()=>{st.locks[U.dest]=!st.locks[U.dest];save();U.pend=null;U.msg=st.locks[U.dest]?'Locked':'Unlocked';draw();},2000);}draw();});
@@ -176,13 +177,13 @@ function wire(){const tip=document.getElementById('vh-tip'),fs=document.getEleme
   kn.addEventListener('pointerup',()=>{y0=null;});
   kn.addEventListener('wheel',e=>{e.preventDefault();const d=e.deltaY>0?1:-1;spin(d);rot(-d);draw();},{passive:false});
   let ang=0;function rot(d){ang+=d*-18;kn.querySelector('.vh-knd').setAttribute('transform',`rotate(${ang} ${X(0.798)} ${Y(0.48)})`);}
-  document.getElementById('vh-rsvg').addEventListener('click',e=>{const g=e.target.closest('.vh-sock');if(g){e.stopPropagation();plugMenu(g.dataset.s,e);}});
+  
   root.addEventListener('click',e=>{const m=document.getElementById('vh-plugmenu');if(!m.contains(e.target)&&!e.target.closest('.vh-sock'))m.classList.remove('on');});
   root.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip],.vh-sock');if(!t){tip.classList.remove('on');return;}
     let name='',txt=t.dataset.tip||'';
     if(t.classList.contains('vh-sock')){const d=t.dataset.s[0],k=+t.dataset.s.slice(1);name=(d==='i'?'SDI IN ':'SDI OUT ')+(k+1);
-      txt=d==='i'?`Cabled: ${SRCS[st.cabIn[k]]}${SRCL[st.cabIn[k]]?' ('+SRCL[st.cabIn[k]]+')':''}. Feeds: ${st.routes.map((r,o)=>r===k&&st.cabOut[o]!=='none'?'OUT '+(o+1):null).filter(Boolean).join(', ')||'no used output'}. Click to re-cable.`
-        :`Feeds: ${DSTS[st.cabOut[k]]}. Carrying IN ${st.routes[k]+1} (${inLab(st.routes[k])}). Click to re-cable.`;}
+      txt=d==='i'?`Cabled: ${st.cabIn[k]==='none'?'not known yet':SRCS[st.cabIn[k]]}${SRCL[st.cabIn[k]]?' ('+SRCL[st.cabIn[k]]+')':''}. Feeds: ${st.routes.map((r,o)=>r===k&&st.cabOut[o]!=='none'?'OUT '+(o+1):null).filter(Boolean).join(', ')||'no used output'}. `
+        :`Feeds: ${st.cabOut[k]==='none'?'not known yet':DSTS[st.cabOut[k]]}. Carrying IN ${st.routes[k]+1} (${inLab(st.routes[k])}).`;}
     else if(t.classList.contains('vh-k'))name=(t.dataset.k.startsWith('n')?'Key '+t.dataset.k.slice(1):t.dataset.k.toUpperCase());
     tip.innerHTML=(name?`<b>${name}</b>`:'')+`<span>${txt}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});
   root.addEventListener('mouseleave',()=>tip.classList.remove('on'));}
