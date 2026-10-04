@@ -65,7 +65,7 @@ function strip(slot,x,main){let s='';
   s+=btn('mute:'+slot,x,854,'MUTE','mute',38,18);
   return s+fader(slot,x);}
 
-function surface(){let s=`<svg class="mx-svg" viewBox="0 -70 1000 1430" role="img" aria-label="Midas M32R"><g class="mx-rear" id="mxRear" transform="translate(0,-66)">${rearSvg()}</g><g id="mxTop">`;
+function surface(){let s=`<svg class="mx-svg" viewBox="0 -70 1000 1295" role="img" aria-label="Midas M32R"><g class="mx-rear" id="mxRear" transform="translate(0,-66)">${rearSvg()}</g><g id="mxTop">`;
   s+=`<defs><linearGradient id="mxbody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26272c"/><stop offset="1" stop-color="#1b1c20"/></linearGradient></defs>`;
   s+=`<rect x="2" y="78" width="996" height="490" rx="22" fill="url(#mxbody)" stroke="#0c0c0e" stroke-width="3"/>`;
   // TALKBACK
@@ -113,7 +113,7 @@ function surface(){let s=`<svg class="mx-svg" viewBox="0 -70 1000 1430" role="im
   [['B:dca','GROUP|DCA 1-8',955,384],['B:b1','BUS|1-8',955,420],['B:b2','BUS|9-16',955,456],['B:mtx','MATRIX|MAIN C',955,492]].forEach(([id,l,x,y])=>s+=btn(id,x,y,l,'lay',42,28));
   s+=btn('rem',902,400,'REM','fn',36,20,'REM: DAW remote control. Drawn only.')+T(902,420,'DAW REMOTE','mx-xs')+btn('flip',902,492,'FADER|FLIP','fn',40,28,'FADER FLIP (sends on fader). Not simulated yet.')+T(902,516,'SENDS ON FADER','mx-xs');
   s+=`<rect id="zCtl" x="10" y="98" width="592" height="450" fill="none"/><rect id="zScr" x="448" y="80" width="546" height="468" fill="none"/>`;
-  s+=`</g><g id="mxBot"><rect x="2" y="560" width="996" height="698" rx="22" fill="#1d1e22" stroke="#0c0c0e" stroke-width="3"/><rect x="0" y="1246" width="1000" height="112" rx="26" fill="#141518" stroke="#0a0a0c" stroke-width="3"/>`;
+  s+=`</g><g id="mxBot"><rect x="2" y="560" width="996" height="660" rx="22" fill="#1d1e22" stroke="#0c0c0e" stroke-width="3"/>`;
   // strips
   for(let k=0;k<8;k++)s+=strip('a'+k,35+k*56);
   for(let k=0;k<8;k++)s+=strip('b'+k,490+k*56);
@@ -469,8 +469,8 @@ function fit(){if(!root.classList.contains('on'))return;const body=root.querySel
   const aw=body.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ah=body.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-4;
   if(!LAY)LAY=innerWidth/innerHeight>1.25&&innerWidth>900?'side':'real';
   const top=svg.querySelector('#mxTop'),bot=svg.querySelector('#mxBot'),rr=svg.querySelector('#mxRear');let vb;
-  if(LAY==='side'){rr.setAttribute('transform','translate(0,-66)');top.setAttribute('transform','translate(0,-12)');bot.setAttribute('transform','translate(1010,-630)');vb=[0,-70,2012,810];}
-  else{rr.setAttribute('transform','translate(0,-66)');top.removeAttribute('transform');bot.removeAttribute('transform');vb=[0,-70,1000,1430];}
+  if(LAY==='side'){rr.setAttribute('transform','translate(0,-66)');top.setAttribute('transform','translate(0,-12)');bot.setAttribute('transform','translate(1010,-630)');vb=[0,-70,2012,666];}
+  else{rr.setAttribute('transform','translate(0,-66)');top.removeAttribute('transform');bot.removeAttribute('transform');vb=[0,-70,1000,1295];}
   VB0=vb.slice();ZV=null;svg.setAttribute('viewBox',vb.join(' '));
   const W=LAY==='side'?Math.min(aw,ah*vb[2]/vb[3]):Math.min(aw,1100);document.getElementById('mx-front').style.width=Math.floor(W)+'px';
   root.classList.toggle('side',LAY==='side');const b=document.getElementById('mx-lay');if(b)b.textContent=LAY==='side'?'Real layout':'Side by side';}
