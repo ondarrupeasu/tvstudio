@@ -42,8 +42,7 @@ async function cameraInput(deviceId,label){try{const st=await navigator.mediaDev
   catch(e){alertBox('Camera','Could not open the camera: '+(e.message||e));}}
 /* the multicam pack: CAM1-8 files already start together → play them together, loop together */
 const PACK={t0:null,len:211};
-function packSync(){if(PACK.t0==null)return;const t=((performance.now()-PACK.t0)/1000)%PACK.len;
-  V.inputs.forEach(x=>{if(x.pack&&x.el.readyState>=2){if(x.el.paused)x.el.play().catch(()=>{});if(Math.abs(x.el.currentTime-t)>.12)x.el.currentTime=t;}});}
+function packSync(){}   // no hidden corrections (Alex): the pack files only START together, like playing them in vMix
 function removeInput(inp){if(V.lock)return;if(inp.stream)inp.stream.getTracks().forEach(t=>t.stop());if(inp.type==='video'){inp.el.pause();}
   V.inputs=V.inputs.filter(x=>x!==inp);V.ov.forEach(o=>{if(o.inp===inp){o.inp=null;o.a=o.target=0;}});if(V.pv===inp)V.pv=null;if(V.pgm===inp)V.pgm=null;renumber();draw();}
 
@@ -207,7 +206,7 @@ function act(a,b,e){
   if(a==='stream')return toggleStream();if(a==='strset')return streamDialog(false);
   if(a==='ext'){V.ext=!V.ext;if(V.ext)openExtWin();else if(V.extWin&&!V.extWin.closed)V.extWin.close();return draw();}if(a==='extset')return extDialog();
   if(a==='multiview')return openMvWin('MultiView');if(a==='fullscreen')return fullscreenMenu(b);if(a==='snap')return snapshot();
-  if(a==='overlay')return overlayDialog();
+  if(a==='overlay')return overlayDialog();if(a==='settings')return outputsDialog();
   if(a==='save')return savePreset(false);if(a==='saveas')return savePreset(true);if(a==='open')return openPreset();
   if(a==='last'){let d=null;try{d=JSON.parse(localStorage.getItem('vx-last'));}catch(_){}return d?loadPreset(d):alertBox('Last','No preset saved yet on this computer.');}
   if(a==='new')return confirmBox('New preset','Close every input and start an empty production?',()=>{clearAll();V.preset=null;draw();});
@@ -386,8 +385,11 @@ function catDialog(){const L=V.catLabels||(V.catLabels=CAT.map(()=>''));modal('I
 const outCv=mkCanvas();let ftbA=0;
 function renderOut(src){const g=outCv.getContext('2d');g.drawImage(src,0,0,W,H);ftbA+=((V.ftb?1:0)-ftbA)*.12;if(ftbA>.002){g.fillStyle=`rgba(0,0,0,${ftbA})`;g.fillRect(0,0,W,H);}}
 /* External output (DeckLink): SDI 1 = Fill, SDI 2 = Key (only with Alpha Channel Straight / Premultiplied) */
-const EXT={device:'DeckLink Duo 2',port:'SDI',alpha:'None',fmt:'1080p25'};
-function extScene(c,keyOnly){const T=V.T;scene(c,{a:T?T.a:V.pgm,b:T?T.b:null,p:T?T.p||0:0,fx:T?T.fx:null,ovs:V.ov,keyOnly,transparent:!keyOnly});}
+const EXT={device:'DeckLink Duo 2',port:'SDI',alpha:'None',fmt:'1080p25',src:'Output',on:false};
+function extScene(c,keyOnly){const T=V.T,src=EXT.src;   // Settings › Outputs: what Output 1 (→ External) carries
+  if(src==='Preview')return scene(c,{a:V.pv,ovs:V.ov.map(o=>o.pend?{inp:o.pend,a:1}:{inp:null,a:0}),keyOnly,transparent:!keyOnly});
+  const m=/^Input (\d+)$/.exec(src);if(m)return scene(c,{a:V.inputs[+m[1]-1],keyOnly,transparent:!keyOnly});
+  scene(c,{a:T?T.a:V.pgm,b:T?T.b:null,p:T?T.p||0:0,fx:T?T.fx:null,ovs:V.ov,keyOnly,transparent:!keyOnly});}
 function drawFill(f){extScene(f,false);const g=f.getContext('2d');g.globalCompositeOperation='destination-over';g.fillStyle='#000';g.fillRect(0,0,f.width,f.height);g.globalCompositeOperation='source-over';
   if(ftbA>.002){g.fillStyle=`rgba(0,0,0,${ftbA})`;g.fillRect(0,0,f.width,f.height);}}
 function drawKey(k){if(EXT.alpha!=='None'){gl.blendFunc(gl.ONE,gl.ONE);extScene(k,true);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);}else{const kg=k.getContext('2d');kg.fillStyle='#000';kg.fillRect(0,0,k.width,k.height);}}
@@ -433,9 +435,17 @@ function streamDialog(startAfter){modal('Streaming',`<div class="vx-dests">${[1,
   <label>Quality <select class="sq">${['360p 1.5mbps','720p 2.5mbps','720p 4mbps','1080p 6mbps'].map(q=>`<option ${STR.quality===q?'selected':''}>${q}</option>`).join('')}</select></label><label>Application <select disabled><option>FFMPEG</option></select></label>
   <p class="vx-hint">Simulator: nothing is actually sent to the internet. Type any key to practise the steps. (Real YouTube URL: rtmp://a.rtmp.youtube.com/live2 + your stream key from YouTube Studio.)</p>`,{w:520,ok:startAfter?'Start':'Save and Close',onOk:m=>{STR.dest=$('.sd',m).value;STR.url=$('.su',m).value;STR.key=$('.sk',m).value;STR.quality=$('.sq',m).value;if(startAfter&&STR.key)toggleStream();}});
   const sd=$('#vx-modal .sd');sd.onchange=()=>{const u={'YouTube':'rtmp://a.rtmp.youtube.com/live2','Facebook':'rtmps://live-api-s.facebook.com:443/rtmp/','Twitch':'rtmp://live.twitch.tv/app','Custom RTMP Server':'rtmp://'}[sd.value];$('#vx-modal .su').value=u;};}
+function outputsDialog(){const srcs=['Output','Preview',...V.inputs.map(x=>'Input '+x.num)];
+  modal('Settings — Outputs / NDI / SRT',`<table class="vx-otab"><tr><th></th><th>Source</th><th>External</th><th>NDI</th><th>SRT</th></tr>
+    <tr><td><b>Output 1</b></td><td><select class="o1">${srcs.map(x=>`<option ${EXT.src===x?'selected':''}>${x}${x.startsWith('Input ')?' — '+V.inputs[+x.slice(6)-1].name:''}</option>`).join('')}</select></td><td><input type="checkbox" class="oe" ${V.ext?'checked':''}></td><td><input type="checkbox" disabled></td><td><input type="checkbox" disabled></td></tr>
+    ${[2,3,4].map(n=>`<tr class="na"><td>Output ${n}</td><td><select disabled><option>Output</option></select></td><td><input type="checkbox" disabled></td><td><input type="checkbox" disabled></td><td><input type="checkbox" disabled></td></tr>`).join('')}</table>
+    <p class="vx-hint"><b>External</b> = the DeckLink card of the vMix PC (HD edition: 1 external output). With <b>Alpha Channel</b> set to Straight or Premultiplied in <i>External Output</i>, it sends <b>Fill on SDI 1</b> and <b>Key on SDI 2</b>. In Tartanga these go into the <b>Videohub IN 5 / IN 6</b> and from there to the <b>ATEM</b>, where DSK 1 keys them over the programme.</p>
+    <button class="vx-toext">External Output settings…</button>`,{w:600,onOk:m=>{EXT.src=$('.o1',m).value.split(' — ')[0];const on=$('.oe',m).checked;if(on!==V.ext){V.ext=on;if(on)openExtWin();else if(V.extWin&&!V.extWin.closed)V.extWin.close();}draw();}});
+  $('.vx-toext',$('#vx-modal')).onclick=()=>extDialog();}
 function extDialog(){modal('Settings — External Output',`<label><input type="radio" disabled> vMix Video / Streaming</label><label><input type="radio" checked> External Renderer</label>
   <label>Frame Rate <select disabled><option>25</option></select></label><label>Output Size <select disabled><option>1920x1080</option></select></label>
   <label>Device <select class="ed"><option>DeckLink Duo 2</option><option>DeckLink 8K Pro</option><option>UltraStudio HD Mini</option></select></label><label>Port <select><option>SDI</option></select></label>
+  <label>Source <span>${EXT.src} (Settings › Outputs)</span></label>
   <label>Alpha Channel <select class="ea">${['None','Straight','Premultiplied'].map(a=>`<option ${EXT.alpha===a?'selected':''}>${a}</option>`).join('')}</select></label>
   <p class="vx-hint">With <b>Straight</b> or <b>Premultiplied</b>, the card sends <b>Fill on SDI 1</b> and <b>Key on SDI 2</b>. In the ATEM, both go into the keyer (Linear / Pre-multiplied). For titles alone, put a transparent input (Add Input → Colour → Blank) on the Output and the titles as overlays.</p>`,
   {w:560,onOk:m=>{EXT.device=$('.ed',m).value;EXT.alpha=$('.ea',m).value;if(V.extWin&&!V.extWin.closed)openExtWin();}});}
