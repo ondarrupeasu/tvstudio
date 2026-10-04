@@ -1,6 +1,6 @@
 /* TV Studio service worker — basic offline cache.
    Bump CACHE when assets change to force an update. */
-const CACHE = 'tvstudio-v47';
+const CACHE = 'tvstudio-v48';
 const ASSETS = [
   './',
   './index.html',

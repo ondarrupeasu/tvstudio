@@ -142,7 +142,7 @@ let mvWin=null;
 function mount(){const f=document.getElementById('atem-front'),r=document.getElementById('atem-rear');if(!f||f.dataset.built)return;f.dataset.built='1';
   f.className='vh-front';f.innerHTML=front()+'<canvas id="at-lcd" width="320" height="240"></canvas>';
   r.className='vh-rear';r.innerHTML=rear();
-  const slot=document.getElementById('at-monslot')||r;slot.insertAdjacentHTML('beforeend',`<div class="at-mon"><div class="vh-lab">CONTROL-ROOM MONITOR <span>— ATEM MULTIVIEW 1</span> <button id="at-mvpop">Second screen ↗</button></div><canvas id="at-mvc" width="960" height="540"></canvas><div class="at-pgmnote">Top: <b style="color:#36d36e">preview</b> · <b style="color:#ff3b30">programme</b>. Below: inputs 1-8 (tally: red = on air, green = next).</div></div>`);
+  const mvb=document.getElementById('vh-mvbtn');
   const fs=document.getElementById('at-fsvg');let holdT=null,lockT0=0;
   fs.addEventListener('pointerdown',e=>{const k=e.target.closest('.at-k');if(!k)return;e.preventDefault();const id=k.dataset.k;k.classList.add('down');
     if(id==='lock'){lockT0=performance.now();holdT=setInterval(()=>{const t=performance.now()-lockT0;if(!S.locked&&t>=2000){S.locked=true;clearInterval(holdT);draw();}else if(S.locked&&t>=1000){S.locked=false;clearInterval(holdT);draw();}},50);}
@@ -153,7 +153,7 @@ function mount(){const f=document.getElementById('atem-front'),r=document.getEle
   kn.addEventListener('pointermove',e=>{if(y0==null)return;acc+=(y0-e.clientY);y0=e.clientY;while(Math.abs(acc)>=10){const d=Math.sign(acc);acc-=d*10;spin(S.menu?-d:d);draw();}});
   kn.addEventListener('pointerup',()=>{y0=null;});
   kn.addEventListener('wheel',e=>{e.preventDefault();spin(e.deltaY>0?1:-1);draw();},{passive:false});
-  document.getElementById('at-mvpop').onclick=()=>{mvWin=window.open('','atem_mv1','width=980,height=580');if(!mvWin)return alert('Allow pop-up windows for this site.');
+  if(mvb)mvb.onclick=()=>{mvWin=window.open('','atem_mv1','width=980,height=580');if(!mvWin)return alert('Allow pop-up windows for this site.');
     mvWin.document.title='ATEM Multiview 1';mvWin.document.body.style.cssText='margin:0;background:#000';mvWin.document.body.innerHTML='<canvas id="mv" width="960" height="540" style="width:100vw;height:100vh;object-fit:contain"></canvas>';};
   const root=document.getElementById('vh'),tip=document.getElementById('vh-tip');
   root.addEventListener('mousemove',e=>{const s=e.target.closest('.at-sock');if(!s)return;const d=s.dataset.s[0],k=+s.dataset.s.slice(1);let name,txt;
@@ -167,8 +167,8 @@ function loop(now){requestAnimationFrame(loop);const vis=document.getElementById
   if(now-last<38)return;last=now;   // ~25 fps
   if(S.T){S.T.p=Math.min(1,(now-S.T.t0)/S.T.ms);if(S.T.p>=1){const a=S.pgm;S.pgm=S.pvw;S.pvw=a;S.T=null;draw();}}
   const ease=(o,ms=st.rate*40)=>{const t=o.on?1:0;o.a+=Math.sign(t-o.a)*Math.min(Math.abs(t-o.a),38/ms);};ease(S.ftb);ease(S.dsk1);ease(S.key1);ease(S.dsk2);
-  render();drawMV();
-  if(vis){const m=document.getElementById('at-mvc');if(m)m.getContext('2d').drawImage(mvCv,0,0);drawLcd();if(S.ftb.on||S.lockFlash>now)draw();}
+  render();if(pop)drawMV();
+  if(vis){drawLcd();if(S.ftb.on||S.lockFlash>now)draw();}
   if(pop){const c=mvWin.document.getElementById('mv');if(c)c.getContext('2d').drawImage(mvCv,0,0);}}
 requestAnimationFrame(loop);
 window.ATEMR={mount,state:()=>st,program:()=>pgmCv};
