@@ -222,7 +222,8 @@
   .mx-ring{fill:none;stroke:#2d2f35;stroke-width:3}.mx-ringv{fill:none;stroke:#ffae3d;stroke-width:3}.mx-k:hover .mx-kb{stroke:var(--ce-accent)}
   .mx-led{fill:#25262b}.mx-led.lit.g{fill:#3be07a}.mx-led.lit.y{fill:#ffd23a}.mx-led.lit.r{fill:#ff3b2f}
   .mx-lcdbg{fill:#050506}.mx-lcd1{font-size:11px;font-weight:800;fill:#fff}.mx-lcd2{font-size:8.6px;font-weight:700;fill:#fff}
-  .mx-cap{transition:transform .45s cubic-bezier(.3,.7,.3,1)}.mx-cap.drag{transition:none}.mx-f{cursor:ns-resize}
+  .mx-cap{transition:transform .45s cubic-bezier(.3,.7,.3,1)}
+  @keyframes mxblink{50%{opacity:.35}}.mx-svg.flipping [data-b="flip"]{animation:mxblink .8s steps(1) infinite}.mx-f.flipf .mx-cap rect:nth-child(2){fill:#ffb347}.mx-cap.drag{transition:none}.mx-f{cursor:ns-resize}
   .mx-s{font-size:8px;fill:#e5ecf7}.mx-st{font-size:6.6px;fill:#a9bad3}.mx-sv{font-size:8px;font-weight:700;fill:#ffffff}.mx-samb{font-size:8px;fill:#ffb347}
   .mx-sbig{font-size:13px;font-weight:800;fill:#fff}.mx-warn{font-size:8px;font-weight:700;fill:#ffb347}.mx-micbtn{cursor:pointer}
   .mx-src{position:absolute;top:60px;right:16px;z-index:5;width:min(520px,92vw);background:#16171c;border:1px solid var(--ce-line);border-radius:12px;padding:12px 14px;box-shadow:0 18px 40px rgba(0,0,0,.6);display:none}
@@ -494,6 +495,10 @@
       <li>Listen with <b>PHONES LEVEL</b> / <b>MONITOR LEVEL</b>. <b>SOLO</b> lets you hear one channel alone; <b>CLR SOLO</b> clears it.</li>
       <li>Shape the sound: <b>LOW CUT</b>, <b>GATE</b>, <b>COMP</b> and the <b>EQUALISER</b> (pick a band, then FREQUENCY / GAIN / WIDTH). <b>VIEW</b> opens each section on the screen.</li>
       <li>Other channels: the <b>FADER LAYER</b> buttons change what the faders control (INPUTS 9-16…, buses, DCA).</li>
+      <li><b>Monitor mix (bus):</b> layer <b>BUS 1-8</b> on the right, <b>SEL</b> a bus, press <b>FADER FLIP</b> (it blinks): the input faders are now the sends to that bus. <b>SOLO</b> the bus to hear it. FLIP again to exit.</li>
+      <li><b>DCA:</b> layer <b>GROUP DCA 1-8</b>, <b>SEL</b> a DCA, then <b>Shift+click</b> the SEL of the channels to add (on the real desk: hold the DCA SEL). The DCA fader moves them all.</li>
+      <li><b>Mute groups:</b> <b>MUTE GRP</b> (screen). Push an encoder = mute/unmute that group. Assign: Shift+click the encoder, then Shift+click channel SELs.</li>
+      <li><b>Scenes:</b> <b>SCENES</b> (screen). Encoder 1 picks the scene, push encoder 5 = Save, push 6 = Load (stored in this browser).</li>
     </ol>
     <p class="mx-snote">The row at the bottom tells you what is still missing for the selected channel to be heard. Hover any control to see what it does — and, on a channel, what is plugged into it.</p></div>
   <input type="file" id="mx-file" accept="audio/*,video/*" hidden>

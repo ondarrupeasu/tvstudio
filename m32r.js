@@ -23,11 +23,20 @@ for(let i=1;i<=6;i++)mk('mtx'+i,'MT'+i,'Matrix '+i,'off','mtx');
 mk('mainc','M/C','Main C','white','mainc');mk('main','LR','MAIN','white','main');
 const P={};   // processing of the input channels (sources: see SOURCES / setSource below)
 for(let i=1;i<=32;i++)P['in'+i]={gain:0,p48:false,pol:false,lc:false,lcf:80,gate:false,gthr:-60,comp:false,cthr:-20,ratio:3,eq:true,band:'low',
-  b:{low:{t:'LSHV',f:80,g:0,q:2},lomid:{t:'PEQ',f:300,g:0,q:2},himid:{t:'PEQ',f:3000,g:0,q:2},high:{t:'HSHV',f:10000,g:0,q:2}},pan:0,st:true,mono:false,mcl:0};
+  b:{low:{t:'LSHV',f:80,g:0,q:2},lomid:{t:'PEQ',f:300,g:0,q:2},himid:{t:'PEQ',f:3000,g:0,q:2},high:{t:'HSHV',f:10000,g:0,q:2}},pan:0,st:true,mono:false,mcl:0,sends:Array(17).fill(0)};
 const LAYERS_IN={i1:['in',1],i2:['in',9],i3:['in',17],i4:['in',25],aux:['aux',1],fxr:['fx',1],b1:['bus',1],b2:['bus',9]};
 const LAYERS_BUS={dca:['dca',1],b1:['bus',1],b2:['bus',9],mtx:null};
 const G={power:false,inL:'i1',busL:'dca',sel:'in1',tab:'home',page:'home',flip:false,rem:false,dim:false,talkA:false,talkB:false,
-  assign:[true,true,true,true,false,false,false,false],mon:.6,phones:.5,talk:.5};
+  assign:[true,true,true,true,false,false,false,false],mon:.6,phones:.5,talk:.5,
+  dcaM:{},mg:Array.from({length:6},()=>({on:false,m:[]})),holdSel:null,holdEnc:null,scene:0};
+for(let i=1;i<=8;i++)G.dcaM['dca'+i]=[];
+const busN=id=>+id.slice(3);
+/* effective level of an input channel: own fader + its DCAs; muted by own MUTE, a muted DCA or an active mute group */
+function effDb(id){let d=f2db(S[id].fader);Object.entries(G.dcaM).forEach(([dc,m])=>{if(m.includes(id))d+=f2db(S[dc].fader);});return d;}
+function effMute(id){return S[id].mute||Object.entries(G.dcaM).some(([dc,m])=>m.includes(id)&&S[dc].mute)||G.mg.some(g=>g.on&&g.m.includes(id));}
+/* sends on fader: what a fader shows/controls right now */
+function fVal(slot,id){const fl=G.flip;if(fl&&id){if(fl.mode==='bus'&&slot[0]==='a'&&S[id].type==='in')return P[id].sends[fl.bus];if(fl.mode==='ch'&&slot[0]==='b'&&S[id].type==='bus')return P[fl.ch].sends[busN(id)];}return id?S[id].fader:0;}
+function fSet(slot,id,v){const fl=G.flip;if(fl){if(fl.mode==='bus'&&slot[0]==='a'&&S[id].type==='in'){P[id].sends[fl.bus]=v;return;}if(fl.mode==='ch'&&slot[0]==='b'&&S[id].type==='bus'){P[fl.ch].sends[busN(id)]=v;return;}}S[id].fader=v;}
 const stripsIn=()=>{const [p,a]=LAYERS_IN[G.inL];return Array.from({length:8},(_,k)=>p+(a+k));};
 const stripsBus=()=>G.busL==='mtx'?['mtx1','mtx2','mtx3','mtx4','mtx5','mtx6','mainc',null]:(([p,a])=>Array.from({length:8},(_,k)=>p+(a+k)))(LAYERS_BUS[G.busL]);
 /* fader law (X32/M32 family): position 0..1 → dB */
@@ -111,7 +120,7 @@ function surface(){let s=`<svg class="mx-svg" viewBox="0 -70 1000 1295" role="im
   s+=panel(781,352,983,541,'FADER LAYER');
   [['L:i1','INPUTS|1-8',805,384],['L:i2','INPUTS|9-16',850,384],['L:i3','INPUTS|17-24',805,420],['L:i4','INPUTS|25-32',850,420],['L:aux','AUX IN|USB',805,456],['L:fxr','FX|RET',850,456],['L:b1','BUS|1-8',805,492],['L:b2','BUS|9-16',850,492]].forEach(([id,l,x,y])=>s+=btn(id,x,y,l,'lay',40,28));
   [['B:dca','GROUP|DCA 1-8',955,384],['B:b1','BUS|1-8',955,420],['B:b2','BUS|9-16',955,456],['B:mtx','MATRIX|MAIN C',955,492]].forEach(([id,l,x,y])=>s+=btn(id,x,y,l,'lay',42,28));
-  s+=btn('rem',902,400,'REM','fn',36,20,'REM: DAW remote control. Drawn only.')+T(902,420,'DAW REMOTE','mx-xs')+btn('flip',902,492,'FADER|FLIP','fn',40,28,'FADER FLIP (sends on fader). Not simulated yet.')+T(902,516,'SENDS ON FADER','mx-xs');
+  s+=btn('rem',902,400,'REM','fn',36,20,'REM: DAW remote control. Drawn only.')+T(902,420,'DAW REMOTE','mx-xs')+btn('flip',902,492,'FADER|FLIP','fn',40,28,'FADER FLIP = sends on fader. SEL a mix bus → FLIP: the 8 input faders set how much each channel sends to that bus. SEL an input → FLIP: the bus faders are that channel\'s sends. Press again to exit.')+T(902,516,'SENDS ON FADER','mx-xs');
   s+=`<rect id="zCtl" x="10" y="98" width="592" height="450" fill="none"/><rect id="zScr" x="448" y="80" width="546" height="468" fill="none"/>`;
   s+=`</g><g id="mxBot"><rect x="2" y="560" width="996" height="660" rx="22" fill="#1d1e22" stroke="#0c0c0e" stroke-width="3"/>`;
   // strips
@@ -165,6 +174,8 @@ async function startAudio(){if(A){A.ctx.resume();return;}
   mainBus.connect(mainF);mainF.connect(mainM);mainM.connect(spl);spl.connect(anL,0);spl.connect(anR,1);mainM.connect(mainToMon);soloBus.connect(soloToMon);soloBus.connect(soloAn);
   mainToMon.connect(mon);soloToMon.connect(mon);mon.connect(lim);lim.connect(ctx.destination);
   Object.assign(A,{mainBus,mainF,mainM,soloBus,mainToMon,soloToMon,mon,anL,anR,soloAn});
+  A.bus={};for(let k=1;k<=16;k++){const b={sum:ctx.createGain(),fad:ctx.createGain(),mute:ctx.createGain(),solo:ctx.createGain(),an:ctx.createAnalyser()};b.an.fftSize=1024;
+    b.sum.connect(b.fad);b.fad.connect(b.mute);b.mute.connect(b.an);b.mute.connect(b.solo);b.solo.connect(soloBus);A.bus[k]=b;}
   const load=async u=>{const r=await fetch(u);return ctx.decodeAudioData(await r.arrayBuffer());};
   for(let i=1;i<=16;i++)chain('in'+i);
   for(const [id,k] of Object.entries(SRC))await setSource(id,k);
@@ -178,6 +189,7 @@ function chain(id){const c=A.ctx,n={};
   n.in.connect(n.phantom);n.phantom.connect(n.pre);n.pre.connect(n.preAn);n.pre.connect(n.pol);n.pol.connect(n.hp);n.hp.connect(n.gate);n.gate.connect(n.comp);
   let last=n.comp;n.eq.forEach(f=>{last.connect(f);last=f;});last.connect(n.postAn);last.connect(n.solo);n.solo.connect(A.soloBus);
   last.connect(n.mute);n.mute.connect(n.fad);n.fad.connect(n.pan);n.pan.connect(n.st);n.st.connect(A.mainBus);
+  n.snd={};for(let k=1;k<=16;k++){const g=c.createGain();g.gain.value=0;n.fad.connect(g);g.connect(A.bus[k].sum);n.snd[k]=g;}
   n.gateOpen=1;A.ch[id]=n;}
 const BT={LCUT:'highpass',LSHV:'lowshelf',PEQ:'peaking',VEQ:'peaking',HSHV:'highshelf',HCUT:'lowpass'};
 function applyCh(id){if(!A||!A.ch[id])return;const n=A.ch[id],p=P[id],s=S[id],t=A.ctx.currentTime,sm=(prm,v)=>prm.setTargetAtTime(v,t,.015);
@@ -187,8 +199,9 @@ function applyCh(id){if(!A||!A.ch[id])return;const n=A.ch[id],p=P[id],s=S[id],t=
   ['low','lomid','himid','high'].forEach((k,i)=>{const b=p.b[k],f=n.eq[i];
     if(!p.eq){f.type='peaking';f.gain.value=0;return;}
     f.type=BT[b.t];f.frequency.value=b.f;f.Q.value=b.t==='LCUT'||b.t==='HCUT'?.707:b.t==='LSHV'||b.t==='HSHV'?b.q/4:b.q;f.gain.value=b.g;});
-  sm(n.mute.gain,s.mute?0:1);sm(n.fad.gain,db2g(f2db(s.fader)));n.pan.pan.setTargetAtTime(p.pan,t,.02);sm(n.st.gain,p.st?1:0);sm(n.solo.gain,s.solo?1:0);}
-function applyMain(){if(!A)return;const t=A.ctx.currentTime,anySolo=Object.values(S).some(s=>s.solo&&s.type==='in');
+  sm(n.mute.gain,effMute(id)?0:1);sm(n.fad.gain,db2g(effDb(id)));for(let k=1;k<=16;k++)sm(n.snd[k].gain,db2g(f2db(p.sends[k])));n.pan.pan.setTargetAtTime(p.pan,t,.02);sm(n.st.gain,p.st?1:0);sm(n.solo.gain,s.solo?1:0);}
+function applyMain(){if(!A)return;const t=A.ctx.currentTime,anySolo=Object.values(S).some(s=>s.solo&&(s.type==='in'||s.type==='bus'));
+  for(let k=1;k<=16;k++){const b=A.bus[k],s=S['bus'+k];b.fad.gain.setTargetAtTime(db2g(f2db(s.fader)),t,.015);b.mute.gain.setTargetAtTime(s.mute?0:1,t,.015);b.solo.gain.setTargetAtTime(s.solo?1:0,t,.015);}
   A.mainF.gain.setTargetAtTime(db2g(f2db(S.main.fader)),t,.015);A.mainM.gain.setTargetAtTime(S.main.mute?0:1,t,.015);
   const lvl=Math.max(G.mon,G.phones),v=lvl*lvl*(G.dim?0.1:1);
   A.mon.gain.setTargetAtTime(G.power?v:0,t,.02);A.mainToMon.gain.setTargetAtTime(anySolo?0:1,t,.02);A.soloToMon.gain.setTargetAtTime(anySolo?1:0,t,.02);}
@@ -251,8 +264,9 @@ function meterTick(){requestAnimationFrame(meterTick);if(!root.classList.contain
     const open=!p.gate||pre>p.gthr;n.gateOpen=open;n.gate.gain.setTargetAtTime(open?1:0,A.ctx.currentTime,open?.005:.08);
     sm(id+':post',peakDb(n.postAn));});
   // strips
-  [...stripsIn().map((id,k)=>['a'+k,id]),...stripsBus().map((id,k)=>['b'+k,id])].forEach(([slot,id])=>{const n=id&&A.ch[id];const v=n?lev[id+':post']:-120;
-    [null,0,-6,-12,-18,-30,-60].forEach((th,k)=>{if(k===0)return;L('m:'+slot+':'+k,n&&(k===1?v>=-0.1:v>=th));});
+  for(let k=1;k<=16;k++)sm('bus'+k,peakDb(A.bus[k].an));
+  [...stripsIn().map((id,k)=>['a'+k,id]),...stripsBus().map((id,k)=>['b'+k,id])].forEach(([slot,id])=>{const n=id&&A.ch[id],isB=id&&S[id].type==='bus';const v=n?lev[id+':post']:isB?lev[id]:-120;
+    [null,0,-6,-12,-18,-30,-60].forEach((th,k)=>{if(k===0)return;L('m:'+slot+':'+k,(n||isB)&&(k===1?v>=-0.1:v>=th));});
     L('m:'+slot+':0',n&&P[id].comp&&n.comp.reduction<-1);L('m:'+slot+':7',slot.startsWith('a')&&n&&P[id].gate&&!n.gateOpen);});
   // selected channel: preamp + dynamics meters
   const n=A.ch[G.sel],pv=n?lev[G.sel+':pre']:-120;
@@ -288,22 +302,33 @@ function draw(){if(!svg)return;const on=G.power;
   svg.classList.toggle('off',!on);rear.classList.toggle('on',on);
   rear.querySelectorAll('.mx-sock').forEach(g=>{const id='in'+g.dataset.in,k=SRC[id];g.classList.toggle('plugged',k!=='none');g.querySelector('.mx-plugr').setAttribute('fill',COL[SOURCES[k].color]||'#888');});
   const fill=(slot,id)=>{const g=svg.querySelector(`.mx-f[data-slot="${slot}"]`),lcd=svg.querySelector(`[data-lcd="${slot}"]`),s=id&&S[id];
-    g.querySelector('.mx-cap').style.transform=`translateY(${fpos(s?s.fader:0)}px)`;
+    g.querySelector('.mx-cap').style.transform=`translateY(${fpos(fVal(slot,id))}px)`;g.classList.toggle('flipf',!!(G.flip&&s&&((G.flip.mode==='bus'&&slot[0]==='a'&&s.type==='in')||(G.flip.mode==='ch'&&slot[0]==='b'&&s.type==='bus'))));
     lcd.classList.toggle('empty',!s||!on);lcd.querySelector('.mx-lcdc').setAttribute('fill',on&&s?COL[s.color]||COL.off:'#0b0c0e');
     const [l1,l2]=lcd.querySelectorAll('text');l1.textContent=on&&s?s.num:'';l2.textContent=on&&s?(s.name||s.num).slice(0,10):'';
-    setLit('sel:'+slot,s&&G.sel===id);setLit('solo:'+slot,s&&s.solo);setLit('mute:'+slot,s&&s.mute);};
+    setLit('sel:'+slot,s&&G.sel===id);setLit('solo:'+slot,s&&s.solo);setLit('mute:'+slot,s&&(s.type==='in'?effMute(id):s.mute));};
   stripsIn().forEach((id,k)=>fill('a'+k,id));stripsBus().forEach((id,k)=>fill('b'+k,id));fill('m','main');
   setLit('clrsolo',Object.values(S).some(s=>s.solo));
   Object.keys(LAYERS_IN).forEach(k=>setLit('L:'+k,G.inL===k));Object.keys(LAYERS_BUS).forEach(k=>setLit('B:'+k,G.busL===k));
   const p=P[G.sel];['p48','pol','lc','gate','comp','eq'].forEach(k=>setLit(k,p&&p[k]));setLit('st',p&&p.st);setLit('mono',p&&p.mono);
   ['low','lomid','himid','high'].forEach(k=>setLit('band:'+k,p&&p.band===k));
-  G.assign.forEach((v,i)=>setLit('asg:'+i,v));setLit('dim',G.dim);setLit('talkA',G.talkA);setLit('talkB',G.talkB);setLit('flip',G.flip);setLit('rem',G.rem);
+  G.assign.forEach((v,i)=>setLit('asg:'+i,v));setLit('dim',G.dim);setLit('talkA',G.talkA);setLit('talkB',G.talkB);setLit('flip',!!G.flip);svg.classList.toggle('flipping',!!G.flip);setLit('rem',G.rem);
   svg.querySelectorAll('.mx-b.scrb').forEach(b=>b.classList.toggle('lit',on&&b.dataset.b==='scr:'+G.page));
   svg.querySelectorAll('.mx-k').forEach(drawKnob);updLeds();drawScreen();diag();}
 /* ---------- screen (800×480 TFT, drawn at 252×158) ---------- */
 const scr=()=>svg.querySelector('#mx-screen');
 const TABS=['home','config','gate','dyn','eq','sends','main'];
-function encDefs(){const p=P[G.sel],b=p&&p.b[p.band],s=S[G.sel];if(G.page!=='home')return [];
+/* ---------- scenes (SCENES page, saved in the browser) ---------- */
+const SKEY='m32r-scenes';const scenes=()=>{try{return JSON.parse(localStorage.getItem(SKEY))||{};}catch(_){return {};}};
+function snapshot(){return {S:Object.fromEntries(Object.values(S).map(x=>[x.id,{fader:x.fader,mute:x.mute}])),P:JSON.parse(JSON.stringify(P)),dcaM:JSON.parse(JSON.stringify(G.dcaM)),mg:JSON.parse(JSON.stringify(G.mg))};}
+function saveScene(){const all=scenes();all[G.scene]={name:'Scene '+String(G.scene).padStart(2,'0'),t:Date.now(),d:snapshot()};try{localStorage.setItem(SKEY,JSON.stringify(all));}catch(_){} G.msg='Saved scene '+G.scene;}
+function loadScene(){const sc=scenes()[G.scene];if(!sc){G.msg='Scene '+G.scene+' is empty';return;}const d=sc.d;
+  Object.entries(d.S).forEach(([id,v])=>{if(S[id])Object.assign(S[id],v);});Object.entries(d.P).forEach(([id,v])=>{if(P[id])P[id]=v;});G.dcaM=d.dcaM;G.mg=d.mg;G.msg='Loaded scene '+G.scene;applyAll();}
+function encPress(i){if(G.page==='mutegrp'&&G.shiftDown){G.mgArm=G.mgArm===i?null:i;draw();return;}const e=encDefs()[i];if(e&&e.press){e.press();applyAll();draw();}}
+function encDefs(){const p=P[G.sel],b=p&&p.b[p.band],s=S[G.sel];
+  if(G.page==='mutegrp')return G.mg.map((g,i)=>({l:'Mute '+(i+1),get:()=>(g.on?'ON':'off')+' · '+g.m.length+' ch',set:()=>{},v:()=>g.on?1:0,press:()=>{g.on=!g.on;}}));
+  if(G.page==='scenes'){const sc=scenes();return [{l:'Scene',get:()=>String(G.scene).padStart(2,'0')+(sc[G.scene]?' ●':''),set:d=>{G.scene=cl(G.scene+Math.sign(d),0,99);},v:()=>G.scene/99},null,null,null,
+    {l:'Save',get:()=>'push',set:()=>{},v:()=>0,press:saveScene},{l:'Load',get:()=>'push',set:()=>{},v:()=>0,press:loadScene}];}
+  if(G.page!=='home')return [];
   const E=(l,get,set,v)=>({l,get,set,v});
   const fd=E('Fader',()=>fmtDb(f2db(s.fader))+' dB',d=>{s.fader=cl(s.fader+d*.01);},()=>s.fader);
   if(!p)return [fd];
@@ -328,15 +353,25 @@ function drawScreen(){const g=scr();if(!g)return;const on=G.power;
   h+=`<rect x="2" y="2" width="12" height="12" rx="2" fill="${COL[s.color]||COL.off}"/>`+T(18,11,s.num+'  '+(s.name||''),'mx-s','start')+T(150,11,'00 Default','mx-samb','start')+T(248,11,'12:00','mx-s','end');
   if(G.page==='home'){h+=TABS.map((t,i)=>`<rect x="${2+i*35.5}" y="19" width="34" height="11" rx="2" fill="${G.tab===t?'#3d6db3':'#22324a'}"/>`+T(19+i*35.5,27.4,t,'mx-st')).join('');h+=homeBody(s,p);}
   else if(G.page==='meters')h+=T(126,28,'METERS · channel','mx-s')+`<g id="mx-smet"></g>`;
+  else if(G.page==='mutegrp'){h+=T(126,25,'MUTE GROUPS — push an encoder to mute / unmute','mx-st')+T(126,33,'assign: hold encoder + SEL  (mouse: Shift+click encoder, then Shift+click SEL)','mx-st');
+    G.mg.forEach((g,i)=>{const x=4+i*41.3;h+=`<rect x="${x}" y="36" width="39" height="70" rx="3" fill="${g.on?'#7a2222':'#1d2a3d'}" stroke="${G.mgArm===i?'#ffb347':'#3b4a66'}" stroke-width="${G.mgArm===i?2:1}"/>`+T(x+19.5,50,'MG '+(i+1),'mx-sv')+T(x+19.5,64,g.on?'MUTED':'—','mx-st')+
+      g.m.slice(0,3).map((id,k)=>T(x+19.5,78+k*9,S[id].num,'mx-st')).join('')+(g.m.length>3?T(x+19.5,104,'+'+(g.m.length-3),'mx-st'):'');});}
+  else if(G.page==='scenes'){const sc=scenes();h+=T(126,28,'SCENES — encoder 1 picks the scene · push 5 = Save · push 6 = Load','mx-st');
+    for(let k=-2;k<=2;k++){const n=G.scene+k;if(n<0||n>99)continue;const y=52+(k+2)*14,cur=k===0;
+      h+=(cur?`<rect x="20" y="${y-9}" width="212" height="12" rx="2" fill="#3d6db3"/>`:'')+T(26,y,String(n).padStart(2,'0')+'  '+(sc[n]?sc[n].name+'  · saved':'(empty)'),cur?'mx-sv':'mx-st').replace('text-anchor="middle"','text-anchor="start"');}
+    if(G.msg)h+=T(126,121,G.msg,'mx-samb');}
   else{const NA={routing:'ROUTING: local IN 1-16 → channels 1-16, OUT 7/8 = MAIN L/R. Choose what arrives at IN 1-8 with the INPUT SOURCES button (top).',library:'LIBRARY: presets for channels, effects and routing. Not simulated.',effects:'EFFECTS: 8-slot rack (reverbs, delays, chorus, GEQ…). Not simulated yet.',setup:'SETUP: global settings, scribble strips, preamps, card. Not simulated.',monitor:'MONITOR: monitor source, talkback and oscillator. Use the MONITOR / PHONES knobs.',scenes:'SCENES: save / recall full console snapshots. Not simulated yet.',mutegrp:'MUTE GRP: the 6 mute groups on the screen encoders. Not simulated yet.',utility:'UTILITY: copy / paste / name channels. Not simulated.'};
     h+=T(126,40,G.page.toUpperCase(),'mx-sbig')+wrap(NA[G.page]||'',126,62,40);}
   // encoder row
+  if(G.flip){const t=G.flip.mode==='bus'?'SENDS ON FADER · input faders = sends to '+S['bus'+G.flip.bus].name:'SENDS ON FADER · bus faders = sends of '+S[G.flip.ch].num+' '+S[G.flip.ch].name;h+=`<rect x="0" y="112" width="252" height="13" fill="#b5651d"/>`+T(126,121,t,'mx-st');}
   const E=encDefs();h+=`<rect x="0" y="128" width="252" height="30" fill="#14202f"/>`;
   for(let i=0;i<6;i++){const e=E[i],x=21+i*42;if(!e)continue;h+=T(x,139,e.l,'mx-st')+T(x,151,e.get(),'mx-sv');}
   g.innerHTML=h;}
 function wrap(t,x,y,n){const w=t.split(' '),L=[];let c='';w.forEach(z=>{if((c+' '+z).trim().length>n){L.push(c.trim());c=z;}else c+=' '+z;});L.push(c.trim());
   return L.map((l,i)=>T(x,y+i*11,l,'mx-s')).join('');}
 function homeBody(s,p){let h='';
+  if(!p&&s.type==='dca'){const m=G.dcaM[s.id];return T(126,48,s.name+' — DCA group','mx-s')+T(126,64,m.length?'Members: '+m.map(id=>S[id].num).join(' '):'No members yet','mx-sv')+T(126,80,'Hold this SEL + press channel SELs (mouse: Shift+click them).','mx-st')+T(126,96,'Fader '+fmtDb(f2db(s.fader))+' dB (added to every member)'+(s.mute?' · MUTED':''),'mx-st');}
+  if(!p&&s.type==='bus'){const n=busN(s.id),snd=Object.keys(P).filter(id=>P[id].sends[n]>0).map(id=>S[id].num);return T(126,48,s.name+' — mix bus (e.g. a monitor mix)','mx-s')+T(126,64,snd.length?'Fed by: '+snd.join(' '):'No sends yet','mx-sv')+T(126,80,'SEL this bus + FADER FLIP: the input faders become its sends.','mx-st')+T(126,96,'Hear it with SOLO. Fader '+fmtDb(f2db(s.fader))+' dB'+(s.mute?' · MUTED':''),'mx-st');}
   if(!p){return T(126,70,s.name+' — '+({aux:'aux input',fx:'effects return',bus:'mix bus',dca:'DCA group',mtx:'matrix',mainc:'mono/centre bus',main:'main stereo bus'}[s.type]||''),'mx-s')+
     T(126,90,'Fader '+fmtDb(f2db(s.fader))+' dB'+(s.mute?' · MUTED':''),'mx-s')+T(126,108,'(processing of buses not simulated yet)','mx-st');}
   if(G.tab==='eq')return eqGraph(p);
@@ -369,11 +404,14 @@ function diag(){const el=document.getElementById('mx-diag');if(!el)return;const 
 /* ---------- interaction ---------- */
 function srcInfo(id){const s=S[id];if(!s)return '';const n=+id.slice(2);
   if(s.type==='in')return n<=16?`Source: rear socket IN ${n} ← ${SOURCES[SRC[id]].l}${s.cond?' (condenser: needs 48 V)':''} — click IN ${n} on the rear panel to change it.`:`Source: channel ${n} has no local input (IN 1-16 only; 17-32 would come from AES50 stage boxes).`;
-  return {aux:'Aux input (line jacks / USB) — no source in the simulator.',fx:'Return of an effects slot — effects not simulated yet.',bus:'Mix bus (e.g. a monitor send) — sends not simulated yet.',dca:'DCA group: one fader that controls several channels — not simulated yet.',mtx:'Matrix output — not simulated yet.',mainc:'Mono / centre bus.',main:'Main stereo bus (L/R) → OUT 7/8.'}[s.type]||'';}
+  return {aux:'Aux input (line jacks / USB) — no source in the simulator.',fx:'Return of an effects slot — effects not simulated yet.',bus:'Mix bus (e.g. a monitor mix for the studio): fed by the channel sends (FADER FLIP). Hear it with SOLO.',dca:'DCA group: one fader that controls several channels. Assign: hold its SEL + press channel SELs (mouse: SEL the DCA, then Shift+click the channels).',mtx:'Matrix output — not simulated yet.',mainc:'Mono / centre bus.',main:'Main stereo bus (L/R) → OUT 7/8.'}[s.type]||'';}
 function stripId(slot){if(slot==='m')return 'main';const k=+slot.slice(1);return slot[0]==='a'?stripsIn()[k]:stripsBus()[k];}
 function press(id){if(!G.power||G.boot)return;const p=P[G.sel];
   let m;
-  if((m=id.match(/^sel:(.+)$/))){const sid=stripId(m[1]);if(sid)G.sel=sid;}
+  if((m=id.match(/^sel:(.+)$/))){const sid=stripId(m[1]);if(!sid);
+    else if(G.page==='mutegrp'&&S[sid].type==='in'&&(G.holdEnc!=null||(G.shiftDown&&G.mgArm!=null))){const a=G.mg[G.holdEnc??G.mgArm].m,i=a.indexOf(sid);i<0?a.push(sid):a.splice(i,1);}
+    else if(S[sid].type==='in'&&((G.holdSel&&S[G.holdSel].type==='dca'&&sid!==G.holdSel)||(G.shiftDown&&S[G.sel].type==='dca'))){const dc=G.holdSel&&S[G.holdSel].type==='dca'?G.holdSel:G.sel,a=G.dcaM[dc],i=a.indexOf(sid);i<0?a.push(sid):a.splice(i,1);}
+    else{G.sel=sid;G.holdSel=sid;}}
   else if((m=id.match(/^solo:(.+)$/))){const s=S[stripId(m[1])];if(s)s.solo=!s.solo;}
   else if((m=id.match(/^mute:(.+)$/))){const s=S[stripId(m[1])];if(s)s.mute=!s.mute;}
   else if(id==='clrsolo')Object.values(S).forEach(s=>s.solo=false);
@@ -383,8 +421,8 @@ function press(id){if(!G.power||G.boot)return;const p=P[G.sel];
   else if(p&&id==='eqmode'){const allowed={low:['LCUT','LSHV','PEQ','VEQ'],lomid:['PEQ','VEQ'],himid:['PEQ','VEQ'],high:['HCUT','HSHV','PEQ','VEQ']}[p.band],b=p.b[p.band];b.t=allowed[(allowed.indexOf(b.t)+1)%allowed.length];}
   else if(p&&(m=id.match(/^band:(.+)$/)))p.band=m[1];
   else if((m=id.match(/^asg:(\d)$/)))G.assign[+m[1]]=!G.assign[+m[1]];
-  else if(id==='dim')G.dim=!G.dim;else if(id==='talkA')G.talkA=!G.talkA;else if(id==='talkB')G.talkB=!G.talkB;else if(id==='flip')G.flip=!G.flip;else if(id==='rem')G.rem=!G.rem;
-  else if((m=id.match(/^scr:(.+)$/))){G.page=m[1];if(m[1]==='home')G.tab='home';}
+  else if(id==='dim')G.dim=!G.dim;else if(id==='talkA')G.talkA=!G.talkA;else if(id==='talkB')G.talkB=!G.talkB;else if(id==='flip'){const t=S[G.sel].type;if(G.flip)G.flip=null;else if(t==='bus')G.flip={mode:'bus',bus:busN(G.sel)};else if(t==='in'){G.flip={mode:'ch',ch:G.sel};if(G.busL!=='b1'&&G.busL!=='b2')G.busL='b1';}}else if(id==='rem')G.rem=!G.rem;
+  else if((m=id.match(/^scr:(.+)$/))){G.page=G.page===m[1]&&m[1]==='mutegrp'?'home':m[1];if(m[1]==='home')G.tab='home';}
   else if(id.startsWith('v')){const t={vcfg:'config',vgate:'gate',vdyn:'dyn',veq:'eq',vmain:'main',vsend:'sends'}[id];if(t){G.page='home';G.tab=t;}else G.page={vmon:'monitor',vrec:'utility',vasg:'setup'}[id]||G.page;}
   else if(id==='cur:left'||id==='cur:right'){if(G.page==='home'){const i=TABS.indexOf(G.tab);G.tab=TABS[(i+(id==='cur:right'?1:TABS.length-1))%TABS.length];}}
   applyCh(G.sel);applyAll();draw();}
@@ -402,19 +440,21 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('mx-front').innerHTML=surface();
   svg=root.querySelector('.mx-svg');rear=root.querySelector('.mx-rear');
   const pt=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());};
-  svg.addEventListener('pointerdown',e=>{
+  svg.addEventListener('pointerdown',e=>{G.shiftDown=e.shiftKey;
     const f=e.target.closest('.mx-f');
     if(f&&G.power&&!G.boot){const sid=stripId(f.dataset.slot);if(!sid)return;e.preventDefault();try{svg.setPointerCapture(e.pointerId);}catch(_){}
       const cap=f.querySelector('.mx-cap');cap.classList.add('drag');
-      const set=ev=>{const q=svg.createSVGPoint();q.x=ev.clientX;q.y=ev.clientY;const y=q.matrixTransform(f.getScreenCTM().inverse()).y;S[sid].fader=cl((FY1-y)/(FY1-FY0));if(S[sid].type==='in')applyCh(sid);applyMain();draw();};set(e);
+      const set=ev=>{const q=svg.createSVGPoint();q.x=ev.clientX;q.y=ev.clientY;const y=q.matrixTransform(f.getScreenCTM().inverse()).y;fSet(f.dataset.slot,sid,cl((FY1-y)/(FY1-FY0)));if(S[sid].type==='dca'||G.flip)applyAll();else if(S[sid].type==='in')applyCh(sid);applyMain();draw();};set(e);
       const up=()=>{cap.classList.remove('drag');svg.removeEventListener('pointermove',set);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);};
       svg.addEventListener('pointermove',set);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);return;}
     const k=e.target.closest('.mx-k');
-    if(k&&G.power&&!G.boot){e.preventDefault();try{svg.setPointerCapture(e.pointerId);}catch(_){}let y0=e.clientY;
-      const mv=ev=>{const d=(y0-ev.clientY);if(Math.abs(d)>=2){knobSet(k.dataset.k,Math.round(d/2));y0=ev.clientY;}};
-      const up=()=>{svg.removeEventListener('pointermove',mv);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);};
+    if(k&&G.power&&!G.boot){e.preventDefault();try{svg.setPointerCapture(e.pointerId);}catch(_){}let y0=e.clientY,moved=false;const ei=k.dataset.k.startsWith('enc')?+k.dataset.k.slice(3):null;if(ei!=null&&G.page==='mutegrp')G.holdEnc=ei;
+      const mv=ev=>{const d=(y0-ev.clientY);if(Math.abs(d)>=2){moved=true;knobSet(k.dataset.k,Math.round(d/2));y0=ev.clientY;}};
+      const up=()=>{svg.removeEventListener('pointermove',mv);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);
+        if(ei!=null){const hadAssign=G.holdEnc!=null&&G.mgAssigned;G.holdEnc=null;G.mgAssigned=false;if(!moved&&!hadAssign)encPress(ei);}};
       svg.addEventListener('pointermove',mv);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);return;}
-    const b=e.target.closest('[data-b]');if(b){e.preventDefault();press(b.dataset.b);}});
+    const b=e.target.closest('[data-b]');if(b){e.preventDefault();if(G.holdEnc!=null&&b.dataset.b.startsWith('sel:'))G.mgAssigned=true;press(b.dataset.b);
+      const rel=()=>{if(b.dataset.b.startsWith('sel:'))G.holdSel=null;svg.removeEventListener('pointerup',rel);};svg.addEventListener('pointerup',rel);}});
   svg.addEventListener('wheel',e=>{
     if(e.ctrlKey){e.preventDefault();const p=toVB(e);zoomAt(p.x,p.y,Math.exp(-e.deltaY*.012));return;}   // trackpad pinch / ctrl+wheel = zoom the desk
     const k=e.target.closest('.mx-k');if(k&&G.power){e.preventDefault();knobSet(k.dataset.k,e.deltaY<0?2:-2);return;}
