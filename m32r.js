@@ -401,7 +401,7 @@ const scr=()=>svg.querySelector('#mx-screen');
 const TABS=['home','config','gate','dyn','eq','sends','main'];
 /* ---------- scenes (SCENES page, saved in the browser) ---------- */
 const SKEY='m32r-scenes';const scenes=()=>{try{return JSON.parse(localStorage.getItem(SKEY))||{};}catch(_){return {};}};
-function snapshot(){return {S:Object.fromEntries(Object.values(S).map(x=>[x.id,{fader:x.fader,mute:x.mute}])),P:JSON.parse(JSON.stringify(P)),dcaM:JSON.parse(JSON.stringify(G.dcaM)),mg:JSON.parse(JSON.stringify(G.mg))};}
+function snapshot(){return {S:Object.fromEntries(Object.values(S).map(x=>[x.id,{fader:x.fader,mute:x.mute,color:x.color}])),P:JSON.parse(JSON.stringify(P)),dcaM:JSON.parse(JSON.stringify(G.dcaM)),mg:JSON.parse(JSON.stringify(G.mg))};}
 function saveScene(){const all=scenes();all[G.scene]={name:'Scene '+String(G.scene).padStart(2,'0'),t:Date.now(),d:snapshot()};try{localStorage.setItem(SKEY,JSON.stringify(all));}catch(_){} G.msg='Saved scene '+G.scene;}
 function loadScene(){const sc=scenes()[G.scene];if(!sc){G.msg='Scene '+G.scene+' is empty';return;}const d=sc.d;
   const from={};Object.entries(d.S).forEach(([id,v])=>{if(S[id]){from[id]=S[id].fader;Object.assign(S[id],v);}});Object.entries(d.P).forEach(([id,v])=>{if(P[id])P[id]=v;});G.dcaM=d.dcaM;G.mg=d.mg;G.msg='Loaded scene '+G.scene;applyAll();
@@ -428,8 +428,10 @@ function encDefs(){const p=P[G.sel],b=p&&p.b[p.band],s=S[G.sel];
     ef=E('Freq',()=>fmtF(b.f),d=>b.f=cl(b.f*Math.pow(1.03,d),20,20000),()=>Math.log(b.f/20)/Math.log(1000)),
     eg=E('Gain',()=>(b.g>0?'+':'')+b.g.toFixed(1)+' dB',d=>b.g=cl(b.g+d*.25,-15,15),()=>(b.g+15)/30),
     eq=E('Width',()=>'Q '+b.q.toFixed(1),d=>b.q=cl(b.q*Math.pow(1.03,d),.3,10),()=>Math.log(b.q/.3)/Math.log(10/.3)),
+    CO=['off','red','green','yellow','blue','magenta','cyan','white'],
+    co=E('Colour',()=>s.color==='off'?'black':s.color,d=>{G.colAcc=(G.colAcc||0)+d;if(Math.abs(G.colAcc)>=4){s.color=CO[(CO.indexOf(s.color)+Math.sign(G.colAcc)+CO.length)%CO.length];G.colAcc=0;}},()=>Math.max(0,CO.indexOf(s.color))/7),   // scribble-strip colour
     mc=E('M/C lvl',()=>Math.round(p.mcl*100)+' %',d=>p.mcl=cl(p.mcl+d*.01),()=>p.mcl);
-  return {home:[g,lcf,gt,ct,pn,fd],config:[g,lcf,null,null,null,fd],gate:[gt,null,null,null,null,fd],dyn:[ct,ra,null,null,null,fd],eq:[ef,eg,eq,null,null,fd],sends:[null,null,null,null,null,fd],main:[pn,mc,null,null,null,fd]}[G.tab]||[];}
+  return {home:[g,lcf,gt,ct,pn,fd],config:[g,lcf,co,null,null,fd],gate:[gt,null,null,null,null,fd],dyn:[ct,ra,null,null,null,fd],eq:[ef,eg,eq,null,null,fd],sends:[null,null,null,null,null,fd],main:[pn,mc,null,null,null,fd]}[G.tab]||[];}
 const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
 const fmtF=f=>f>=1000?(f/1000).toFixed(f>=10000?1:2)+'k':Math.round(f)+'';
 function encVal(i){const e=encDefs()[i];return e?e.v():-1;}
