@@ -71,8 +71,32 @@ const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.
 const pl=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(pl);gl.vertexAttribPointer(pl,2,gl.FLOAT,false,0,0);
 gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
 function tex(inp){if(!inp.tex){inp.tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,inp.tex);['TEXTURE_WRAP_S','TEXTURE_WRAP_T'].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,gl[k],gl.CLAMP_TO_EDGE));gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);inp.dirty=true;}
-  gl.bindTexture(gl.TEXTURE_2D,inp.tex);const el=inp.el,live=inp.type==='video'||inp.type==='camera';
-  if((live&&el.readyState>=2)||inp.dirty){try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,el);inp.dirty=false;inp.ready=true;}catch(e){}}return inp.ready;}
+  gl.bindTexture(gl.TEXTURE_2D,inp.tex);const el=inp.el,live=inp.type==='video'||inp.type==='camera',fx=(inp.fx||[]).filter(f=>f.on&&fxReady(f));
+  if((live&&el.readyState>=2)||inp.dirty||(fx.length&&inp.type!=='image'&&inp.type!=='colour')){try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,fx.length?applyFx(inp,fx):el);inp.dirty=false;inp.ready=true;}catch(e){}}return inp.ready;}
+/* Input Effects (vMix 28): Gaussian Blur, LUT (.cube / 64x64x64 PNG), Alpha Mask (PNG) — in list order, each limited to its Crop */
+const FXD=new WeakMap();   // LUT tables / mask images (not stored in presets)
+const FX_TYPES=['Gaussian Blur','LUT','Alpha Mask'];
+const fxReady=f=>f.type==='Gaussian Blur'||!!FXD.get(f);
+function applyFx(inp,list){const c=inp._fc||(inp._fc=mkCanvas(W,H)),g=c.getContext('2d',{willReadFrequently:true}),t=inp._ft||(inp._ft=mkCanvas(W,H)),tg=t.getContext('2d');
+  g.clearRect(0,0,W,H);g.drawImage(inp.el,0,0,W,H);
+  list.forEach(f=>{const C=f.crop,x=Math.round(C.x1*W),y=Math.round(C.y1*H),w=Math.max(1,Math.round((C.x2-C.x1)*W)),h=Math.max(1,Math.round((C.y2-C.y1)*H)),d=FXD.get(f);
+    if(f.type==='LUT'){const im=g.getImageData(x,y,w,h),p=im.data,L=d,s=f.strength;for(let i=0;i<p.length;i+=4){const j=((p[i]>>2)+(p[i+1]>>2)*64+(p[i+2]>>2)*4096)*3;
+        p[i]+=(L[j]-p[i])*s;p[i+1]+=(L[j+1]-p[i+1])*s;p[i+2]+=(L[j+2]-p[i+2])*s;}g.putImageData(im,x,y);return;}
+    tg.clearRect(0,0,W,H);
+    if(f.type==='Gaussian Blur'){tg.filter=`blur(${(f.strength*24).toFixed(1)}px)`;tg.drawImage(c,0,0);tg.filter='none';}
+    else{tg.drawImage(c,0,0);tg.globalCompositeOperation='destination-in';tg.drawImage(d,0,0,W,H);tg.globalCompositeOperation='source-over';}
+    g.save();g.beginPath();g.rect(x,y,w,h);g.clip();g.clearRect(x,y,w,h);g.drawImage(t,0,0);g.restore();});
+  return c;}
+/* LUT file → 64×64×64 RGB table (index r + g·64 + b·4096) */
+async function loadLut(file){const T=new Uint8Array(64*64*64*3);
+  if(/\.cube$/i.test(file.name)){const txt=await file.text();let N=0;const v=[];txt.split(/\r?\n/).forEach(l=>{l=l.trim();if(!l||l[0]==='#')return;const m=/^LUT_3D_SIZE\s+(\d+)/.exec(l);if(m){N=+m[1];return;}if(/^[-\d.]/.test(l)){const q=l.split(/\s+/).map(Number);if(q.length===3)v.push(q);}});
+    if(!N||v.length<N*N*N)throw Error('Not a 3D .cube LUT');const at=(r,g,b)=>v[r+g*N+b*N*N];
+    for(let b=0;b<64;b++)for(let gg=0;gg<64;gg++)for(let r=0;r<64;r++){const f=[r,gg,b].map(k=>k/63*(N-1)),i=f.map(Math.floor),n=i.map(k=>Math.min(N-1,k+1)),w=f.map((k,j)=>k-i[j]),o=(r+gg*64+b*4096)*3;   // trilinear
+      for(let ch=0;ch<3;ch++){let acc=0;for(let k=0;k<8;k++){const R=k&1?n[0]:i[0],G=k&2?n[1]:i[1],B=k&4?n[2]:i[2],wt=(k&1?w[0]:1-w[0])*(k&2?w[1]:1-w[1])*(k&4?w[2]:1-w[2]);acc+=at(R,G,B)[ch]*wt;}T[o+ch]=Math.max(0,Math.min(255,Math.round(acc*255)));}}}
+  else{const im=await fileImage(file);if(im.width!==512||im.height!==512)throw Error('A PNG LUT must be 512×512 (64×64×64)');const c=mkCanvas(512,512),g=c.getContext('2d');g.drawImage(im,0,0);const p=g.getImageData(0,0,512,512).data;
+    for(let b=0;b<64;b++)for(let gg=0;gg<64;gg++)for(let r=0;r<64;r++){const px=((gg+Math.floor(b/8)*64)*512+r+(b%8)*64)*4,o=(r+gg*64+b*4096)*3;T[o]=p[px];T[o+1]=p[px+1];T[o+2]=p[px+2];}}
+  return T;}
+const fileImage=f=>new Promise((ok,ko)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>ko(Error('Cannot read '+f.name));im.src=URL.createObjectURL(f);});
 /* one layer: input + geometry (x,y,w,h in 0..1 of the frame) + opacity */
 function layer(inp,o={}){if(!inp||!tex(inp))return;const p=o.pos||inp.pos,z=p.zoom*(o.s??1);let w=z,h=z,x=(1-w)/2+p.px/2+(o.dx||0),y=(1-h)/2+p.py/2+(o.dy||0);
   gl.uniform4f(u.r,x+p.cx1*w,y+p.cy1*h,w*(p.cx2-p.cx1),h*(p.cy2-p.cy1));gl.uniform4f(u.cr,p.cx1,p.cy1,p.cx2,p.cy2);
@@ -118,9 +142,22 @@ function applyAudio(){if(!A)return;const t=A.ctx.currentTime,T=(n,v)=>n&&n.gain.
 const fbuf=new Float32Array(512);const lvl=an=>{if(!an)return 0;an.getFloatTimeDomainData(fbuf);let m=0;for(const v of fbuf)m=Math.max(m,Math.abs(v));return m;};
 
 /* ---------- transitions ---------- */
-function cut(){if(!V.pv||V.lockT)return;const o=V.pgm;V.pgm=V.pv;V.pv=o;V.T=null;V.tbar=0;playOnTransition(V.pgm);commitPreviewOverlays();applyAudio();draw();}
+function cut(){if(!V.pv||V.lockT)return;const o=V.pgm;V.pgm=V.pv;V.pv=o;V.T=null;V.tbar=0;playOnTransition(V.pgm);fire(o,'OnTransitionOut');fire(V.pgm,'OnTransitionIn');commitPreviewOverlays();applyAudio();draw();}
+/* Triggers (Input Settings › Triggers): tasks with the same trigger run one after another, each after its Delay (max 30 s) */
+const TRIG_EV=['OnTransitionIn','OnTransitionOut','OnOverlayIn','OnOverlayOut','OnCompletion'];
+const TRIG_FX=['Cut','Fade','Merge','Wipe','Slide','Fly','CrossZoom','Zoom'];
+const trigFns=()=>[...TRIG_FX,'PreviewInput','Play','Pause','Restart','AudioOn','AudioOff',...V.ovset.flatMap((_,i)=>[`OverlayInput${i+1}`,`OverlayInput${i+1}In`,`OverlayInput${i+1}Out`]),'StartRecording','StopRecording'];
+function fire(inp,ev){if(!inp||!inp.trig)return;const L=inp.trig.filter(t=>t.ev===ev);if(!L.length)return;let i=0;
+  const step=()=>{const t=L[i++];if(!t)return;setTimeout(()=>{runTrig(t,ev);step();},Math.min(30000,Math.max(0,t.delay||0)));};step();}
+function runTrig(t,ev){const x=byId(t.input),f=t.fn;
+  if(TRIG_FX.includes(f)){if(ev==='OnTransitionIn'||ev==='OnTransitionOut'||!x)return;V.pv=x;f==='Cut'?cut():doTrans(f,t.dur||500);return draw();}   // transitions are ignored on OnTransitionIn/Out (no loops)
+  const m=/^OverlayInput(\d)(In|Out)?$/.exec(f);if(m){const n=+m[1]-1,o=V.ov[n];if(!o||!x)return;if(m[2]==='Out'){if(o.inp===x&&o.target>0)toggleOverlay(n,x);}else if(m[2]==='In'){if(!(o.inp===x&&o.target>0))toggleOverlay(n,x);}else toggleOverlay(n,x);return;}
+  if(f==='PreviewInput'&&x){V.pv=x;return draw();}
+  if(x&&x.type==='video'){if(f==='Play')x.el.play().catch(()=>{});if(f==='Pause')x.el.pause();if(f==='Restart')x.el.currentTime=0;}
+  if(x&&(f==='AudioOn'||f==='AudioOff')){x.mute=f==='AudioOff';applyAudio();draw();}
+  if(f==='StartRecording'&&!V.rec||f==='StopRecording'&&V.rec)toggleRec();}
 function doTrans(fx,ms){if(!V.pv||V.T)return;const sn=/^Stinger (\d)$/.exec(fx);if(sn){const st=V.stingers[+sn[1]-1];if(!st.inp)return alertBox(fx,'No Stinger Input set: Overlay Settings › Number › '+fx+'.');ms=st.dur;stingerStart(st.inp);}
-  V.T={fx,ms,t0:performance.now(),a:V.pgm,b:V.pv};playOnTransition(V.pv);}
+  V.T={fx,ms,t0:performance.now(),a:V.pgm,b:V.pv};playOnTransition(V.pv);fire(V.T.a,'OnTransitionOut');fire(V.T.b,'OnTransitionIn');}
 /* Stinger inputs: built-in animated wipe (with alpha), a video with alpha (WebM) or a PNG image sequence */
 function stingerStart(inp){if(inp.sv){inp.sv.currentTime=0;inp.sv.play().catch(()=>{});}inp.t0=performance.now();}
 function stingerFrame(inp,t){const g=inp.el.getContext('2d');g.clearRect(0,0,W,H);
@@ -132,8 +169,8 @@ function stingerFrame(inp,t){const g=inp.el.getContext('2d');g.clearRect(0,0,W,H
   inp.dirty=true;}
 function playOnTransition(inp){if(inp&&inp.type==='video'&&!inp.pack)inp.el.play().catch(()=>{});}
 function finishTrans(){const T=V.T;V.pgm=T.b;V.pv=T.a;V.T=null;commitPreviewOverlays();applyAudio();draw();}
-function commitPreviewOverlays(){V.ov.forEach(o=>{if(o.pend){o.inp=o.pend;o.target=1;o.pend=null;}});}
-function toggleOverlay(n,inp){const o=V.ov[n];if(o.inp===inp&&o.target>0){o.target=0;}else{o.inp=inp;o.target=1;if(inp.type==='title')o.a=0;}applyAudio();draw();}
+function commitPreviewOverlays(){V.ov.forEach(o=>{if(o.pend){o.inp=o.pend;o.target=1;o.pend=null;fire(o.inp,'OnOverlayIn');}});}
+function toggleOverlay(n,inp){const o=V.ov[n];if(o.inp===inp&&o.target>0){o.target=0;fire(inp,'OnOverlayOut');}else{if(o.inp&&o.target>0)fire(o.inp,'OnOverlayOut');o.inp=inp;o.target=1;if(inp.type==='title')o.a=0;fire(inp,'OnOverlayIn');}applyAudio();draw();}
 
 /* ---------- UI build ---------- */
 const ICON={cog:'<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.7a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5A3.5 3.5 0 1 1 13 8.5a3.5 3.5 0 0 1 0 7z"/></svg>',
@@ -192,7 +229,7 @@ function wire(){
   // T-Bar
   const tb=$('.vx-tbar',root);tb.addEventListener('pointerdown',e=>{if(!V.pv)return;tb.setPointerCapture(e.pointerId);const r=tb.getBoundingClientRect();
     const mv=ev=>{const pos=Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height));const p=V.tbarDir>0?pos:1-pos;V.tbar=p;
-      if(!V.T||!V.T.manual)V.T={fx:V.trans[0].fx,manual:true,a:V.pgm,b:V.pv};V.T.p=p;if(p>=.999){finishTrans();V.tbarDir*=-1;V.tbar=0;}};
+      if(!V.T||!V.T.manual){V.T={fx:V.trans[0].fx,manual:true,a:V.pgm,b:V.pv};fire(V.T.a,'OnTransitionOut');fire(V.T.b,'OnTransitionIn');}V.T.p=p;if(p>=.999){finishTrans();V.tbarDir*=-1;V.tbar=0;}};
     mv(e);const up=()=>{tb.removeEventListener('pointermove',mv);tb.removeEventListener('pointerup',up);};tb.addEventListener('pointermove',mv);tb.addEventListener('pointerup',up);});
   // tooltips (simulator help, outside the vMix look)
   root.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip]'),tip=$('#vx-tip');if(!t){tip.classList.remove('on');return;}tip.textContent=t.dataset.tip;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});
@@ -282,10 +319,11 @@ let last=performance.now(),acc=0,frames=0;
 function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on'))return;const t0=performance.now();
   if(V.pl.run&&!V.T){const P=V.pl,it=P.items[P.idx];if(P.idx<0||(it&&now-P.t0>it.dur)){let n=P.idx+1;if(n>=P.items.length){if(!P.loop){P.run=false;draw();}n=0;}
     const nx=P.items[n],inp=nx&&byId(nx.id);if(P.run&&inp){P.idx=n;P.t0=now;V.pv=inp;if(nx.fx==='Cut')cut();else doTrans(nx.fx,nx.ms);draw();}else if(P.run){P.run=false;draw();}}}   /* PlayList: Preview = next item, then its transition */
-  packSync();V.inputs.forEach(x=>{if(x.type==='sdi')sdiFrame(x);else if(x.type==='vset')renderVset(x);});
+  packSync();V.inputs.forEach(x=>{if(x.type==='sdi')sdiFrame(x);else if(x.type==='vset')renderVset(x);
+    else if(x.type==='video'){if(x.el.ended&&!x.endFired){x.endFired=true;fire(x,'OnCompletion');}else if(!x.el.ended)x.endFired=false;}});
   if(V.T&&!V.T.manual){const p=Math.min(1,(now-V.T.t0)/V.T.ms);V.T.p=p;if(p>=1)finishTrans();}
   V.ov.forEach((o,n)=>{const S=V.ovset[n],sp=S.fx==='Cut'||!S.ms?1:Math.min(1,(now-(V.lastNow||now)+1)/S.ms);o.a+=Math.sign(o.target-o.a)*Math.min(Math.abs(o.target-o.a),sp);
-    if(o.target>0&&o.a>=1&&S.dur>0){o.t1=o.t1||now;if(now-o.t1>S.dur){o.target=0;o.t1=0;draw();}}else if(o.target===0)o.t1=0;});V.lastNow=now;   // effect duration + auto close (Duration)
+    if(o.target>0&&o.a>=1&&S.dur>0){o.t1=o.t1||now;if(now-o.t1>S.dur){o.target=0;o.t1=0;fire(o.inp,'OnOverlayOut');draw();}}else if(o.target===0)o.t1=0;});V.lastNow=now;   // effect duration + auto close (Duration)
   const T=V.T;const cpg=$('.vx-cpg',root),cpv=$('.vx-cpv',root);
   scene(cpg,{a:T?T.a:V.pgm,b:T?T.b:null,p:T?T.p||0:0,fx:T?T.fx:null,ovs:V.ov});
   scene(cpv,{a:V.pv,ovs:V.ov.map(o=>o.pend?{inp:o.pend,a:1}:{inp:null,a:0})});
@@ -364,8 +402,8 @@ function addInputDialog(){const m=modal('Input Select',`<div class="vx-is"><div 
 
 /* Input Settings — General · Colour Key / Chroma Key · Position (the others listed, not simulated) */
 function inputSettings(inp){const k=inp.key,p=inp.pos,hex=c=>'#'+c.map(v=>Math.round(v*255).toString(16).padStart(2,'0')).join('');
-  const tabs=['General','Colour Adjust','Colour Key / Chroma Key','Colour Correction','Effects','Position','Layers / MultiView','Triggers','Tally Lights','PTZ','Advanced','Copy From'];
-  const m=modal('Input: '+inp.name,`<div class="vx-iset"><div class="vx-isl">${tabs.map((t,i)=>`<button data-tab="${i}" class="${[0,1,2,3,5,6].includes(i)?'':'na'}">${t}</button>`).join('')}</div><div class="vx-isr"><div class="vx-isp"></div><canvas class="vx-isprev" width="${W}" height="${H}"></canvas><p class="vx-hint vx-pick"></p></div></div>`,{w:880,ok:'OK',cancel:false});
+  const tabs=['General','Colour Adjust','Colour Key / Chroma Key','Colour Correction','Effects','Position','Layers / MultiView','Triggers','Tally Lights','PTZ','Advanced'];
+  const m=modal('Input: '+inp.name,`<div class="vx-iset"><div class="vx-isl">${tabs.map((t,i)=>`<button data-tab="${i}" class="${i<8?'':'na'}">${t}</button>`).join('')}<button class="vx-cpf">Copy From</button></div><div class="vx-isr"><div class="vx-isp"></div><canvas class="vx-isprev" width="${W}" height="${H}"></canvas><p class="vx-hint vx-pick"></p></div></div>`,{w:880,ok:'OK',cancel:false});
   const ph=$('.vx-isp',m),pv=$('.vx-isprev',m);V.editing=inp;
   const sl=(lbl,val,min,max,step,fn,cls='')=>{const id='s'+Math.random().toString(36).slice(2);setTimeout(()=>{const r=$('#'+id,m);if(r)r.oninput=()=>{fn(+r.value);};},0);return `<label class="vx-sl ${cls}">${lbl}<input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}"></label>`;};
   const show=i=>{$$('[data-tab]',m).forEach(b=>b.classList.toggle('on',+b.dataset.tab===i));$('.vx-pick',m).textContent='';
@@ -411,11 +449,55 @@ function inputSettings(inp){const k=inp.key,p=inp.pos,hex=c=>'#'+c.map(v=>Math.r
       ph.innerHTML=`<p class="vx-hint">Up to 10 layers in vMix (4 here): each one shows another input on top of this one — e.g. two cameras side by side for an interview, or a picture-in-picture.</p><div class="vx-lays">${L.map((l,j)=>`<div class="vx-lay" data-l="${j}"><label><input type="checkbox" class="ly-on" ${l.on?'checked':''}> Layer ${j+1}</label><select class="ly-in">${opts(l.id)}</select>
         ${sl('Zoom',l.zoom,.05,1,.01,v=>l.zoom=v)}${sl('Pan X',l.px,-2,2,.01,v=>l.px=v)}${sl('Pan Y',l.py,-2,2,.01,v=>l.py=v)}</div>`).join('')}</div>`;
       $$('.vx-lay',ph).forEach(d=>{const l=L[+d.dataset.l];$('.ly-on',d).onchange=e=>{l.on=e.target.checked;};$('.ly-in',d).onchange=e=>{l.id=+e.target.value||null;if(l.id)l.on=true;show(6);};});}
+    else if(i===4){inp.fx=inp.fx||[];const F=inp.fx;let sel=Math.min(inp.fxSel||0,F.length-1);const cur=()=>F[sel];
+      ph.innerHTML=`<div class="vx-fx"><div class="vx-fxl">${F.map((f,j)=>`<div class="vx-fxi ${j===sel?'on':''}" data-j="${j}"><span class="vx-eye ${f.on?'':'off'}" data-eye="${j}">👁</span>${f.name}${fxReady(f)?'':' <i>(no file)</i>'}</div>`).join('')}</div>
+        <div class="vx-fxud"><button data-mv="-1">▲</button><button data-mv="1">▼</button></div>
+        <div class="vx-fxr">${cur()?`<div class="vx-fxt"><button data-pt="p" class="${inp.fxTab!=='c'?'on':''}">Properties</button><button data-pt="c" class="${inp.fxTab==='c'?'on':''}">Crop</button></div><div class="vx-fxp"></div>`:''}</div></div>
+        <div class="vx-fxb"><button class="vx-fxadd">+</button><button class="vx-fxdel">-</button><div class="vx-fxmenu" hidden>${FX_TYPES.map(t=>`<button data-add="${t}">${t}</button>`).join('')}</div></div>
+        <p class="vx-hint">Effects are processed from top to bottom. 👁 = disable for a moment · double-click a name to rename it · <b>Crop</b> limits an effect to part of the picture (e.g. blur only a corner).</p>`;
+      const re=()=>{inp.fxSel=sel;inp.dirty=true;show(4);};
+      $('.vx-fxadd',ph).onclick=()=>{$('.vx-fxmenu',ph).hidden=!$('.vx-fxmenu',ph).hidden;};
+      $$('[data-add]',ph).forEach(b=>b.onclick=()=>{F.push({type:b.dataset.add,name:b.dataset.add,on:true,strength:b.dataset.add==='Gaussian Blur'?.3:1,crop:{x1:0,x2:1,y1:0,y2:1}});sel=F.length-1;inp.fxTab='p';re();});
+      $('.vx-fxdel',ph).onclick=()=>{if(cur()){F.splice(sel,1);sel=Math.max(0,sel-1);re();}};
+      $$('[data-mv]',ph).forEach(b=>b.onclick=()=>{const j=sel+ +b.dataset.mv;if(!cur()||j<0||j>=F.length)return;[F[sel],F[j]]=[F[j],F[sel]];sel=j;re();});
+      $$('.vx-fxi',ph).forEach(d=>{d.onclick=e=>{if(e.target.dataset.eye!==undefined){F[+e.target.dataset.eye].on=!F[+e.target.dataset.eye].on;}sel=+d.dataset.j;re();};
+        d.ondblclick=()=>{const n=prompt('Effect name:',F[+d.dataset.j].name);if(n&&n.trim()){F[+d.dataset.j].name=n.trim();re();}};});
+      $$('[data-pt]',ph).forEach(b=>b.onclick=()=>{inp.fxTab=b.dataset.pt;re();});
+      const f=cur(),fp=$('.vx-fxp',ph);if(f&&fp){const rst=(lbl,key,min,max,step,def,obj=f)=>{const id='f'+Math.random().toString(36).slice(2);setTimeout(()=>{const r=$('#'+id,m),v=$('#'+id+'v',m);if(!r)return;r.oninput=()=>{obj[key]=+r.value;v.textContent=(+r.value).toFixed(2);inp.dirty=true;};
+            $('#'+id+'r',m).onclick=()=>{obj[key]=def;r.value=def;v.textContent=def.toFixed(2);inp.dirty=true;};},0);
+          return `<label class="vx-fxs">${lbl}<input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${obj[key]}"><span id="${id}v">${(+obj[key]).toFixed(2)}</span><button id="${id}r" title="Reset">⟲</button></label>`;};
+        if(inp.fxTab==='c')fp.innerHTML=rst('Left','x1',0,1,.01,0,f.crop)+rst('Right','x2',0,1,.01,1,f.crop)+rst('Top','y1',0,1,.01,0,f.crop)+rst('Bottom','y2',0,1,.01,1,f.crop);
+        else if(f.type==='Gaussian Blur')fp.innerHTML=rst('Strength','strength',0,1,.01,.3)+'<p class="vx-hint">Blur uses a lot of GPU. Do not trust it to hide faces or private data (vMix can switch it off for a moment).</p>';
+        else{fp.innerHTML=(f.type==='LUT'?rst('Strength','strength',0,1,.01,1):'')+`<label class="vx-fxs">File <span class="vx-fxf">${f.file||'—'}</span><button class="vx-brw">Browse…</button></label>
+          <p class="vx-hint">${f.type==='LUT'?'A colour look: <b>.cube</b> 3D LUT (DaVinci Resolve: Color › right-click the clip › Generate LUT › 65 Point Cube) or a 512×512 PNG LUT (as used by OBS). Strength &lt; 1 blends it with the original.':'A PNG with transparency: only the opaque part of the input is shown (e.g. a circle). Colours are ignored; soft edges give a soft mask.'}</p>`;
+          $('.vx-brw',fp).onclick=()=>{const fi=document.createElement('input');fi.type='file';fi.accept=f.type==='LUT'?'.cube,.png':'image/png';fi.onchange=async()=>{const file=fi.files[0];if(!file)return;
+            try{FXD.set(f,f.type==='LUT'?await loadLut(file):await fileImage(file));f.file=file.name;re();}catch(e){alertBox(f.type,e.message);}};fi.click();};}}}
+    else if(i===7){inp.trig=inp.trig||[];const T=inp.trig;let sel=Math.min(inp.trSel||0,T.length-1);const ins=V.inputs,fns=trigFns();
+      ph.innerHTML=`<table class="vx-trt"><tr><th>Trigger</th><th>Function</th><th>Input</th><th>Duration</th><th>Delay</th></tr>${T.map((t,j)=>`<tr data-j="${j}" class="${j===sel?'on':''}"><td>${t.ev}</td><td>${t.fn}</td><td>${byId(t.input)?.name||''}</td><td>${TRIG_FX.includes(t.fn)?t.dur:''}</td><td>${t.delay}</td></tr>`).join('')}</table>
+        <div class="vx-trb"><button class="tr-add">Add</button><button class="tr-del">Remove</button><button class="tr-up">▲</button><button class="tr-dn">▼</button></div>
+        ${T[sel]?`<div class="vx-tre"><label>Trigger <select class="tr-ev">${TRIG_EV.map(e=>`<option ${T[sel].ev===e?'selected':''}>${e}</option>`).join('')}</select></label>
+          <label>Function <select class="tr-fn">${fns.map(f=>`<option ${T[sel].fn===f?'selected':''}>${f}</option>`).join('')}</select></label>
+          <label>Input <select class="tr-in"><option value="">(none)</option>${ins.map(x=>`<option value="${x.id}" ${x.id===T[sel].input?'selected':''}>${x.num} ${x.name}</option>`).join('')}</select></label>
+          <label>Duration (ms) <input type="number" class="tr-du" min="0" max="10000" step="100" value="${T[sel].dur}"></label><label>Delay (ms) <input type="number" class="tr-de" min="0" max="30000" step="100" value="${T[sel].delay}"></label></div>`:''}
+        <p class="vx-hint">Automate tasks when this input goes on air (<b>OnTransitionIn</b>), leaves (<b>OnTransitionOut</b>), goes in / out as an overlay or a video ends (<b>OnCompletion</b>, Loop off). E.g. OnTransitionIn → OverlayInput1In (lower third) with Delay 1000, then OverlayInput1Out with Delay 5000. Tasks with the same trigger run in order; Delay max 30 s. Transitions (Fade, Cut…) do nothing on OnTransitionIn / Out.</p>`;
+      const re=()=>{inp.trSel=sel;show(7);},S=()=>T[sel];
+      $$('.vx-trt tr[data-j]',ph).forEach(r=>r.onclick=()=>{sel=+r.dataset.j;re();});
+      $('.tr-add',ph).onclick=()=>{T.push({ev:'OnTransitionIn',fn:'OverlayInput1In',input:inp.id,dur:500,delay:0});sel=T.length-1;re();};
+      $('.tr-del',ph).onclick=()=>{if(S()){T.splice(sel,1);sel=Math.max(0,sel-1);re();}};
+      const mv=d=>{const j=sel+d;if(!S()||j<0||j>=T.length)return;[T[sel],T[j]]=[T[j],T[sel]];sel=j;re();};$('.tr-up',ph).onclick=()=>mv(-1);$('.tr-dn',ph).onclick=()=>mv(1);
+      if(S()){$('.tr-ev',ph).onchange=e=>{S().ev=e.target.value;re();};$('.tr-fn',ph).onchange=e=>{S().fn=e.target.value;re();};$('.tr-in',ph).onchange=e=>{S().input=+e.target.value||null;re();};
+        $('.tr-du',ph).onchange=e=>{S().dur=Math.max(0,+e.target.value||0);re();};$('.tr-de',ph).onchange=e=>{S().delay=Math.min(30000,Math.max(0,+e.target.value||0));re();};}}
     else ph.innerHTML=`<p class="vx-hint">${tabs[i]} — not simulated yet.</p>`;};
+  $('.vx-cpf',m).onclick=()=>copyFrom(inp);
   $$('[data-tab]',m).forEach(b=>b.onclick=()=>show(+b.dataset.tab));show(inp.key.on?2:0);
   pv.onclick=e=>{if(!V.picking||!inp.el)return;const r=pv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;const c=mkCanvas(W,H),g=c.getContext('2d');try{g.drawImage(inp.el,0,0,W,H);const d=g.getImageData(Math.floor(x*W),Math.floor(y*H),1,1).data;k.col=[d[0]/255,d[1]/255,d[2]/255];k.on=true;}catch(_){}V.picking=false;show(2);};
   const chk=mkCanvas(W,H),cg=chk.getContext('2d');for(let y=0;y<H;y+=24)for(let x=0;x<W;x+=24){cg.fillStyle=((x+y)/24)%2?'#555':'#777';cg.fillRect(x,y,24,24);}
   const tick=()=>{if(!m.classList.contains('on')||!m.contains(pv))return;scene(pv,{a:inp,transparent:true});const g=pv.getContext('2d');g.globalCompositeOperation='destination-over';g.drawImage(chk,0,0);g.globalCompositeOperation='source-over';requestAnimationFrame(tick);};tick();}
+/* Copy Input Settings From (button at the bottom of the Input Settings tabs) */
+function copyFrom(inp){const cl=v=>JSON.parse(JSON.stringify(v));
+  modal('Copy Input Settings From',`<div class="vx-cpfd"><label><b>Source</b> <select class="cf-src"><option value="">None</option>${V.inputs.filter(x=>x!==inp).map(x=>`<option value="${x.id}">${x.num} ${x.name}</option>`).join('')}</select></label>
+    <label><input type="checkbox" class="cf-t"> Triggers</label><label><input type="checkbox" class="cf-m"> Multi View</label><label><input type="checkbox" class="cf-c"> Colour Adjust, Key and Correction</label></div>`,{w:360,
+    onOk:m=>{const x=byId(+$('.cf-src',m).value);if(x){if($('.cf-t',m).checked)inp.trig=cl(x.trig||[]);if($('.cf-m',m).checked)inp.layers=cl(x.layers||[]);if($('.cf-c',m).checked){inp.ca=cl(x.ca);inp.key=cl(x.key);inp.cc=cl(x.cc);}draw();}setTimeout(()=>inputSettings(inp),0);}});}
 /* Overlay Settings: Number, Type (Fullscreen / Picture In Picture with pan and zoom), Effect, Effect Duration, Duration */
 function overlayDialog(n=0){if(n>=8)return stingerDialog(n-8);const S=V.ovset[n],FXO=['Cut','Fade','Zoom','Fly','Slide'];
   const m=modal('Overlay Settings',`<div class="vx-ovs"><label>Number <select class="ov-n">${V.ovset.map((_,i)=>`<option value="${i}" ${i===n?'selected':''}>Overlay ${i+1}</option>`).join('')}<option value="8">Stinger 1</option><option value="9">Stinger 2</option></select></label>
@@ -575,7 +657,7 @@ function renderVset(inp){const S=inp.vs;
 const VS_SPEED={F:1000,M:2000,S:4000,C:0};
 function vsShot(inp,i){const S=inp.vs;S.from={z:S.z,x:S.x,y:S.y};S.shot=i;S.t0=performance.now();S.ms=VS_SPEED[S.speed];draw();}
 /* ---------- Presets: New · Open · Save · Save As · Last (a whole production in one file) ---------- */
-const KEEP=['type','name','cat','key','pos','ca','cc','layers','hex','tpl','fields','loop','vol','mute','afv','bus','file','pack','id','sdi'];
+const KEEP=['type','name','cat','key','pos','ca','cc','layers','fx','trig','hex','tpl','fields','loop','vol','mute','afv','bus','file','pack','id','sdi'];
 function presetData(){return {app:'tvstudio-vmix',v:1,name:V.preset||'Preset',inputs:V.inputs.map(x=>{const o={};KEEP.forEach(k=>{if(x[k]!==undefined)o[k]=JSON.parse(JSON.stringify(x[k]));});if(x.type==='colour'&&!x.hex)o.bars=true;if(x.type==='camera')o.label=x.name;if(x.type==='vset')o.vs={src:x.vsrc||null,shot:x.vs.shot,speed:x.vs.speed,layers:x.vs.layers.map(L=>({name:L.name,input:L.input}))};return o;}),
   pv:V.pv?.id,pgm:V.pgm?.id,trans:V.trans,ovset:V.ovset,stingers:V.stingers.map(x=>({id:x.inp?.id||null,cut:x.cut,dur:x.dur})),ov:V.ov.map(o=>({id:o.inp?.id||null,on:o.target>0})),catLabels:V.catLabels||null};}
 function clearAll(){[...V.inputs].forEach(x=>{V.lock=false;removeInput(x);});V.ov.forEach(o=>{o.inp=null;o.a=o.target=0;o.pend=null;});V.pv=V.pgm=null;}
@@ -595,8 +677,8 @@ function missingInput(o){const c=mkCanvas(),g=c.getContext('2d');g.fillStyle='#2
   return addInput({type:'missing',was:o.type,name:o.name,el:c,file:o.file});}
 function loadPreset(d){if(!d||d.app!=='tvstudio-vmix')return alertBox('Open','That file is not a preset of this simulator.');clearAll();const map={};
   d.inputs.forEach(o=>{let x;if(o.type==='title')x=titleInput(o.tpl,TITLES[o.tpl].f.map(k=>o.fields?.[k]));else if(o.type==='colour')x=o.bars?barsInput():colourInput(o.name,o.hex||'#000');else if(o.type==='sdi'){x=sdiInput(o.sdi||1);}else if(o.type==='stinger'&&!o.file&&o.name==='Stinger (built-in)'){x=addInput({type:'stinger',name:o.name,el:mkCanvas()});stingerFrame(x,600);}else x=missingInput(o);
-    ['name','cat','key','pos','ca','cc','layers','loop','vol','mute','afv','bus'].forEach(k=>{if(o[k]!==undefined)x[k]=o[k];});if(x.type==='title')drawTitle(x);map[o.id]=x;});
-  V.inputs.forEach(x=>(x.layers||[]).forEach(L=>{L.id=L.id&&map[L.id]?map[L.id].id:null;}));
+    ['name','cat','key','pos','ca','cc','layers','fx','trig','loop','vol','mute','afv','bus'].forEach(k=>{if(o[k]!==undefined)x[k]=o[k];});if(x.type==='title')drawTitle(x);map[o.id]=x;});
+  V.inputs.forEach(x=>{(x.layers||[]).forEach(L=>{L.id=L.id&&map[L.id]?map[L.id].id:null;});(x.trig||[]).forEach(t=>{t.input=t.input&&map[t.input]?map[t.input].id:null;});});
   d.inputs.filter(o=>o.type==='vset'&&o.vs&&o.vs.src==='demo').forEach(async o=>{const ph=map[o.id];const x=await loadVset(o.name,f=>fetch('vsets/DemoStudio/'+f).then(r=>r.blob()));x.vsrc='demo';   // the built-in set comes back by itself
     x.vs.speed=o.vs.speed;x.vs.shot=o.vs.shot;x.vs.z=x.vs.zooms[o.vs.shot]?.zoom||1;o.vs.layers.forEach(l=>{const L=x.vs.layers.find(k=>k.name===l.name);if(L)L.input=l.input&&map[l.input]?map[l.input].id:null;});
     V.inputs=V.inputs.filter(i=>i!==x);V.inputs.splice(V.inputs.indexOf(ph),1,x);if(V.pgm===ph)V.pgm=x;if(V.pv===ph)V.pv=x;renumber();draw();});
