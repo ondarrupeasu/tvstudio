@@ -5,10 +5,11 @@
  * Not affiliated with Blackmagic Design. */
 (function(){
 const SCENE_K=5600,AVMIN=2,AVMAX=8;   // f2 … f16
-const camDef=()=>({j:.667,nd:0,gain:0,shutter:50,wb:5600,tint:0,white:[1,1,1],black:[0,0,0],gamma:[0,0,0],ygain:1,mb:0,bars:false,sens:1,coarse:1});
+const camDef=()=>({j:.667,nd:0,gain:0,shutter:50,wb:5600,tint:0,white:[1,1,1],black:[0,0,0],gamma:[0,0,0],ygain:1,mb:0,bars:false,sens:1,coarse:1,detail:0,contrast:1,sat:1,hue:0});
 const CAMS={};for(let n=1;n<=8;n++)CAMS[n]=camDef();
 const BANK={v:'A'};
-const STRIPS=[1,2,3,4].map(n=>({cam:n,rel:true,flare:false,wbMode:false,lock:false,irisLock:false,call:false,store:false,scenes:{},sceneLit:0,msg:''}));
+const PANEL={recallAll:false,bright:1};
+const STRIPS=[1,2,3,4].map(n=>({page:'home',cam:n,rel:true,flare:false,wbMode:false,lock:false,irisLock:false,call:false,store:false,scenes:{},sceneLit:0,msg:''}));
 /* ---------- picture model ---------- */
 function av(c){const w=1+c.sens*5,open=AVMIN+(1-c.coarse)*(AVMAX-AVMIN-w);return open+(1-c.j)*w;}   // SENS = range width, COARSE = how far it can open
 const fstop=c=>c.j<=0.01?0:Math.pow(2,av(c)/2);
@@ -17,8 +18,11 @@ function filterAttrs(n){const c=CAMS[n],e=exposure(c),k=Math.log2(c.wb/SCENE_K),
   return [0,1,2].map(i=>({amp:e*wb[i]*c.white[i]*c.ygain,exp:Math.pow(2,-c.gamma[i]*.5),off:(c.black[i]+c.mb)*.12}));}
 let defs=null;
 function ensureDefs(){if(defs)return;defs=document.createElementNS('http://www.w3.org/2000/svg','svg');defs.setAttribute('width','0');defs.setAttribute('height','0');defs.style.cssText='position:absolute;left:-9px;top:-9px';
-  defs.innerHTML='<defs>'+[1,2,3,4,5,6,7,8].map(n=>`<filter id="ccu-f${n}" color-interpolation-filters="sRGB"><feComponentTransfer>${['R','G','B'].map(ch=>`<feFunc${ch} type="gamma" amplitude="1" exponent="1" offset="0"/>`).join('')}<feFuncA type="identity"/></feComponentTransfer></filter>`).join('')+'</defs>';document.body.appendChild(defs);}
-function updFilter(n){ensureDefs();const f=defs.querySelector('#ccu-f'+n);if(!f)return;filterAttrs(n).forEach((a,i)=>{const e=f.querySelectorAll('feFuncR,feFuncG,feFuncB')[i];e.setAttribute('amplitude',a.amp.toFixed(4));e.setAttribute('exponent',a.exp.toFixed(4));e.setAttribute('offset',a.off.toFixed(4));});}
+  defs.innerHTML='<defs>'+[1,2,3,4,5,6,7,8].map(n=>`<filter id="ccu-f${n}" color-interpolation-filters="sRGB"><feComponentTransfer>${['R','G','B'].map(ch=>`<feFunc${ch} type="gamma" amplitude="1" exponent="1" offset="0"/>`).join('')}<feFuncA type="identity"/></feComponentTransfer><feComponentTransfer class="ct">${['R','G','B'].map(ch=>`<feFunc${ch} type="linear" slope="1" intercept="0"/>`).join('')}</feComponentTransfer><feColorMatrix class="sa" type="saturate" values="1"/><feColorMatrix class="hu" type="hueRotate" values="0"/><feConvolveMatrix class="dt" order="3" kernelMatrix="0 0 0 0 1 0 0 0 0" preserveAlpha="true"/></filter>`).join('')+'</defs>';document.body.appendChild(defs);}
+function updFilter(n){ensureDefs();const f=defs.querySelector('#ccu-f'+n);if(!f)return;const c=CAMS[n];
+  f.querySelectorAll('.ct feFuncR,.ct feFuncG,.ct feFuncB').forEach(e=>{e.setAttribute('slope',c.contrast.toFixed(3));e.setAttribute('intercept',(.5-.5*c.contrast).toFixed(3));});
+  f.querySelector('.sa').setAttribute('values',c.sat.toFixed(3));f.querySelector('.hu').setAttribute('values',c.hue.toFixed(1));const k=[0,.15,.35,.6][c.detail];f.querySelector('.dt').setAttribute('kernelMatrix',`0 ${-k} 0 ${-k} ${1+4*k} ${-k} 0 ${-k} 0`);   /* CAMERA SETTINGS: contrast, saturation, hue, detail */
+  filterAttrs(n).forEach((a,i)=>{const e=f.querySelectorAll(':scope > feComponentTransfer:not(.ct) feFuncR, :scope > feComponentTransfer:not(.ct) feFuncG, :scope > feComponentTransfer:not(.ct) feFuncB')[i];e.setAttribute('amplitude',a.amp.toFixed(4));e.setAttribute('exponent',a.exp.toFixed(4));e.setAttribute('offset',a.off.toFixed(4));});}
 window.CCU={filter:n=>{if(!CAMS[n])return null;ensureDefs();return `url(#ccu-f${n})`;},bars:n=>!!(CAMS[n]&&CAMS[n].bars),cams:CAMS};
 for(let n=1;n<=8;n++)setTimeout(()=>updFilter(n),0);
 /* camera n → ATEM input (through the router) → tally */
@@ -86,7 +90,13 @@ function draw(){const now=performance.now();STRIPS.forEach((t,s)=>{const c=CAMS[
   const ty=tally(t.cam),cm=document.querySelector(`#cc-svg [data-cam="${s}"]`);if(cm){cm.textContent=t.cam;cm.classList.toggle('red',ty==='pgm'||(t.call&&Math.floor(now/250)%2===0));}
   document.querySelectorAll(`#cc-svg .cc-b[data-s="${s}"]`).forEach(b=>{const k=b.dataset.k;b.classList.toggle('lit',(k==='store'&&t.store)||(k==='wb'&&t.wbMode)||(k==='flare'&&t.flare)||(k==='irislock'&&t.irisLock)||(k==='lock'&&t.lock)||(k==='on'&&!t.rel)||(k==='call'&&t.call)||(k==='mg+'&&c.gain>0)||(k==='mg-'&&c.gain<0));});
   const lc=document.querySelector(`.cc-lcd[data-s="${s}"]`);if(lc){const g=lc.getContext('2d'),w=240,h=148;g.fillStyle='#0d1117';g.fillRect(0,0,w,h);g.font='600 9px sans-serif';g.textAlign='center';
-    ['PANEL SETTINGS','CAMERA SETTINGS','BANK '+BANK.v,'RECALL ALL'].forEach((l,i)=>{g.fillStyle=i===2?'#ff9a2e':'#c9d1d9';g.fillText(l,30+i*60,12);});
+    ['PANEL SETTINGS','CAMERA SETTINGS','BANK '+BANK.v,'RECALL ALL'].forEach((l,i)=>{g.fillStyle=i===2||(i===3&&PANEL.recallAll)||(i===0&&t.page==='panel')||(i===1&&t.page==='cam')?'#ff9a2e':'#c9d1d9';g.fillText(l,30+i*60,12);});
+    const low=(v)=>v.forEach(([l,x],i)=>{if(!l)return;g.font='600 10px sans-serif';g.fillStyle='#fff';g.fillText(x,30+i*60,128);g.fillStyle='#8b949e';g.font='600 8px sans-serif';g.fillText(l,30+i*60,140);});
+    if(t.page==='cam'){g.fillStyle='#8b949e';g.font='600 10px sans-serif';g.fillText('CAMERA SETTINGS — Camera '+t.cam,w/2,44);g.fillStyle=t.msg?'#ffcf5a':'#c9d1d9';g.font='600 9.5px sans-serif';g.fillText(t.msg||'Detail = sharpening · the rest = colour of the picture',w/2,80);
+      low([['DETAIL',['OFF','LOW','MEDIUM','HIGH'][c.detail]],['CONTRAST',Math.round(c.contrast*50)+'%'],['SATURATION',Math.round(c.sat*50)+'%'],['HUE',Math.round(c.hue+180)+'°']]);updFilter(t.cam);return;}
+    if(t.page==='panel'){g.fillStyle='#8b949e';g.font='600 10px sans-serif';g.fillText('PANEL SETTINGS',w/2,40);g.font='600 9.5px sans-serif';g.fillStyle='#c9d1d9';
+      [['Panel IP','192.168.11.80'],['Switcher IP','192.168.11.50'],['Auxiliary select','SDI Out 2']].forEach(([k,v],i)=>{g.textAlign='left';g.fillText(k,16,60+i*16);g.textAlign='right';g.fillStyle='#fff';g.fillText(v,w-16,60+i*16);g.fillStyle='#c9d1d9';});g.textAlign='center';
+      low([['BRIGHTNESS',Math.round(PANEL.bright*100)+'%'],['',''],['',''],['','']]);updFilter(t.cam);return;}
     g.fillStyle='#8b949e';g.font='600 10px sans-serif';g.fillText('CAMERA CONTROL',w/2,44);g.fillStyle=ty==='pgm'?'#ff453a':'#fff';g.font='700 24px sans-serif';g.fillText('Camera '+t.cam,w/2,74);
     g.fillStyle=t.msg?'#ffcf5a':'#8b949e';g.font='600 9.5px sans-serif';g.fillText(t.msg||(c.bars?'BARS ON':tally(t.cam)==='pgm'?'ON AIR':''),w/2,96);
     g.font='600 10px sans-serif';g.fillStyle='#fff';g.fillText('Camera '+t.cam,30,128);g.fillText('Generic',90,128);g.fillStyle='#8b949e';g.font='600 8px sans-serif';g.fillText('CAMERA',30,140);g.fillText('CAMERA TYPE',90,140);}
@@ -95,7 +105,8 @@ function draw(){const now=performance.now();STRIPS.forEach((t,s)=>{const c=CAMS[
 function setMsg(t,m){t.msg=m;clearTimeout(t.mt);t.mt=setTimeout(()=>{t.msg='';draw();},2200);}
 function press(s,k){const t=STRIPS[s],c=CAMS[t.cam];if(t.lock&&k!=='lock'){setMsg(t,'PANEL ACTIVE: strip locked');return;}
   const snap=()=>JSON.parse(JSON.stringify(c));
-  if(/^sc\d$/.test(k)){const n=+k[2];if(t.store){t.scenes[n]=snap();t.store=false;setMsg(t,'Scene '+n+' stored');}else if(t.scenes[n]){Object.assign(c,JSON.parse(JSON.stringify(t.scenes[n])));setMsg(t,'Scene '+n+' recalled');}else setMsg(t,'Scene '+n+' is empty');t.sceneLit=performance.now()+900;return;}
+  if(/^sc\d$/.test(k)){const n=+k[2];if(t.store){t.scenes[n]=snap();t.store=false;setMsg(t,'Scene '+n+' stored');}else if(PANEL.recallAll){STRIPS.forEach(x=>{if(x.scenes[n]&&!x.lock){Object.assign(CAMS[x.cam],JSON.parse(JSON.stringify(x.scenes[n])));setMsg(x,'Scene '+n+' recalled (all)');}});}
+    else if(t.scenes[n]){Object.assign(c,JSON.parse(JSON.stringify(t.scenes[n])));setMsg(t,'Scene '+n+' recalled');}else setMsg(t,'Scene '+n+' is empty');t.sceneLit=performance.now()+900;return;}
   const i=v=>SH_LIST.indexOf(v);
   switch(k){case 'store':t.store=!t.store;break;
     case 'nd+':c.nd=Math.min(6,c.nd+2);break;case 'nd-':c.nd=Math.max(0,c.nd-2);break;case 'cc+':case 'cc-':setMsg(t,'CC: not enabled (firmware)');break;
@@ -106,8 +117,12 @@ function press(s,k){const t=STRIPS[s],c=CAMS[t.cam];if(t.lock&&k!=='lock'){setMs
     case 'flare':t.flare=!t.flare;break;case 'irislock':t.irisLock=!t.irisLock;break;case 'lock':t.lock=!t.lock;break;
     case 'autoiris':if(t.irisLock){setMsg(t,'Iris locked');break;}{const need=4*Math.sqrt(Math.pow(2,-c.nd)*Math.pow(10,c.gain/20)*50/c.shutter),w=1+c.sens*5,open=AVMIN+(1-c.coarse)*(AVMAX-AVMIN-w);c.j=Math.max(.02,Math.min(1,1-(2*Math.log2(need)-open)/w));setMsg(t,'Auto iris');}break;
     case 'pvw':case 'joyclick':{const k2=atemInputOf(t.cam);if(k2&&window.ATEMR){ATEMR.api.setOut(1,k2);setMsg(t,'Camera '+t.cam+' → preview aux (ATEM OUT 2)');}else setMsg(t,'This camera is not on an ATEM input');}break;
-    case 'soft2':BANK.v=BANK.v==='A'?'B':'A';STRIPS.forEach((x,i)=>{x.cam=(BANK.v==='A'?1:5)+i;setMsg(x,'Bank '+BANK.v+' — cameras '+(BANK.v==='A'?'1-4':'5-8'));});break;   /* BANK: all four strips switch between cameras 1-4 and 5-8 */case 'soft0':case 'soft1':case 'soft3':setMsg(t,'Menu not simulated');break;}}
+    case 'soft0':t.page=t.page==='panel'?'home':'panel';break;case 'soft1':t.page=t.page==='cam'?'home':'cam';break;
+    case 'soft3':PANEL.recallAll=!PANEL.recallAll;STRIPS.forEach(x=>setMsg(x,'RECALL ALL '+(PANEL.recallAll?'on: a scene file recalls on all 4 CCUs':'off')));break;
+    case 'soft2':BANK.v=BANK.v==='A'?'B':'A';STRIPS.forEach((x,i)=>{x.cam=(BANK.v==='A'?1:5)+i;setMsg(x,'Bank '+BANK.v+' — cameras '+(BANK.v==='A'?'1-4':'5-8'));});break;   /* BANK: all four strips switch between cameras 1-4 and 5-8 */}}
 function turn(s,k,d){const t=STRIPS[s],c=CAMS[t.cam];if(t.lock)return;const ch={R:0,G:1,B:2};
+  if(/^lk/.test(k)&&t.page==='cam'){const i=+k[2];if(i===0)c.detail=Math.max(0,Math.min(3,c.detail+d));else if(i===1)c.contrast=Math.max(0,Math.min(2,c.contrast+d*.02));else if(i===2)c.sat=Math.max(0,Math.min(2,c.sat+d*.02));else c.hue=Math.max(-180,Math.min(180,c.hue+d*2));return;}
+  if(/^lk/.test(k)&&t.page==='panel'){if(k==='lk0'){PANEL.bright=Math.max(.4,Math.min(1.2,PANEL.bright+d*.05));const sv=document.getElementById('cc-svg');if(sv)sv.style.filter=`brightness(${PANEL.bright})`;}return;}
   if(k==='lk0'){t.cam=((t.cam-1+d+8)%8)+1;return;}if(/^lk/.test(k))return;
   if(k[0]==='w'&&ch[k[1]]!=null)c.white[ch[k[1]]]=Math.max(0,Math.min(3,c.white[ch[k[1]]]+d*.02));
   else if(k[0]==='b'&&ch[k[1]]!=null){if(t.flare)c.gamma[ch[k[1]]]=Math.max(-2,Math.min(2,c.gamma[ch[k[1]]]+d*.04));else c.black[ch[k[1]]]=Math.max(-1,Math.min(1,c.black[ch[k[1]]]+d*.02));}

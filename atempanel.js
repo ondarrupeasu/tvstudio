@@ -3,14 +3,14 @@
  * FTB, LCD HOME (rates on the knobs) and AUX (output routing with the select row). Not affiliated with Blackmagic Design. */
 (function(){
 const VW=1000,VH=967,X=f=>f*VW,Y=f=>f*VH;
-const P={shift:false,menu:'home',aux:0,key:1,keySel:'fill',mapBtn:0,next:{bkgd:true,k1:false,k2:false,k3:false,k4:false},me:1,prev:false,msg:'',mt:0};
+const P={shift:false,menu:'home',aux:0,key:1,keySel:'fill',mapBtn:0,homeTab:0,setTab:2,mp:0,col:0,cam:1,bright:1,next:{bkgd:true,k1:false,k2:false,k3:false,k4:false},me:1,prev:false,msg:'',mt:0};
 const A=()=>window.ATEMR&&ATEMR.api;
 /* SETTINGS › button mapping: what each of the 20 crosspoint buttons (10 + SHIFT) selects — stored in the panel */
-const MAPK='atem-panel-map',SRC_ALL=[...Array.from({length:20},(_,i)=>i+1),'black','bars','mp1','mp2'];
+const MAPK='atem-panel-map',SRC_ALL=[...Array.from({length:20},(_,i)=>i+1),'black','bars','col1','col2','mp1','mp2'];
 let MAP;try{MAP=JSON.parse(localStorage.getItem(MAPK));}catch(_){}if(!Array.isArray(MAP)||MAP.length!==20)MAP=Array.from({length:20},(_,i)=>i+1);
 const saveMap=()=>{try{localStorage.setItem(MAPK,JSON.stringify(MAP));}catch(_){}};
 const btnSrc=(n,shift)=>MAP[n+(shift?10:0)];
-const short=v=>typeof v==='number'?'Cam '+v:{black:'Black',bars:'Bars',mp1:'MP 1',mp2:'MP 2',pgm:'PGM',pvw:'PVW',clean1:'Clean 1'}[v]||v;
+const short=v=>typeof v==='number'?'Cam '+v:{black:'Black',bars:'Bars',col1:'Color 1',col2:'Color 2',mp1:'MP 1',mp2:'MP 2',pgm:'PGM',pvw:'PVW',clean1:'Clean 1'}[v]||v;
 const SYS=[['HOME','SETTINGS','KEYERS','◁','▷'],['MIX','WIPE','DVE','STINGER','DIP'],['FTB','MEDIA|PLAYERS','BORDER','COLOR',''],['MACRO','SUPER|SOURCE','CAMERA|CONTROL','AUDIO','AUX']];
 const key=(id,cx,cy,w,h,l,cls,tip)=>{const ls=String(l).split('|');return `<g class="ap-k ${cls}" data-k="${id}" data-tip="${tip}"><rect x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" rx="3"/>`+ls.map((t,i)=>`<text x="${cx}" y="${cy+2.6-(ls.length-1)*3.4+i*6.8}" class="ap-kt">${t}</text>`).join('')+'</g>';};
 /* the empty palm rest and logo area are cropped off so the controls can be drawn bigger */
@@ -41,7 +41,7 @@ function svg(){let s=`<svg viewBox="${VB.join(' ')}" class="cr-svg" id="ap-svg">
   s+=`<rect x="${X(.903)}" y="${Y(.66)}" width="4" height="${Y(.05)}" class="ap-guard"/><rect x="${X(.955)-4}" y="${Y(.66)}" width="4" height="${Y(.05)}" class="ap-guard"/>`+key('ftb',X(.928),Y(.685),36,38,'FTB','ap-w','FTB: fade the whole programme to black (blinks red); press again to come back.');
   return s+`</svg><canvas class="ap-lcd" width="400" height="216" style="left:${pc(X(.369),VB[0],VB[2])};top:${pc(Y(.094),VB[1],VB[3])};width:${pc(X(.261),0,VB[2])};height:${pc(Y(.139),0,VB[3])}"></canvas>`;}
 /* ---------- state → panel ---------- */
-const OUTS=12,INT=['pgm','pvw','clean1','bars','black','mp1','mp2'];
+const OUTS=12,INT=['pgm','pvw','clean1','bars','black','col1','col2','mp1','mp2'];
 function setK(id,cls,on){const g=document.querySelector(`#ap-svg .ap-k[data-k="${id}"]`);if(g)g.classList.toggle(cls,!!on);}
 function draw(){const a=A();if(!a)return;const S=a.S,st=a.st(),off=P.shift?10:0,now=performance.now();
   for(let n=0;n<10;n++){const v=btnSrc(n,P.shift);setK('pgm'+n,'red',S.pgm===v||(S.T&&S.pvw===v));setK('pvw'+n,'green',st.mode==='pp'&&S.pvw===v&&!S.T);setK('sel'+n,'white',(P.menu==='aux'&&st.outs[P.aux]===v)||(P.menu==='keyers'&&a.key(P.key).fill===v)||(P.menu==='settings'&&P.mapBtn===n+(P.shift?10:0)));
@@ -60,6 +60,9 @@ const fr=f=>{const s=Math.floor(f/25),r=f%25;return s+':'+String(r).padStart(2,'
 function lcd(a,S,st){const c=document.querySelector('.ap-lcd');if(!c)return;const g=c.getContext('2d'),w=400,h=216;g.fillStyle='#0b0e13';g.fillRect(0,0,w,h);g.textAlign='center';g.textBaseline='alphabetic';
   const tabs=(t,sel)=>t.forEach((l,i)=>{g.fillStyle=i===sel?'#fff':'#8b949e';g.font='700 12px sans-serif';g.fillText(l,50+i*100,18);if(i===sel){g.fillStyle='#ff9a2e';g.fillRect(20+i*100,23,60,2);}});
   const bottom=v=>v.forEach(([l,val],i)=>{if(!l)return;g.fillStyle='#fff';g.font='700 15px sans-serif';g.fillText(val,50+i*100,h-26);g.fillStyle='#8b949e';g.font='600 10px sans-serif';g.fillText(l,50+i*100,h-10);});
+  if(P.menu==='home'&&P.homeTab===1){tabs(['HOME','NETWORK','ABOUT'],1);g.font='600 13px sans-serif';g.fillStyle='#c9d1d9';[['DHCP','Off'],['Panel IP','192.168.11.40'],['Subnet mask','255.255.255.0'],['Switcher IP','192.168.11.50']].forEach(([k,v],i)=>{g.textAlign='left';g.fillText(k,40,60+i*24);g.textAlign='right';g.fillStyle='#fff';g.fillText(v,w-40,60+i*24);g.fillStyle='#c9d1d9';});g.textAlign='center';
+    g.fillStyle='#36d36e';g.fillText('● Connected to ATEM 2 M/E Constellation HD',w/2,h-18);return;}
+  if(P.menu==='home'&&P.homeTab===2){tabs(['HOME','NETWORK','ABOUT'],2);g.font='700 16px sans-serif';g.fillStyle='#fff';g.fillText('ATEM 1 M/E Advanced Panel 10',w/2,80);g.font='600 12px sans-serif';g.fillStyle='#8b949e';g.fillText('Training simulator · IPs from the Tartanga tape labels',w/2,108);return;}
   if(P.menu==='home'){tabs(['HOME','NETWORK','ABOUT'],0);g.font='600 11px sans-serif';g.fillStyle='#8b949e';g.fillText('M/E 1 PREVIEW',w*.27,62);g.fillText('M/E 1 PROGRAM',w*.73,62);
     g.font='700 22px sans-serif';g.fillStyle='#fff';g.fillText(a.srcLabel(S.pvw),w*.27,95);g.fillStyle='#ff453a';g.fillText(a.srcLabel(S.pgm),w*.73,95);
     if(P.msg){g.fillStyle='#ffcf5a';g.font='600 11px sans-serif';g.fillText(P.msg,w/2,135);}
@@ -72,6 +75,18 @@ function lcd(a,S,st){const c=document.querySelector('.ap-lcd');if(!c)return;cons
   else if(P.menu==='keyers'){const K=a.key(P.key);tabs(['KEY '+P.key,'M/E 1','UPSTREAM'],0);g.font='700 18px sans-serif';g.fillStyle='#fff';g.fillText(K.type.toUpperCase()+' key',w/2,62);
     g.font='600 12px sans-serif';g.fillStyle='#c9d1d9';g.fillText('Fill: '+short(K.fill)+(K.type==='luma'?'   ·   Key: '+short(K.key):''),w/2,86);g.fillStyle='#ffcf5a';g.fillText(P.msg||'Select row = '+(K.type==='luma'?P.keySel+' source (knob 3 switches)':'fill source')+' · ON = on air · KEY '+P.key+' = next transition',w/2,112);
     bottom([['KEY','Key '+P.key],['TYPE',K.type.toUpperCase()],K.type==='dve'?['SIZE',Math.round(K.size*100)+'%']:['SELECT',P.keySel.toUpperCase()],K.type==='dve'?['POSITION X',K.x.toFixed(2)]:['','']]);}
+  else if(P.menu==='settings'&&P.setTab===0){tabs(['SWITCHER','PANEL','BUTTON MAPPING'],0);g.font='600 13px sans-serif';g.fillStyle='#c9d1d9';[['Switching mode',st.mode==='pp'?'Program / Preview':'Cut Bus'],['Video standard','1080i50'],['Down convert','—']].forEach(([k,v],i)=>{g.textAlign='left';g.fillText(k,40,66+i*26);g.textAlign='right';g.fillStyle='#fff';g.fillText(v,w-40,66+i*26);g.fillStyle='#c9d1d9';});g.textAlign='center';bottom([['MODE',st.mode==='pp'?'PGM/PVW':'CUT BUS'],['',''],['',''],['','']]);}
+  else if(P.menu==='settings'&&P.setTab===1){tabs(['SWITCHER','PANEL','BUTTON MAPPING'],1);g.font='600 14px sans-serif';g.fillStyle='#fff';g.fillText('Button brightness',w/2,84);bottom([['BRIGHTNESS',Math.round(P.bright*100)+'%'],['',''],['',''],['','']]);}
+  else if(P.menu==='media'){tabs(['MP 1','MP 2','HYPERDECK'],P.mp);g.font='700 18px sans-serif';g.fillStyle='#fff';g.fillText('Media Player '+(P.mp+1),w/2,62);g.font='600 13px sans-serif';g.fillStyle='#c9d1d9';g.fillText('Still: '+a.STILLS[st.mp[P.mp]],w/2,90);
+    g.fillStyle='#ffcf5a';g.font='600 11px sans-serif';g.fillText('Media pool: '+a.STILLS.length+' stills · MP '+(P.mp+1)+' is a source (mapping, keys, AUX)',w/2,116);bottom([['PLAYER','MP '+(P.mp+1)],['STILL',String(st.mp[P.mp]+1)],['',''],['','']]);}
+  else if(P.menu==='color'){const c=st.col[P.col];tabs(['COLOR 1','COLOR 2',''],P.col);g.fillStyle=`hsl(${c.h},${c.s*100}%,${c.l*100}%)`;g.fillRect(w/2-60,42,120,60);g.strokeStyle='#555';g.strokeRect(w/2-60,42,120,60);
+    bottom([['GENERATOR','Color '+(P.col+1)],['HUE',Math.round(c.h)+'°'],['SATURATION',Math.round(c.s*100)+'%'],['LUMINANCE',Math.round(c.l*100)+'%']]);}
+  else if(P.menu==='border'){const b=st.border;tabs(['BORDER','DVE KEYS',''],0);g.fillStyle=`hsl(${b.h},${b.s*100}%,${b.l*100}%)`;g.fillRect(w/2-50-b.w,48-b.w,100+2*b.w,56+2*b.w);g.fillStyle='#223';g.fillRect(w/2-50,48,100,56);
+    bottom([['WIDTH',b.w+' px'],['HUE',Math.round(b.h)+'°'],['SATURATION',Math.round(b.s*100)+'%'],['LUMINANCE',Math.round(b.l*100)+'%']]);}
+  else if(P.menu==='audio'){tabs(['AUDIO','MASTER',''],0);const db=window.M32?M32.levelDb():-120,f=db<=-60?0:(db+60)/60;g.fillStyle='#222';g.fillRect(w/2-90,50,180,14);g.fillStyle=f>.95?'#ff3b30':f>.8?'#ffcf5a':'#36d36e';g.fillRect(w/2-90,50,180*f,14);
+    g.font='600 11px sans-serif';g.fillStyle='#c9d1d9';g.fillText('Programme sound: ANALOG IN ← Midas MAIN (OUT 7/8)',w/2,88);bottom([['MASTER',a.S.master.toFixed(1)+' dB'],['',''],['',''],['','']]);}
+  else if(P.menu==='camera'){const C=window.CCU&&CCU.cams[P.cam];tabs(['RESET','',''],-1);g.font='700 18px sans-serif';g.fillStyle='#fff';g.fillText('Camera '+P.cam,w/2,62);g.font='600 11px sans-serif';g.fillStyle='#ffcf5a';g.fillText('Same camera as the CCU strip — both panels drive the camera',w/2,92);
+    bottom([['CAMERA',String(P.cam)],['IRIS',C?Math.round(C.j*100)+'%':'—'],['GAIN',C?C.gain+' dB':'—'],['BLACK',C?C.mb.toFixed(1):'—']]);}
   else if(P.menu==='settings'){tabs(['SWITCHER','PANEL','BUTTON MAPPING'],2);const b=P.mapBtn;g.font='700 18px sans-serif';g.fillStyle='#fff';g.fillText('Button '+(b%10+1)+(b>=10?' + SHIFT':''),w*.3,80);g.fillText('→ '+a.srcLabel(MAP[b]),w*.7,80);
     g.font='600 11px sans-serif';g.fillStyle='#ffcf5a';g.fillText('Knob 1 or a select-row button = which button · knob 2 = its source (saved in the panel)',w/2,116);bottom([['BUTTON',(b%10+1)+(b>=10?'+S':'')],['SOURCE',short(MAP[b])],['',''],['','']]);}
   else if(P.menu==='ftb'){tabs(['FTB','',''],0);g.font='700 20px sans-serif';g.fillStyle='#fff';g.fillText('Fade to black',w/2,90);bottom([['RATE',fr(st.ftbRate)],['AFV','off'],['',''],['','']]);}
@@ -80,7 +95,7 @@ function lcd(a,S,st){const c=document.querySelector('.ap-lcd');if(!c)return;cons
 function msg(t){P.msg=t;clearTimeout(P.mt);P.mt=setTimeout(()=>{P.msg='';draw();},2500);}
 function press(k){const a=A();if(!a)return;const off=P.shift?10:0;
   let m;if((m=/^pgm(\d)$/.exec(k)))a.pgm(btnSrc(+m[1],P.shift));else if((m=/^pvw(\d)$/.exec(k)))a.pvw(btnSrc(+m[1],P.shift));
-  else if((m=/^sel(\d)$/.exec(k))){const v=btnSrc(+m[1],P.shift);if(P.menu==='aux')a.setOut(P.aux,v);else if(P.menu==='keyers'){a.setKey(P.key,P.keySel==='key'?{key:v}:{fill:v});msg('Key '+P.key+' '+(P.keySel==='key'?'key':'fill')+' source: '+short(v));}else if(P.menu==='settings'){P.mapBtn=+m[1]+(P.shift?10:0);}else msg('Select row: press AUX (outputs) or KEYERS (fill / key source) first');}
+  else if((m=/^sel(\d)$/.exec(k))){const v=btnSrc(+m[1],P.shift);if(P.menu==='aux')a.setOut(P.aux,v);else if(P.menu==='keyers'){a.setKey(P.key,P.keySel==='key'?{key:v}:{fill:v});msg('Key '+P.key+' '+(P.keySel==='key'?'key':'fill')+' source: '+short(v));}else if(P.menu==='settings'&&P.setTab===2){P.mapBtn=+m[1]+(P.shift?10:0);}else msg('Select row: press AUX (outputs) or KEYERS (fill / key source) first');}
   else if(k==='shift1'||k==='shift2')P.shift=!P.shift;else if(k==='cut')a.cut();else if(k==='auto')a.auto();
   else if(/^t(mix|dip|wipe|dve)$/.test(k)){a.trans(k.slice(1));P.menu=k.slice(1);}else if(k==='tsting')msg('STING needs a stinger clip in a media player — not simulated');else if(k==='arm')msg('ARM: disabled in the firmware');
   else if((m=/^on(\d)$/.exec(k))){a.keyOn(+m[1]);}
@@ -89,14 +104,23 @@ function press(k){const a=A();if(!a)return;const off=P.shift?10:0;
   else if(k==='ftb')a.ftb();else if(k==='prevtrans'){P.prev=!P.prev;msg('PREV TRANS: rehearse on preview (not simulated)');}
   else if(/^me\d$/.test(k)){if(k!=='me1')msg(k==='me2'?'M/E 2: not used in this simulator':'This switcher has only 2 M/Es');}
   else if(k==='macro')msg('Macros: not simulated');
-  else if(k.startsWith('sys_')){const n=k.slice(4);const map={HOME:'home',AUX:'aux',MIX:'mix',DIP:'dip',WIPE:'wipe',DVE:'dve',FTB:'ftb',KEYERS:'keyers',SETTINGS:'settings'};if(map[n])P.menu=map[n];else if(n==='CAMERA CONTROL')msg('Use the camera control panel (CCU) on the right');else if(n!=='blank'&&n!=='◁'&&n!=='▷'){P.menu=n.toLowerCase();}}
-  else if(k.startsWith('kp'))msg('Keypad: not simulated');else if(k.startsWith('soft'))msg('');}
+  else if(k.startsWith('sys_')){const n=k.slice(4);const map={HOME:'home',AUX:'aux',MIX:'mix',DIP:'dip',WIPE:'wipe',DVE:'dve',FTB:'ftb',KEYERS:'keyers',SETTINGS:'settings','MEDIA PLAYERS':'media',COLOR:'color',BORDER:'border',AUDIO:'audio','CAMERA CONTROL':'camera'};if(map[n]){P.menu=map[n];if(n==='HOME')P.homeTab=0;}else if(['SUPER SOURCE','MACRO','STINGER'].includes(n))msg(n+': not used in this simulator');else if(n==='◁'||n==='▷'){if(P.menu==='settings')P.setTab=(P.setTab+(n==='▷'?1:2))%3;else if(P.menu==='home')P.homeTab=(P.homeTab+(n==='▷'?1:2))%3;}}
+  else if(k.startsWith('kp'))msg('Keypad: not simulated');
+  else if(k.startsWith('soft')){const i=+k.slice(4);if(P.menu==='home'&&i<3)P.homeTab=i;else if(P.menu==='settings'&&i<3)P.setTab=i;else if(P.menu==='media'&&i<2)P.mp=i;else if(P.menu==='color'&&i<2)P.col=i;
+    else if(P.menu==='camera'&&i===0){const C=window.CCU&&CCU.cams[P.cam];if(C){C.j=.667;C.gain=0;C.mb=0;window.CCUP&&CCUP.draw();msg('Camera '+P.cam+': iris / gain / black back to default');}}}}
 function knob(i,d){const a=A();if(!a)return;const st=a.st();
   if(P.menu==='home'){const key=['rate','dskRate','dskRate','ftbRate'][i];a.setRate(key,st[key]+d);}
   else if(P.menu==='aux'){if(i===0)P.aux=(P.aux+d+OUTS)%OUTS;else if(i===1){const cur=st.outs[P.aux],j=INT.indexOf(cur);a.setOut(P.aux,INT[(j+d+INT.length)%INT.length]);}}
   else if(P.menu==='keyers'){const K=a.key(P.key),T=['dve','luma','chroma'];if(i===0)P.key=((P.key-1+d+4)%4)+1;else if(i===1)a.setKey(P.key,{type:T[(T.indexOf(K.type)+d+3)%3]});
     else if(i===2){if(K.type==='dve')a.setKey(P.key,{size:Math.max(.1,Math.min(1,K.size+d*.02))});else P.keySel=P.keySel==='fill'?'key':'fill';}else if(i===3&&K.type==='dve')a.setKey(P.key,{x:Math.max(-1,Math.min(1,K.x+d*.04))});}
-  else if(P.menu==='settings'){if(i===0)P.mapBtn=(P.mapBtn+d+20)%20;else if(i===1){const j=SRC_ALL.indexOf(MAP[P.mapBtn]);MAP[P.mapBtn]=SRC_ALL[(j+d+SRC_ALL.length)%SRC_ALL.length];saveMap();}}
+  else if(P.menu==='settings'&&P.setTab===2){if(i===0)P.mapBtn=(P.mapBtn+d+20)%20;else if(i===1){const j=SRC_ALL.indexOf(MAP[P.mapBtn]);MAP[P.mapBtn]=SRC_ALL[(j+d+SRC_ALL.length)%SRC_ALL.length];saveMap();}}
+  else if(P.menu==='media'){if(i===0)P.mp=(P.mp+d+2)%2;else if(i===1){const m=[...st.mp];m[P.mp]=(m[P.mp]+d+a.STILLS.length)%a.STILLS.length;a.set({mp:m});}}
+  else if(P.menu==='color'){if(i===0)P.col=(P.col+d+2)%2;else{const c=st.col.map(x=>({...x})),x=c[P.col];if(i===1)x.h=(x.h+d*5+360)%360;else if(i===2)x.s=Math.max(0,Math.min(1,x.s+d*.02));else x.l=Math.max(0,Math.min(1,x.l+d*.02));a.set({col:c});}}
+  else if(P.menu==='border'){const b={...st.border};if(i===0)b.w=Math.max(0,Math.min(12,b.w+d));else if(i===1)b.h=(b.h+d*5+360)%360;else if(i===2)b.s=Math.max(0,Math.min(1,b.s+d*.02));else b.l=Math.max(0,Math.min(1,b.l+d*.02));a.set({border:b});}
+  else if(P.menu==='audio'){if(i===0)a.S.master=Math.max(-60,Math.min(10,a.S.master+d*.5));}
+  else if(P.menu==='camera'){const C=window.CCU&&CCU.cams[P.cam];if(i===0)P.cam=((P.cam-1+d+8)%8)+1;else if(C){if(i===1)C.j=Math.max(0,Math.min(1,C.j+d*.02));else if(i===2)C.gain=Math.max(-12,Math.min(36,C.gain+d*2));else C.mb=Math.max(-5,Math.min(5,C.mb+d*.1));window.CCUP&&CCUP.draw();}}
+  else if(P.menu==='settings'&&P.setTab===0){if(i===0)a.set({mode:st.mode==='pp'?'cut':'pp'});}
+  else if(P.menu==='settings'&&P.setTab===1){if(i===0){P.bright=Math.max(.4,Math.min(1.2,P.bright+d*.05));const sv=document.getElementById('ap-svg');if(sv)sv.style.filter=`brightness(${P.bright})`;}}
   else if(['mix','dip','wipe','dve'].includes(P.menu)&&i===0)a.setRate('rate',st.rate+d);else if(P.menu==='ftb'&&i===0)a.setRate('ftbRate',st.ftbRate+d);}
 P.tbv=0;
 function mount(el){el.innerHTML=`<div class="cr-wrap ap-wrap">${svg()}</div>`;const s=el.querySelector('#ap-svg');

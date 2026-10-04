@@ -5,11 +5,22 @@
 (function(){
 const PW=1080,PH=100,X=f=>f*PW,Y=f=>f*PH,CW=480,CH=270;
 const ST_KEY='atem-state';
-const SRCN={bars:'Color Bars',black:'Black',mp1:'Media Player 1',mp2:'Media Player 2',pgm:'Program',pvw:'Preview',clean1:'Clean Feed 1',mv1:'Multiview 1'};
+const SRCN={bars:'Color Bars',black:'Black',mp1:'Media Player 1',mp2:'Media Player 2',col1:'Color 1',col2:'Color 2',pgm:'Program',pvw:'Preview',clean1:'Clean Feed 1',mv1:'Multiview 1'};
 const DEF={outs:['pgm','pvw','pgm','black','black','black','black','black','black','black','black','black'],mode:'pp',rate:25,dskRate:25,ftbRate:25,ip:[192,168,11,50],
   keys:[{type:'dve',fill:2,key:null,size:.35,x:.58,y:-.55},{type:'luma',fill:9,key:10,size:.35,x:-.58,y:-.55},{type:'chroma',fill:1,key:null,size:1,x:0,y:0},{type:'dve',fill:3,key:null,size:.35,x:-.58,y:.55}]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(ST_KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
 if(!st.keys)st.keys=JSON.parse(JSON.stringify(DEF.keys));
+/* media pool (stills for the 2 media players), colour generators, DVE key border */
+if(!st.mp)st.mp=[0,1];if(!st.col)st.col=[{h:215,s:.75,l:.35},{h:0,s:0,l:.08}];if(!st.border)st.border={w:3,h:0,s:0,l:1};
+const STILLS=['TV Studio logo','Coming up next','Technical difficulties','Lower-third test','Grey card'];
+function still(i,g,w,h,tag){const gr=g.createLinearGradient(0,0,w,h);g.textAlign='center';g.textBaseline='middle';
+  if(i===4){g.fillStyle='#777';g.fillRect(0,0,w,h);return;}
+  gr.addColorStop(0,['#0b3d91','#3a0ca3','#7f1d1d','#000','#777'][i]);gr.addColorStop(1,'#050505');g.fillStyle=gr;g.fillRect(0,0,w,h);g.fillStyle='#fff';
+  if(i===0){g.font=`800 ${h*.16}px sans-serif`;g.fillText('TV STUDIO',w/2,h*.45);g.font=`600 ${h*.06}px sans-serif`;g.fillText('Tartanga',w/2,h*.62);}
+  else if(i===1){g.font=`700 ${h*.1}px sans-serif`;g.fillText('COMING UP NEXT',w/2,h/2);}
+  else if(i===2){g.font=`700 ${h*.08}px sans-serif`;g.fillText('We are experiencing technical difficulties',w/2,h/2);}
+  else{g.fillStyle='#0b3d91';g.fillRect(w*.06,h*.72,w*.55,h*.1);g.fillStyle='#fff';g.font=`700 ${h*.05}px sans-serif`;g.textAlign='left';g.fillText('Name Surname',w*.08,h*.77);}
+  g.textAlign='left';g.fillStyle='rgba(255,255,255,.6)';g.font=`600 ${h*.035}px sans-serif`;g.fillText(tag,w*.02,h*.05);}
 const save=()=>{try{localStorage.setItem(ST_KEY,JSON.stringify(st));}catch(_){}};
 const S={pgm:1,pvw:2,trans:'mix',T:null,ftb:{on:false,a:0},key1:{on:false,a:0},key2:{on:false,a:0},key3:{on:false,a:0},key4:{on:false,a:0},dsk1:{on:false,a:0,tie:false,cut:false},dsk2:{on:false,a:0,tie:false,cut:false},next:{bkgd:true,k1:false,k2:false,k3:false,k4:false},locked:false,lockFlash:0,
   menu:null,master:0,audioSel:null,msg:''};
@@ -22,8 +33,8 @@ function bars(g,w,h){['#c0c0c0','#c0c000','#00c0c0','#00c000','#c000c0','#c00000
 function src(id,g,w,h){g.fillStyle='#000';g.fillRect(0,0,w,h);
   if(typeof id==='number'){const o=hubOutFor(id);return o>=0&&VH.frame(o,g,w,h)!==false;}
   if(id==='bars'){bars(g,w,h);return true;}
-  if(id==='mp1'||id==='mp2'){const gr=g.createLinearGradient(0,0,w,h);gr.addColorStop(0,id==='mp1'?'#1d3557':'#3a0ca3');gr.addColorStop(1,'#000');g.fillStyle=gr;g.fillRect(0,0,w,h);
-    g.fillStyle='rgba(255,255,255,.8)';g.font=`700 ${h*.12}px sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillText(id==='mp1'?'MEDIA PLAYER 1 · still':'MEDIA PLAYER 2 · still',w/2,h/2);return true;}
+  if(id==='mp1'||id==='mp2'){still(st.mp[id==='mp1'?0:1],g,w,h,id==='mp1'?'MP 1':'MP 2');return true;}
+  if(id==='col1'||id==='col2'){const c=st.col[id==='col1'?0:1];g.fillStyle=`hsl(${c.h},${c.s*100}%,${c.l*100}%)`;g.fillRect(0,0,w,h);return true;}
   return id==='black';}
 /* program = background (+transition) → [clean feed 1] → DSK 1 / DSK 2 → FTB */
 const pgmCv=mk(),pvwCv=mk(),cleanCv=mk(),tA=mk(),tB=mk(),fCv=mk(),kCv=mk();
@@ -35,7 +46,7 @@ function dskOver(g,a){if(a<=0)return;const fg=fCv.getContext('2d',{willReadFrequ
 /* upstream keys (KEY 1-4 of M/E 1): DVE = picture in picture, LUMA = fill cut by the brightness of the key source, CHROMA = green removed */
 const kF=mk(),kK=mk();
 function keyOver(g,K,a){if(a<=0||K.fill==null)return;const fg=kF.getContext('2d',{willReadFrequently:true});if(!src(K.fill,fg,CW,CH))return;
-  if(K.type==='dve'){const w=CW*K.size,h=CH*K.size,x=(CW-w)/2+K.x*CW/2,y=(CH-h)/2+K.y*CH/2;g.globalAlpha=a;g.fillStyle='#fff';g.fillRect(x-2,y-2,w+4,h+4);g.drawImage(kF,x,y,w,h);g.globalAlpha=1;return;}
+  if(K.type==='dve'){const w=CW*K.size,h=CH*K.size,x=(CW-w)/2+K.x*CW/2,y=(CH-h)/2+K.y*CH/2;const B=st.border,bw=B.w;g.globalAlpha=a;if(bw>0){g.fillStyle=`hsl(${B.h},${B.s*100}%,${B.l*100}%)`;g.fillRect(x-bw,y-bw,w+2*bw,h+2*bw);}g.drawImage(kF,x,y,w,h);g.globalAlpha=1;return;}
   const fd=fg.getImageData(0,0,CW,CH),d=fd.data;let kd=null;if(K.type==='luma'&&K.key!=null){const kg=kK.getContext('2d',{willReadFrequently:true});if(src(K.key,kg,CW,CH))kd=kg.getImageData(0,0,CW,CH).data;}
   for(let i=0;i<d.length;i+=4){let al;if(K.type==='chroma'){const gEx=d[i+1]-Math.max(d[i],d[i+2]);al=1-Math.min(1,Math.max(0,(gEx-20)/50));if(gEx>0)d[i+1]-=gEx*(1-al);}
     else{const L=kd?kd[i]*.2126+kd[i+1]*.7152+kd[i+2]*.0722:d[i]*.2126+d[i+1]*.7152+d[i+2]*.0722;al=Math.min(1,Math.max(0,(L-40)/150));}d[i+3]=al*255*a;}
@@ -187,7 +198,7 @@ function loop(now){requestAnimationFrame(loop);const vis=document.getElementById
 requestAnimationFrame(loop);
 /* control from the ATEM 1 M/E Advanced Panel (same switcher, same state) */
 let tbStart=0;
-const API={S,st:()=>st,mvOpen:()=>!!(mvWin&&!mvWin.closed),inName,srcLabel,program:()=>pgmCv,preview:()=>pvwCv,multiview:()=>mvCv,drawMV,
+const API={S,st:()=>st,STILLS,set(o){Object.assign(st,o);save();},mvOpen:()=>!!(mvWin&&!mvWin.closed),inName,srcLabel,program:()=>pgmCv,preview:()=>pvwCv,multiview:()=>mvCv,drawMV,
   pvw(v){if(st.mode==='cut')S.pgm=v;else S.pvw=v;draw();},pgm(v){S.pgm=v;draw();},cut(){take();draw();},auto(){auto();draw();},trans(t){S.trans=t;draw();},
   tbar(v){if(!S.T){if(Math.abs(v-tbStart)<.01)return;S.T={manual:true,p:0,fx:S.trans};ties();}if(!S.T.manual)return;S.T.p=Math.min(1,Math.abs(v-tbStart));
     if(S.T.p>=1){const a=S.pgm;S.pgm=S.pvw;S.pvw=a;S.T=null;tbStart=v;}draw();},
