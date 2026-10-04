@@ -167,14 +167,18 @@ function press(id){U.msg='';
 /* ---------- rear plugging ---------- */
 function plugMenu(s,ev){const m=document.getElementById('vh-plugmenu'),d=s[0],k=+s.slice(1),L=d==='i'?SRCS:DSTS,cur=d==='i'?st.cabIn[k]:st.cabOut[k];
   m.innerHTML=`<div class="mx-srchd"><b>${d==='i'?'SDI IN':'SDI OUT'} ${k+1}</b> — ${d==='i'?'what is cabled into it?':'what does it feed?'}</div>`+
-    Object.entries(L).map(([v,l])=>`<button data-v="${v}" class="${v===cur?'on':''}">${l}${d==='i'&&SRCL[v]?` <i>${SRCL[v]}</i>`:''}</button>`).join('')+
+    Object.entries(L).map(([v,l])=>`<button data-v="${v}" class="${v===cur?'on':''}">${l}${d==='i'&&SRCL[v]?` <i>${SRCL[v]}</i>`:''}${d==='i'&&/^cam\d$/.test(v)?(PACK.v[+v.slice(3)]?' <i>— pack video loaded ✓</i>':' <i>— test image (load the pack for video)</i>'):''}</button>`).join('')+
     (d==='i'?'<p class="mx-snote">vMix fill / key arrive while vMix External is on; ATEM PGM = ATEM SDI OUT 1.</p>':'<p class="mx-snote">To cable it to an ATEM input you can also click this OUT and then the ATEM input on its rear panel.</p>');
   m.style.left=Math.min(ev.clientX,innerWidth-300)+'px';m.style.top=Math.max(10,Math.min(ev.clientY-40,innerHeight-m.offsetHeight-10))+'px';m.classList.add('on');
   m.querySelectorAll('button').forEach(b=>b.onclick=()=>{const v=b.dataset.v;if(d==='o'&&v.startsWith('atem'))st.cabOut.forEach((x,o)=>{if(x===v)st.cabOut[o]='none';});(d==='i'?st.cabIn:st.cabOut)[k]=v;save();m.classList.remove('on');draw();window.ATEMR&&ATEMR.redraw();});}
 function loadPack(files){let n=0;Object.values(PACK.v).forEach(v=>{v.pause();URL.revokeObjectURL(v.src);});PACK.v={};
   [...files].forEach(f=>{const m=f.name.match(/^CAM(\d)\.(mp4|mov|m4v|webm)$/i);if(!m)return;const v=document.createElement('video');v.src=URL.createObjectURL(f);v.muted=true;v.loop=true;v.playsInline=true;PACK.v[+m[1]]=v;n++;});
   const vs=Object.values(PACK.v);vs.forEach(v=>{v.currentTime=0;v.play().catch(()=>{});});   // all start together = in sync (the files are synced)
-  U.msg=n?`Pack loaded: ${n} cameras`:'No CAM1-8 files in that folder';draw();}
+  U.msg=n?`Pack loaded: ${n} cameras`:'No CAM1-8 files in that folder';draw();
+  /* the room has 4 cameras: offer (visibly) to cable the extra pack cameras too — undo with Default cabling */
+  const extra=[5,6,7,8].filter(k=>PACK.v[k]&&!st.cabIn.includes('cam'+k));
+  if(extra.length&&confirm(`The pack has ${n} cameras but the room is cabled for CAM 1-4.\n\nCable CAM ${extra.join(', ')} too?\n→ router IN ${extra.map(k=>k+2).join(', ')} → router OUT ${extra.map(k=>k+2).join(', ')} → ATEM IN ${extra.map(k=>k+2).join(', ')}\n\n(Patch mode › Default cabling puts the room cabling back.)`)){
+    extra.forEach(k=>{const i=k+1;st.cabIn[i]='cam'+k;st.cabOut.forEach((v,o)=>{if(v==='atem'+(i+1))st.cabOut[o]='none';});st.cabOut[i]='atem'+(i+1);st.routes[i]=i;});save();draw();window.ATEMR&&ATEMR.redraw();U.msg=`CAM ${extra.join(', ')} cabled to router IN / ATEM IN ${extra.map(k=>k+2).join(', ')}`;draw();}}
 /* ---------- events ---------- */
 function wire(){const tip=document.getElementById('vh-tip'),fs=document.getElementById('vh-fsvg');
   document.getElementById('vh-close').onclick=()=>window.closeVideohub();
