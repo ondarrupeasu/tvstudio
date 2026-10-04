@@ -206,6 +206,28 @@
   @media (max-width:900px){.swbtn{top:auto;bottom:14px}}
   /* Midas M32R */
   .rc-sim{border:0;cursor:pointer;font-family:inherit}
+  /* Control room — vision (multiview + ATEM panel + CCU) */
+  .cr{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.cr.on{display:flex}
+  .cr .pwr-hd{padding:8px 16px 6px;align-items:center}.cr .pwr-hd p{font-size:11.5px}.cr .pwr-btns button{padding:6px 10px;font-size:12px}
+  .cr-body{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 10px 10px;overflow:auto}
+  .cr-wall{height:34vh;aspect-ratio:16/9;max-width:100%;background:#000;border:6px solid #15161a;border-radius:6px;flex:none}#cr-mv{width:100%;height:100%;display:block}
+  .cr-desk{flex:1;min-height:0;display:flex;gap:14px;justify-content:center;align-items:flex-start;width:100%}.cr-desk>div{height:100%;max-width:49%}
+  .cr-wrap{position:relative;height:100%;aspect-ratio:1000/967;max-width:100%}.cc-wrap{aspect-ratio:1000/965}.cr-svg{display:block;width:100%;height:100%;user-select:none;-webkit-user-select:none;touch-action:none}
+  .cr-svg text{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;pointer-events:none}
+  .cr-chassis{fill:#18191c;stroke:#8d9196;stroke-width:3}.cr-top{fill:#1f2024}.cr-lcdb{fill:#050608;stroke:#2b2d33}.cr-soft{fill:#2a2c31;stroke:#000;cursor:pointer}.cr-pipe{fill:#2a3b55}.cr-logo{font-size:17px;font-weight:600;fill:#e6e6e8;text-anchor:middle}
+  .ap-lcd,.cc-lcd{position:absolute;pointer-events:none;border-radius:3px}
+  .ap-k{cursor:pointer}.ap-k rect{stroke:#000;stroke-width:1}.ap-s rect{fill:#24262b}.ap-s .ap-kt{fill:#e8e9eb;font-size:7.3px}.ap-w rect{fill:#e6e9ec}.ap-kt{font-size:8px;font-weight:700;fill:#2b2d31;text-anchor:middle}
+  .ap-k:hover rect{stroke:var(--ce-accent);stroke-width:2}.ap-k.down rect{filter:brightness(1.15)}.ap-k.red rect{fill:#ff3b30}.ap-k.green rect{fill:#36d36e}.ap-k.amber rect{fill:#ffb02e}.ap-k.white rect{fill:#ffffff;stroke:#7fb2ff;stroke-width:2.5}
+  .ap-k.red .ap-kt,.ap-k.green .ap-kt{fill:#fff}.ap-s.amber rect{fill:#c77a12}.ap-s.amber .ap-kt{fill:#fff}
+  .ap-strip{fill:#0e2240;stroke:#000}.ap-nm{font-size:8.5px;font-weight:700;fill:#e8f0ff;text-anchor:middle}.ap-nm.red{fill:#ff6b60}.ap-nm.green{fill:#5ee38c}.ap-div{stroke:#24406b}.ap-lab{font-size:9px;font-weight:700;fill:#c9ccd1}
+  .ap-joyb{fill:#101114;stroke:#3a3c41}.ap-cap{fill:#9aa0a6}.ap-tbf{fill:#0f1013;stroke:#2f3136}.ap-slot{fill:#050506}.ap-tled{fill:#2a2c30}.ap-tled.on{fill:#ff3b30}.ap-tbh{fill:#2c2e33;stroke:#000}.ap-tbh2{fill:#2c2e33}#ap-tbar{cursor:ns-resize}.ap-guard{fill:#3a3c41}.ap-knob{cursor:ns-resize}
+  .cc-strip{fill:#0c0d0f;stroke:#33363c}.cc-b{cursor:pointer}.cc-b rect{fill:#24262b;stroke:#000}.cc-bt{font-size:6.8px;font-weight:700;fill:#e8e9eb;text-anchor:middle}.cc-b:hover rect{stroke:var(--ce-accent);stroke-width:2}
+  .cc-b.lit rect{fill:#c77a12}.cc-b[data-k="call"].lit rect,.cc-b[data-k="store"].lit rect,.cc-b[data-k="irislock"].lit rect{fill:#d6342a}
+  .cc-l{font-size:6.6px;font-weight:700;fill:#c9ccd1;text-anchor:middle}.cc-ls{font-size:5.8px}.cc-segbg{fill:#050506;stroke:#24262b}.cc-seg{font:700 11px "SF Mono",Menlo,monospace;fill:#ffb02e;text-anchor:middle}
+  .cc-led{fill:#2a2c30}.cc-led.on{fill:#f2f2f2}.cc-led.g{fill:#2a2c30}.cc-led.g.on,.cc-led.g:not([data-led]){fill:#36d36e}.cc-sep{stroke:#2b2d33;stroke-width:1.2}
+  .cc-w{cursor:ns-resize}.cc-wr{fill:#111;stroke-width:3;opacity:.85}.cc-wk{fill:#1d1f23;stroke:#3a3c41}.cc-wp{stroke:#e8e9eb;stroke-width:2;stroke-linecap:round}.cc-w:hover .cc-wk{stroke:var(--ce-accent)}
+  .cc-cam{font:800 28px "SF Mono",Menlo,monospace;fill:#36d36e;text-anchor:middle}.cc-cam.red{fill:#ff3b30}.cc-guide{fill:#08090b;stroke:#2b2d33}
+  .cc-joy{cursor:ns-resize}.cc-ring{fill:#26282d;stroke:#3a3c41;stroke-width:2}.cc-knob{fill:#3a3d43;stroke:#000}.cc-ringm{stroke:#e8e9eb;stroke-width:2}.cc-joy:hover .cc-knob{stroke:var(--ce-accent);stroke-width:2}
   /* HyperDeck Studio HD Pro */
   .hd-k{cursor:pointer}.hd-k rect{stroke:#000;stroke-width:.8}.hd-t rect{fill:#c9cdd2}.hd-s rect{fill:#2a2c31}.hd-kt{font-size:7px;font-weight:700;fill:#1a1a1a;text-anchor:middle}.hd-s .hd-kt{fill:#e8e9eb;font-size:4.6px}
   .hd-lab{font-size:4.4px;font-weight:700;fill:#e5e6e8;text-anchor:middle}.hd-k:hover rect{stroke:var(--ce-accent);stroke-width:1.5}.hd-k.down rect{filter:brightness(1.2)}
@@ -356,7 +378,7 @@
     <button class="simgo" data-sim="light"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>Lighting</button>
     <button class="simgo" data-sim="sound"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Sound</button>
     <button class="simgo" data-sim="vmix"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="1"/><path d="M8 21h8M12 17v4"/></svg>vMix</button>
-    <button class="simgo" data-sim="vision" disabled title="Coming soon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="m16 10 6-3v10l-6-3"/></svg>Vision · soon</button>
+    <button class="simgo" data-sim="vision" title="Control room: multiview, ATEM panel and camera control"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="m16 10 6-3v10l-6-3"/></svg>Vision · soon</button>
   </div>
 
   <div class="board">
@@ -572,7 +594,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=56"></script>
+<script src="power.js?v=57"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -582,7 +604,7 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=56"></script>
+<script src="desk.js?v=57"></script>
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
@@ -617,14 +639,18 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=56"></script>
+<script src="m32r.js?v=57"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=56"></script>
-<script src="constellation.js?v=56"></script>
-<script src="hyperdeck.js?v=56"></script>
-<script src="cables.js?v=56"></script>
+<script src="videohub.js?v=57"></script>
+<script src="constellation.js?v=57"></script>
+<script src="hyperdeck.js?v=57"></script>
+<script src="cables.js?v=57"></script>
+<div class="cr" id="cr"></div>
+<script src="ccu.js?v=57"></script>
+<script src="atempanel.js?v=57"></script>
+<script src="controlroom.js?v=57"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=56"></script>
+<script src="vmix.js?v=57"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
@@ -717,13 +743,13 @@ function open(k){
     gal.appendChild(f);});
   document.getElementById('d-name').textContent=d.name;document.getElementById('d-kind').textContent=d.kind;document.getElementById('d-what').textContent=d.what;document.getElementById('d-use').textContent=d.use;
   document.getElementById('d-normal').classList.toggle('notext',!!d.notext);
-  const sb=document.getElementById('d-simbtn');sb.classList.toggle('on',k==='luces'||k==='audio');sb.dataset.k=k;sb.textContent=k==='audio'?'▶ Open the M32R simulator':'▶ Open the light simulator';
+  const sb=document.getElementById('d-simbtn');const VIS=['mezclador','ccu','pantallas'];sb.classList.toggle('on',k==='luces'||k==='audio'||VIS.includes(k));sb.dataset.k=k;sb.textContent=k==='audio'?'▶ Open the M32R simulator':VIS.includes(k)?'▶ Open the vision desk simulator':'▶ Open the light simulator';
   drawer.classList.add('on');scrim.classList.add('on');}
 function close(){document.querySelectorAll('.zone.sel').forEach(z=>z.classList.remove('sel'));drawer.classList.remove('on');scrim.classList.remove('on');setTimeout(()=>drawer.classList.remove('rackmode'),260);}
 document.querySelectorAll('.zone').forEach(z=>z.addEventListener('click',()=>open(z.dataset.k)));
 document.getElementById('close').addEventListener('click',close);
-document.querySelectorAll('.simgo').forEach(b=>b.addEventListener('click',()=>{close();b.dataset.sim==='light'?openDesk():b.dataset.sim==='sound'?openMixer():b.dataset.sim==='vmix'?openVmix():0;}));
-document.getElementById('d-simbtn').addEventListener('click',e=>{const k=e.currentTarget.dataset.k;close();k==='audio'?openMixer():openDesk();});
+document.querySelectorAll('.simgo').forEach(b=>b.addEventListener('click',()=>{close();b.dataset.sim==='light'?openDesk():b.dataset.sim==='sound'?openMixer():b.dataset.sim==='vmix'?openVmix():b.dataset.sim==='vision'?openControlRoom():0;}));
+document.getElementById('d-simbtn').addEventListener('click',e=>{const k=e.currentTarget.dataset.k;close();k==='audio'?openMixer():['mezclador','ccu','pantallas'].includes(k)?openControlRoom():openDesk();});
 scrim.addEventListener('click',close);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pwr').classList.contains('on'))closePower();else{close();closeDesk();closeMixer();}}});
 </script>

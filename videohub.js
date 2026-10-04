@@ -26,7 +26,13 @@ const outLab=o=>st.cabOut[o]==='none'?'Output '+(o+1):DSTS[st.cabOut[o]];
 const U={mode:'dest',dest:0,pend:null,video:false,menu:null,blink:0,holdT:null,msg:''};
 /* ---------- signals ---------- */
 const PACK={v:{},t0:null};   // CAM1-8 videos from the multicam pack folder
-function camFrame(c,n,w,h,t){const v=PACK.v[n];
+/* camera picture as set by its CCU strip (exposure, white balance, lift / gamma / gain, bars) */
+const camTmp=document.createElement('canvas');
+function camFrame(c,n,w,h,t){const cc=window.CCU;
+  if(cc&&cc.bars(n)){['#c0c0c0','#c0c000','#00c0c0','#00c000','#c000c0','#c00000','#0000c0'].forEach((col,i)=>{c.fillStyle=col;c.fillRect(i*w/7,0,w/7+1,h*.75);});c.fillStyle='#111';c.fillRect(0,h*.75,w,h*.25);c.fillStyle='#fff';c.font=`700 ${h*.08}px sans-serif`;c.textAlign='center';c.fillText('CAM '+n,w/2,h*.88);return true;}
+  const f=cc&&cc.filter(n);if(!f)return camRaw(c,n,w,h,t);
+  if(camTmp.width!==w||camTmp.height!==h){camTmp.width=w;camTmp.height=h;}camRaw(camTmp.getContext('2d'),n,w,h,t);c.save();c.filter=f;c.drawImage(camTmp,0,0,w,h);c.restore();return true;}
+function camRaw(c,n,w,h,t){const v=PACK.v[n];
   if(v&&v.readyState>=2){c.drawImage(v,0,0,w,h);return true;}
   const g=c.createLinearGradient(0,0,w,h);g.addColorStop(0,['#264653','#2a9d8f','#8a5a44','#6d597a','#355070','#7f5539','#3d5a80','#5f0f40'][n-1]);g.addColorStop(1,'#111');
   c.fillStyle=g;c.fillRect(0,0,w,h);c.fillStyle='rgba(255,255,255,.85)';c.font=`800 ${h*.2}px sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillText('CAM '+n,w/2,h*.45);
