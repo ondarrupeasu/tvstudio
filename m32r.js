@@ -49,7 +49,7 @@ function knob(id,x,y,r,label,tip=''){if(tip)TIPS[id]=tip;
 const led=(id,x,y,w=10,h=4,c='r')=>`<rect class="mx-led ${c}" data-l="${id}" x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="1"/>`;
 const FY0=933,FY1=1183;
 const fpos=f=>FY1-(FY1-FY0)*f;
-function fader(slot,x){let s=`<g class="mx-f" data-slot="${slot}">`;
+function fader(slot,x){let s=`<g class="mx-f" data-slot="${slot}" data-name="Fader">`;
   [[10,1],[5,.875],[0,.75],[5,.625],[10,.5],[20,.375],[30,.25],[40,.1875],[50,.125],[70,.0417],['∞',0]].forEach(([l,f])=>{const y=fpos(f);
     s+=`<line class="mx-tick" x1="${x-21}" y1="${y}" x2="${x-13}" y2="${y}"/>`+T(x-23,y+2.6,l,'mx-sc','end');});
   s+=`<rect x="${x-2.5}" y="${FY0-4}" width="5" height="${FY1-FY0+8}" rx="2" fill="#050506"/>`;
@@ -61,7 +61,7 @@ function strip(slot,x,main){let s='';
   else{['COMP','CLIP','-6','-12','-18','-30','-60',slot.startsWith('b')?'PRE':'GATE'].forEach((l,k)=>{const y=628+k*10;
     s+=led('m:'+slot+':'+k,x-10,y,8,5,k===0?'y':k===1?'r':k===7?(slot.startsWith('b')?'g':'r'):'g')+T(x-2,y+2.5,l,'mx-xs','start');});}
   s+=btn('solo:'+slot,x,725,'SOLO','solo',38,18);
-  s+=`<g class="mx-lcd" data-lcd="${slot}"><rect x="${x-25}" y="756" width="50" height="66" rx="2" class="mx-lcdbg"/><rect class="mx-lcdc" x="${x-22}" y="759" width="44" height="60" rx="1.5"/>${T(x,778,'','mx-lcd1')}${T(x,800,'','mx-lcd2')}</g>`;
+  s+=`<g class="mx-lcd" data-lcd="${slot}" data-name="Scribble strip"><rect x="${x-25}" y="756" width="50" height="66" rx="2" class="mx-lcdbg"/><rect class="mx-lcdc" x="${x-22}" y="759" width="44" height="60" rx="1.5"/>${T(x,778,'','mx-lcd1')}${T(x,800,'','mx-lcd2')}</g>`;
   s+=btn('mute:'+slot,x,854,'MUTE','mute',38,18);
   return s+fader(slot,x);}
 
@@ -336,8 +336,9 @@ function homeBody(s,p){let h='';
   if(G.tab==='eq')return eqGraph(p);
   const blk=(x,l,v,on)=>`<rect x="${x}" y="36" width="38" height="40" rx="3" fill="${on?'#2c5a3a':'#20283a'}" stroke="#3b4a66"/>`+T(x+19,48,l,'mx-st')+T(x+19,64,v,'mx-sv');
   h+=blk(4,'Config',(p.p48?'48V ':'')+'+'+p.gain.toFixed(0),true)+blk(45,'Lo cut',p.lc?Math.round(p.lcf)+'Hz':'off',p.lc)+blk(86,'Gate',p.gate?p.gthr.toFixed(0):'off',p.gate)+blk(127,'Dyn',p.comp?p.cthr.toFixed(0):'off',p.comp)+blk(168,'EQ',p.eq?'on':'off',p.eq)+blk(209,'Main',(p.st?'LR ':'')+(p.mono?'M':''),p.st||p.mono);
-  h+=`<g id="mx-shm"></g>`+T(126,122,'Fader '+fmtDb(f2db(s.fader))+' dB · Pan '+(p.pan===0?'C':(p.pan<0?'L':'R')+Math.round(Math.abs(p.pan)*100))+(s.mute?' · MUTED':''),'mx-s');
-  if(S[G.sel].cond&&!p.p48)h+=T(126,108,'⚠ condenser mic: needs 48 V','mx-warn');
+  h+=`<g id="mx-shm"></g>`+T(126,126,'Fader '+fmtDb(f2db(s.fader))+' dB · Pan '+(p.pan===0?'C':(p.pan<0?'L':'R')+Math.round(Math.abs(p.pan)*100))+(s.mute?' · MUTED':''),'mx-s');
+  const nIn=+G.sel.slice(2);h+=T(126,108,'Source: IN '+nIn+' ← '+(nIn<=8?SOURCES[SRC[G.sel]].l:'nothing connected'),'mx-st');
+  if(S[G.sel].cond&&!p.p48)h+=T(126,117,'⚠ condenser mic: needs 48 V','mx-warn');
   if(false)h+=`<g class="mx-micbtn" data-b="usemic"><rect x="70" y="80" width="112" height="16" rx="3" fill="#3d6db3"/>${T(126,91,A.micErr?'mic blocked by browser':'▶ use my microphone','mx-st')}</g>`;
   return h;}
 function eqGraph(p){const W=244,H=88,X=4,Y=34;let h=`<rect x="${X}" y="${Y}" width="${W}" height="${H}" fill="#0a111b" stroke="#2c3b55"/>`;
@@ -360,6 +361,9 @@ function diag(){const el=document.getElementById('mx-diag');if(!el)return;const 
     it(!S.main.mute&&S.main.fader>.3,'MAIN fader up')+it(Math.max(G.mon,G.phones)>.05,'MONITOR / PHONES level')+`<span class="mx-sel">Selected: <b>${s.num} ${s.name}</b>${s.mic?' · '+s.mic:''}</span>`;}
 
 /* ---------- interaction ---------- */
+function srcInfo(id){const s=S[id];if(!s)return '';const n=+id.slice(2);
+  if(s.type==='in')return n<=8?`Source: IN ${n} ← ${SOURCES[SRC[id]].l}${s.cond?' (condenser: needs 48 V)':''} — change it with INPUT SOURCES (top).`:`Source: IN ${n} — nothing connected (in the simulator only IN 1-8 have sources).`;
+  return {aux:'Aux input (line jacks / USB) — no source in the simulator.',fx:'Return of an effects slot — effects not simulated yet.',bus:'Mix bus (e.g. a monitor send) — sends not simulated yet.',dca:'DCA group: one fader that controls several channels — not simulated yet.',mtx:'Matrix output — not simulated yet.',mainc:'Mono / centre bus.',main:'Main stereo bus (L/R) → OUT 7/8.'}[s.type]||'';}
 function stripId(slot){if(slot==='m')return 'main';const k=+slot.slice(1);return slot[0]==='a'?stripsIn()[k]:stripsBus()[k];}
 function press(id){if(!G.power||G.boot)return;const p=P[G.sel];
   let m;
@@ -419,6 +423,8 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     if(m.dataset.b?.startsWith('v'))t=t||'VIEW: opens this section on the screen.';
     if(m.dataset.b?.startsWith('scr:'))t='Screen page.';
     if(m.dataset.k?.startsWith('enc')){const en=encDefs()[+m.dataset.k.slice(3)];name='Screen encoder '+(+m.dataset.k.slice(3)+1);t=en?'Edits: '+en.l+' ('+en.get()+')':'Nothing on this page.';}
+    const slot=m.dataset.lcd||m.dataset.slot||(m.dataset.b||'').split(':')[1];
+    if(slot&&/^(a\d|b\d|m)$/.test(slot)){const sid=stripId(slot);if(sid){const s=S[sid];if(m.dataset.lcd){name=s.num+' '+(s.name||'');t='Scribble strip: number, name and colour of the channel.';}t+=(t?'<br>':'')+srcInfo(sid);}}
     tip.innerHTML=`<b>${name}</b>${t?`<span>${t}</span>`:''}`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});
   root.addEventListener('mouseleave',()=>tip.classList.remove('on'));
   document.getElementById('mx-photo').addEventListener('click',e=>{const on=root.classList.toggle('photo');e.currentTarget.textContent=on?'Recreation':'Real photo';});
@@ -426,6 +432,9 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('mx-lay').addEventListener('click',()=>{LAY=LAY==='side'?'real':'side';fit();});
   document.getElementById('mx-srcbtn').addEventListener('click',()=>{const d=document.getElementById('mx-src');d.classList.toggle('on');if(d.classList.contains('on'))renderSrc();});
   document.getElementById('mx-srcclose').addEventListener('click',()=>document.getElementById('mx-src').classList.remove('on'));
+  document.getElementById('mx-guidebtn').addEventListener('click',()=>{document.getElementById('mx-src').classList.remove('on');document.getElementById('mx-guide').classList.toggle('on');});
+  document.getElementById('mx-guideclose').addEventListener('click',()=>document.getElementById('mx-guide').classList.remove('on'));
+  document.getElementById('mx-srcbtn').addEventListener('click',()=>document.getElementById('mx-guide').classList.remove('on'));
   Object.entries(SRC).forEach(([id,k])=>{const m=SOURCES[k];Object.assign(S[id],{name:m.name,mic:m.mic,cond:!!m.cond,color:m.color});});
   draw();meterTick();}
 let LAY=null;
