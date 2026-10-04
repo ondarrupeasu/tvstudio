@@ -174,6 +174,9 @@
   .fx.hl .fx-core{stroke:var(--ce-accent);stroke-width:3}.fx.hl .fx-glow{opacity:max(calc(var(--l,0) * .9),.35);fill:var(--c,var(--ce-accent))}
   .fx-wash{pointer-events:none;opacity:0}.fx-wash[data-wash="c"]{fill:#3ddc6a}.fx-wash[data-wash="s"]{fill:#ffcf8a}
   @media (max-width:900px){.dsk-body{flex-direction:column}.dsk-mini{height:320px;align-self:center}.dsk-main{overflow-x:auto;align-items:flex-start;justify-content:flex-start}#dsk-back,#dsk-front{min-width:760px}.dk-svg{max-height:none}}
+  .sims{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-6px 0 14px;font-size:12.5px;color:var(--ce-muted)}
+  .simgo{display:inline-flex;align-items:center;gap:7px;background:#16171c;color:#e9e9ec;border:1px solid var(--ce-line);border-radius:20px;padding:6px 14px;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}
+  .simgo svg{color:var(--ce-accent)}.simgo:hover:not(:disabled){border-color:var(--ce-accent)}.simgo:disabled{opacity:.45;cursor:default}
   /* light-simulation mode */
   .d-simbtn{display:none;margin-top:18px;background:var(--ce-accent);color:var(--ce-on-accent);border:0;border-radius:10px;padding:10px 18px;font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
   .d-simbtn.on{display:inline-block}.d-simbtn:hover{background:var(--ce-accent-hi)}
@@ -250,7 +253,12 @@
 <body class="ce-base">
 <div class="wrap">
   <div class="head"><h1>Studio &amp; Control Room</h1><span class="tag">interactive map</span></div>
-  <p class="sub">Tap any item to see what it is, what it's for and a photo. The lighting desk and the breaker board open a simulator.</p>
+  <p class="sub">Tap any item to see what it is, what it's for and a photo.</p>
+  <div class="sims"><span>Simulators:</span>
+    <button class="simgo" data-sim="light"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>Lighting</button>
+    <button class="simgo" data-sim="sound"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Sound</button>
+    <button class="simgo" data-sim="vision" disabled title="Coming soon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="m16 10 6-3v10l-6-3"/></svg>Vision · soon</button>
+  </div>
 
   <div class="board">
   <svg class="plan" viewBox="-10 -42 792 812" role="img" aria-label="Studio and control room map">
@@ -593,6 +601,7 @@ function open(k){
 function close(){document.querySelectorAll('.zone.sel').forEach(z=>z.classList.remove('sel'));drawer.classList.remove('on');scrim.classList.remove('on');setTimeout(()=>drawer.classList.remove('rackmode'),260);}
 document.querySelectorAll('.zone').forEach(z=>z.addEventListener('click',()=>open(z.dataset.k)));
 document.getElementById('close').addEventListener('click',close);
+document.querySelectorAll('.simgo').forEach(b=>b.addEventListener('click',()=>{close();b.dataset.sim==='light'?openDesk():b.dataset.sim==='sound'?openMixer():0;}));
 document.getElementById('d-simbtn').addEventListener('click',e=>{const k=e.currentTarget.dataset.k;close();k==='audio'?openMixer():openDesk();});
 scrim.addEventListener('click',close);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pwr').classList.contains('on'))closePower();else{close();closeDesk();closeMixer();}}});
