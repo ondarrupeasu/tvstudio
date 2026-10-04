@@ -7,6 +7,7 @@
 const SCENE_K=5600,AVMIN=2,AVMAX=8;   // f2 … f16
 const camDef=()=>({j:.667,nd:0,gain:0,shutter:50,wb:5600,tint:0,white:[1,1,1],black:[0,0,0],gamma:[0,0,0],ygain:1,mb:0,bars:false,sens:1,coarse:1});
 const CAMS={};for(let n=1;n<=8;n++)CAMS[n]=camDef();
+const BANK={v:'A'};
 const STRIPS=[1,2,3,4].map(n=>({cam:n,rel:true,flare:false,wbMode:false,lock:false,irisLock:false,call:false,store:false,scenes:{},sceneLit:0,msg:''}));
 /* ---------- picture model ---------- */
 function av(c){const w=1+c.sens*5,open=AVMIN+(1-c.coarse)*(AVMAX-AVMIN-w);return open+(1-c.j)*w;}   // SENS = range width, COARSE = how far it can open
@@ -85,7 +86,7 @@ function draw(){const now=performance.now();STRIPS.forEach((t,s)=>{const c=CAMS[
   const ty=tally(t.cam),cm=document.querySelector(`#cc-svg [data-cam="${s}"]`);if(cm){cm.textContent=t.cam;cm.classList.toggle('red',ty==='pgm'||(t.call&&Math.floor(now/250)%2===0));}
   document.querySelectorAll(`#cc-svg .cc-b[data-s="${s}"]`).forEach(b=>{const k=b.dataset.k;b.classList.toggle('lit',(k==='store'&&t.store)||(k==='wb'&&t.wbMode)||(k==='flare'&&t.flare)||(k==='irislock'&&t.irisLock)||(k==='lock'&&t.lock)||(k==='on'&&!t.rel)||(k==='call'&&t.call)||(k==='mg+'&&c.gain>0)||(k==='mg-'&&c.gain<0));});
   const lc=document.querySelector(`.cc-lcd[data-s="${s}"]`);if(lc){const g=lc.getContext('2d'),w=240,h=148;g.fillStyle='#0d1117';g.fillRect(0,0,w,h);g.font='600 9px sans-serif';g.textAlign='center';
-    ['PANEL SETTINGS','CAMERA SETTINGS','BANK A','RECALL ALL'].forEach((l,i)=>{g.fillStyle=i===2?'#ff9a2e':'#c9d1d9';g.fillText(l,30+i*60,12);});
+    ['PANEL SETTINGS','CAMERA SETTINGS','BANK '+BANK.v,'RECALL ALL'].forEach((l,i)=>{g.fillStyle=i===2?'#ff9a2e':'#c9d1d9';g.fillText(l,30+i*60,12);});
     g.fillStyle='#8b949e';g.font='600 10px sans-serif';g.fillText('CAMERA CONTROL',w/2,44);g.fillStyle=ty==='pgm'?'#ff453a':'#fff';g.font='700 24px sans-serif';g.fillText('Camera '+t.cam,w/2,74);
     g.fillStyle=t.msg?'#ffcf5a':'#8b949e';g.font='600 9.5px sans-serif';g.fillText(t.msg||(c.bars?'BARS ON':tally(t.cam)==='pgm'?'ON AIR':''),w/2,96);
     g.font='600 10px sans-serif';g.fillStyle='#fff';g.fillText('Camera '+t.cam,30,128);g.fillText('Generic',90,128);g.fillStyle='#8b949e';g.font='600 8px sans-serif';g.fillText('CAMERA',30,140);g.fillText('CAMERA TYPE',90,140);}
@@ -105,7 +106,7 @@ function press(s,k){const t=STRIPS[s],c=CAMS[t.cam];if(t.lock&&k!=='lock'){setMs
     case 'flare':t.flare=!t.flare;break;case 'irislock':t.irisLock=!t.irisLock;break;case 'lock':t.lock=!t.lock;break;
     case 'autoiris':if(t.irisLock){setMsg(t,'Iris locked');break;}{const need=4*Math.sqrt(Math.pow(2,-c.nd)*Math.pow(10,c.gain/20)*50/c.shutter),w=1+c.sens*5,open=AVMIN+(1-c.coarse)*(AVMAX-AVMIN-w);c.j=Math.max(.02,Math.min(1,1-(2*Math.log2(need)-open)/w));setMsg(t,'Auto iris');}break;
     case 'pvw':case 'joyclick':{const k2=atemInputOf(t.cam);if(k2&&window.ATEMR){ATEMR.api.setOut(1,k2);setMsg(t,'Camera '+t.cam+' → preview aux (ATEM OUT 2)');}else setMsg(t,'This camera is not on an ATEM input');}break;
-    case 'soft2':setMsg(t,'Bank A (cameras 1-4)');break;case 'soft0':case 'soft1':case 'soft3':setMsg(t,'Menu not simulated');break;}}
+    case 'soft2':BANK.v=BANK.v==='A'?'B':'A';STRIPS.forEach((x,i)=>{x.cam=(BANK.v==='A'?1:5)+i;setMsg(x,'Bank '+BANK.v+' — cameras '+(BANK.v==='A'?'1-4':'5-8'));});break;   /* BANK: all four strips switch between cameras 1-4 and 5-8 */case 'soft0':case 'soft1':case 'soft3':setMsg(t,'Menu not simulated');break;}}
 function turn(s,k,d){const t=STRIPS[s],c=CAMS[t.cam];if(t.lock)return;const ch={R:0,G:1,B:2};
   if(k==='lk0'){t.cam=((t.cam-1+d+8)%8)+1;return;}if(/^lk/.test(k))return;
   if(k[0]==='w'&&ch[k[1]]!=null)c.white[ch[k[1]]]=Math.max(0,Math.min(3,c.white[ch[k[1]]]+d*.02));
