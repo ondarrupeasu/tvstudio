@@ -526,7 +526,7 @@
     </div>
   </div>
   <div id="d-rack">
-    <div class="rack-hd"><h2>Technical rack</h2><div class="kind">The signal chain</div>
+    <div class="rack-hd"><h2>Video rack</h2><div class="kind">The signal chain</div>
       <p>Hover a unit to see its name · click it to see its card below.</p></div>
     <div class="rackwrap show" id="rackwrap">
       <div class="rackscroll"><div class="rackstage" id="rackstage"><img class="rackimg" src="img/rack-v2.jpg" alt="Technical rack"><div class="racktip" id="racktip"></div></div></div>
@@ -635,10 +635,23 @@ const RACK=[
   {name:"NewTek TriCaster TCXD450 — unused",prod:"img/producto/tricaster.jpg",link:"https://downloads.newtek.com/LiveProductionSystems/Legacy/850/TCXD.pdf",desc:"All-in-one switcher/streaming unit. Currently not in use. (Link = manual, discontinued.)",y:76,h:7.5,x:8,w:84},
   {name:"Lapara Rack 1000VA — UPS (SAI)",prod:"img/producto/lapara.jpg",link:"https://lapara.es/sais/sai-online/sai-rack-1000-va-online-lcd-lapara",desc:"Uninterruptible power supply: keeps the rack running through a mains cut.",y:85,h:8,x:8,w:84}
 ];
+// --- Audio rack (next to the audio desk), top→bottom — identified from the photo (4-oct) ---
+const RACK_AUDIO=[
+  {name:"JVC A-X7 — stereo amplifier",prod:"img/producto/jvc-ax7.jpg",link:"https://hifi-wiki.com/index.php/JVC_A-X_7",desc:"Powers the passive monitor speakers. Labelled SP-1 = control-room speakers, SP-2 = studio speakers (SPEAKERS selector 1 / 2 / 1+2).",y:2,h:26.1,x:1,w:96},
+  {name:"Behringer MULTICOM PRO-XL MDX4600 (1)",prod:"img/producto/multicom.jpg",link:"https://www.behringer.com/en/products/0817-ABC",desc:"4 channels of dynamics: expander/gate, compressor/limiter and peak limiter on each.",y:28.6,h:8,x:1,w:96},
+  {name:"Behringer MULTICOM PRO-XL MDX4600 (2)",prod:"img/producto/multicom.jpg",link:"https://www.behringer.com/en/products/0817-ABC",desc:"Another 4 channels of gate + compressor/limiter.",y:36.8,h:8,x:1,w:96},
+  {name:"TC Electronic M350 — effects",prod:"img/producto/m350.jpg",link:"https://www.yumpu.com/en/document/view/27078053/m350-manual-english-tc-electronic",desc:"Dual-engine effects: reverb + delay/chorus at the same time (discontinued — link = manual). Labelled “AUX 1 y 2”: fed by aux sends 1-2 of the Midas.",y:44.9,h:7.8,x:1,w:96},
+  {name:"Behringer VIRTUALIZER PRO DSP2024P — effects",prod:"img/producto/virtualizer.jpg",link:"https://www.behringer.com/en/products/0828-AAB",desc:"24-bit multi-effects (reverbs, delays, modulation). Labelled “AUX 3 y 4”: fed by aux sends 3-4.",y:53,h:7.8,x:1,w:96},
+  {name:"img Stage Line LS-280 — line splitter",prod:"img/producto/splitter.jpg",link:"https://www.img-stageline.com/products/audio-tools/line-combiner-line-splitter/ls-280-sw/",desc:"Stereo line distributor: one ST-L/ST-R input to 8 outputs with their own level (sections A 1-4, B 5-8). Outputs labelled PGM and VU: it shares the programme sound out to several destinations. (Older unit; the picture shows today's version.)",y:61,h:7.8,x:1,w:96},
+  {name:"Behringer ULTRA-CURVE PRO DEQ2496",prod:"img/producto/deq2496.jpg",link:"https://www.behringer.com/en/products/0821-AAD",desc:"Mastering / room processor: graphic + parametric EQ, feedback destroyer, dynamics and a real-time analyser (RTA).",y:69,h:7.8,x:1,w:96}
+];
+const RACKS={rack:{units:RACK,img:"img/rack-v2.jpg",title:"Video rack",kind:"The signal chain"},rackaudio:{units:RACK_AUDIO,img:"img/rack-audio-v2.jpg",title:"Audio rack",kind:"Outboard next to the audio desk"}};
 const rackStage=document.getElementById('rackstage'),racktip=document.getElementById('racktip');
-function buildRack(){
-  if(rackStage.dataset.built)return; rackStage.dataset.built="1";
-  RACK.forEach(d=>{const z=document.createElement('div');z.className='rhs';
+function buildRack(k){const R=RACKS[k];
+  if(rackStage.dataset.built===k)return; rackStage.dataset.built=k;
+  rackStage.querySelectorAll('.rhs').forEach(z=>z.remove());rackStage.querySelector('.rackimg').src=R.img;
+  document.querySelector('#d-rack .rack-hd h2').textContent=R.title;document.querySelector('#d-rack .rack-hd .kind').textContent=R.kind;
+  R.units.forEach(d=>{const z=document.createElement('div');z.className='rhs';
     z.style.cssText=`left:${d.x}%;top:${d.y}%;width:${d.w}%;height:${d.h}%;cursor:pointer`;
     z.addEventListener('click',()=>showDev(d,z));
     z.addEventListener('mouseenter',()=>{racktip.textContent=d.name;racktip.classList.add('on');});
@@ -649,7 +662,7 @@ function buildRack(){
 function escAttr(s){return String(s).replace(/"/g,'&quot;');}
 function showDev(d,z){
   if(z){document.querySelectorAll('.rhs.on').forEach(e=>e.classList.remove('on'));z.classList.add('on');}
-  document.getElementById('rackcard').innerHTML=`${d.prod?`<img class="rc-img" src="${d.prod}" alt="${escAttr(d.name)}">`:''}`+
+  document.getElementById('rackcard').innerHTML=`${d.prod?`<img class="rc-img" src="${d.prod}" alt="${escAttr(d.name)}" onerror="this.style.visibility='hidden'">`:''}`+
     `<div class="rc-txt"><div class="rc-name">${d.name}</div><div class="rc-desc">${d.desc}</div>`+
     `<div class="rc-btns">${d.link?`<a class="rc-btn" href="${d.link}" target="_blank" rel="noopener">Maker's site ↗</a>`:''}${d.sim?`<button class="rc-btn rc-sim" onclick="openVideohub()">▶ Open the simulator</button>`:''}</div></div>`;
 }
@@ -658,7 +671,7 @@ const drawer=document.getElementById('drawer'),scrim=document.getElementById('sc
 function open(k){
   document.querySelectorAll('.zone.sel').forEach(z=>z.classList.remove('sel'));document.querySelector(`.zone[data-k="${k}"]`)?.classList.add('sel');
   if(k==='breaker'||k==='datapak'){openPower();return;}
-  if(k==='rack'){buildRack();resetCard();document.querySelectorAll('.rhs.on').forEach(e=>e.classList.remove('on'));drawer.classList.add('rackmode','on');scrim.classList.add('on');return;}
+  if(RACKS[k]){buildRack(k);resetCard();document.querySelectorAll('.rhs.on').forEach(e=>e.classList.remove('on'));drawer.classList.add('rackmode','on');scrim.classList.add('on');return;}
   const d=DATA[k];if(!d)return;drawer.classList.remove('rackmode');
   const gal=document.getElementById('d-gallery');gal.innerHTML='';
   const photos=d.photos||(d.ph?[{src:d.ph}]:[]);const single=photos.length===1;gal.classList.toggle('multi',!single);
