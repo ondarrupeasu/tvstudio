@@ -40,7 +40,7 @@ function strip(s){let h=`<rect x="${sx(s,0)}" y="${sy(0)}" width="${SW*VW}" heig
   h+=btn(s,'on',.10,.235,'ON',22,13,'ON: REL / ABS — relative controls continue from the current value, absolute ones jump to the control position.')+btn(s,'wb',.25,.235,'W/B',22,13,'W/B: on the real panel hold it + SHUTTER △▽ = colour temperature (K). Here: click W/B, then △▽. Hold 2 s = auto white balance.')+btn(s,'bars',.39,.235,'BARS',24,13,'BARS: hold 3 s = colour bars from the camera; press again to remove.');
   h+=seg(s,'sh',.68,.235,56)+lab(s,.68,.272,'SHUTTER')+btn(s,'sh+',.93,.215,'△',18,11,'SHUTTER faster (1/x). With W/B active: colour temperature up.')+btn(s,'sh-',.93,.25,'▽',18,11,'SHUTTER slower. With W/B active: colour temperature down.');
   h+=`<line x1="${sx(s,.05)}" y1="${sy(.30)}" x2="${sx(s,.95)}" y2="${sy(.30)}" class="cc-sep"/>`;
-  ['R','G','B'].forEach((c,i)=>{const col=['#e5372a','#36d36e','#3c86ff'][i];h+=wheel(s,'w'+c,[.09,.32,.54][i],.36,col,`WHITE ${c}: gain of the ${c} channel (highlights). Drag up/down or scroll.`)+wheel(s,'b'+c,[.09,.32,.54][i],.45,col,`BLACK ${c}: lift of the ${c} channel (shadows). Hold BLACK/FLARE = gamma (mid-tones).`);});
+  ['R','G','B'].forEach((c,i)=>{const col=['#e5372a','#36d36e','#3c86ff'][i];h+=wheel(s,'w'+c,[.09,.32,.54][i],.36,col,`WHITE ${c}: gain of the ${c} channel (highlights). Drag up/down or scroll. Shift+click = reset.`)+wheel(s,'b'+c,[.09,.32,.54][i],.45,col,`BLACK ${c}: lift of the ${c} channel (shadows). Hold BLACK/FLARE = gamma (mid-tones). Shift+click = reset.`);});
   h+=lab(s,.32,.405,'WHITE','cc-l cc-ls')+btn(s,'flare',.23,.49,'BLACK/FLARE',44,11,'BLACK/FLARE: while active, the BLACK wheels adjust gamma (mid-tones) instead of lift. (Real panel: hold it.)');
   h+=`<g class="cc-w" data-s="${s}" data-k="yg" data-tip="Side knob: Y gain — overall luminance."><circle cx="${sx(s,.92)}" cy="${sy(.36)}" r="11" class="cc-wk"/><line class="cc-wp" x1="${sx(s,.92)}" y1="${sy(.36)-9}" x2="${sx(s,.92)}" y2="${sy(.36)-4}"/></g>`;
   h+=`<circle cx="${sx(s,.86)}" cy="${sy(.45)}" r="2.2" class="cc-led"/>`+lab(s,.93,.453,'D EXT','cc-l cc-ls')+`<circle cx="${sx(s,.86)}" cy="${sy(.48)}" r="2.2" class="cc-led"/>`+lab(s,.93,.483,'EXT','cc-l cc-ls');
@@ -49,7 +49,7 @@ function strip(s){let h=`<rect x="${sx(s,0)}" y="${sy(0)}" width="${SW*VW}" heig
   h+=seg(s,'iris',.20,.75,54)+lab(s,.20,.785,'IRIS')+seg(s,'mb',.20,.835,54)+lab(s,.20,.87,'MASTER BLACK');
   ['4.0','5.6','8.0','11','16','CLS'].forEach((t,i)=>{const y=.72+i*.036;h+=`<rect x="${sx(s,.42)}" y="${sy(y)-3}" width="7" height="6" rx="1" class="cc-led" data-led="${s}:iris${i}"/>`+`<text x="${sx(s,.42)-4}" y="${sy(y)+2.5}" class="cc-l cc-ls" text-anchor="end">${t}</text>`;});
   h+=`<rect x="${sx(s,.49)}" y="${sy(.62)}" width="${.26*SW*VW}" height="${.31*SHh*VH_}" rx="12" class="cc-guide"/>`;
-  h+=`<g class="cc-joy" data-s="${s}" data-tip="Joystick: push up = open the iris (brighter), down = close. Scroll on it = the ring = MASTER BLACK. Click it without moving = send this camera to the preview aux."><circle cx="${sx(s,.62)}" cy="${sy(.75)}" r="27" class="cc-ring"/><circle class="cc-knob" cx="${sx(s,.62)}" cy="${sy(.75)}" r="17"/><line class="cc-ringm" x1="${sx(s,.62)}" y1="${sy(.75)-27}" x2="${sx(s,.62)}" y2="${sy(.75)-21}"/></g>`;
+  h+=`<g class="cc-joy" data-s="${s}" data-tip="Joystick: push up = open the iris (brighter), down = close. Scroll on it = the ring = MASTER BLACK. Click it without moving = send this camera to the preview aux. Shift+click = back to F4 / master black 0."><circle cx="${sx(s,.62)}" cy="${sy(.75)}" r="27" class="cc-ring"/><circle class="cc-knob" cx="${sx(s,.62)}" cy="${sy(.75)}" r="17"/><line class="cc-ringm" x1="${sx(s,.62)}" y1="${sy(.75)-27}" x2="${sx(s,.62)}" y2="${sy(.75)-21}"/></g>`;
   h+=`<g class="cc-w" data-s="${s}" data-k="sens" data-tip="SENS: how much of the iris range the joystick covers (less = finer control)."><circle cx="${sx(s,.93)}" cy="${sy(.61)}" r="9" class="cc-wk"/><line class="cc-wp" x1="${sx(s,.93)}" y1="${sy(.61)-8}" x2="${sx(s,.93)}" y2="${sy(.61)-3}"/></g>`+lab(s,.93,.645,'SENS','cc-l cc-ls');
   h+=`<g class="cc-w" data-s="${s}" data-k="coarse" data-tip="COARSE: limits how far the iris can open (CLOSE ↔ OPEN)."><circle cx="${sx(s,.91)}" cy="${sy(.70)}" r="9" class="cc-wk"/><line class="cc-wp" x1="${sx(s,.91)}" y1="${sy(.70)-8}" x2="${sx(s,.91)}" y2="${sy(.70)-3}"/></g>`+lab(s,.91,.74,'COARSE','cc-l cc-ls');
   h+=btn(s,'irislock',.93,.81,'IRIS/MB|ACTIVE'.replace('|',' '),34,12,'IRIS/MB ACTIVE: locks the iris and master black.')+btn(s,'autoiris',.93,.88,'AUTO IRIS',34,12,'AUTO IRIS: the camera sets the iris for a correct average exposure.')+btn(s,'call',.93,.955,'CALL',30,12,'CALL: hold = flashes the tally light of that camera (to get the operator’s attention).');
@@ -76,7 +76,8 @@ function draw(){const now=performance.now();STRIPS.forEach((t,s)=>{const c=CAMS[
   ['R','G','B'].forEach((ch,i)=>{rot(s,'w'+ch,(c.white[i]-1)/1.5);rot(s,'b'+ch,t.flare?c.gamma[i]/2:c.black[i]);});
   rot(s,'yg',(c.ygain-1)/1.5);rot(s,'sens',c.sens*2-1);rot(s,'coarse',c.coarse*2-1);rot(s,'lk0',(t.cam-1)/3.5-1);
   const jy=document.querySelector(`#cc-svg .cc-joy[data-s="${s}"]`);if(jy){const ring=jy.querySelector('.cc-ring'),cx=+ring.getAttribute('cx'),cy=+ring.getAttribute('cy');
-    jy.querySelector('.cc-knob').setAttribute('cy',(cy-(c.j-.5)*22).toFixed(1));jy.querySelector('.cc-ringm').setAttribute('transform',`rotate(${(c.mb/5*150).toFixed(1)} ${cx} ${cy})`);}
+    const dy=(sy(.775)-cy)-(c.j-.5)*(sy(.885)-sy(.665));jy.setAttribute('transform',`translate(0 ${dy.toFixed(1)})`);   // the whole joystick slides along its rail (up = open)
+    jy.querySelector('.cc-ringm').setAttribute('transform',`rotate(${(c.mb/5*150).toFixed(1)} ${cx} ${cy})`);}
   txt(s,'nd',c.nd);txt(s,'cc','0');txt(s,'mg',(c.gain>=0?'':'-')+Math.abs(c.gain).toFixed(1));txt(s,'sh',t.wbMode?String(c.wb).padStart(4,'0'):String(c.shutter).padStart(4,'0'));
   const N=fstop(c);txt(s,'iris',N?'F'+(N<10?N.toFixed(1):Math.round(N)):'CLS');txt(s,'mb',c.mb.toFixed(1));
   led(s,'rel',t.rel);led(s,'abs',!t.rel);led(s,'bars',c.bars);led(s,'scene',t.sceneLit>now);
@@ -110,8 +111,14 @@ function turn(s,k,d){const t=STRIPS[s],c=CAMS[t.cam];if(t.lock)return;const ch={
   if(k[0]==='w'&&ch[k[1]]!=null)c.white[ch[k[1]]]=Math.max(0,Math.min(3,c.white[ch[k[1]]]+d*.02));
   else if(k[0]==='b'&&ch[k[1]]!=null){if(t.flare)c.gamma[ch[k[1]]]=Math.max(-2,Math.min(2,c.gamma[ch[k[1]]]+d*.04));else c.black[ch[k[1]]]=Math.max(-1,Math.min(1,c.black[ch[k[1]]]+d*.02));}
   else if(k==='yg')c.ygain=Math.max(0,Math.min(3,c.ygain+d*.02));else if(k==='sens')c.sens=Math.max(0,Math.min(1,c.sens+d*.03));else if(k==='coarse')c.coarse=Math.max(0,Math.min(1,c.coarse+d*.03));}
+/* simulator shortcut: Shift+click a control = back to its default */
+function reset(s,k){const t=STRIPS[s],c=CAMS[t.cam],d=camDef(),ch={R:0,G:1,B:2};if(t.lock)return;
+  if(k==='joy'){c.j=d.j;c.mb=0;}else if(k[0]==='w'&&ch[k[1]]!=null)c.white[ch[k[1]]]=1;else if(k[0]==='b'&&ch[k[1]]!=null){if(t.flare)c.gamma[ch[k[1]]]=0;else c.black[ch[k[1]]]=0;}
+  else if(k==='yg')c.ygain=1;else if(k==='sens')c.sens=1;else if(k==='coarse')c.coarse=1;else if(k==='nd+'||k==='nd-')c.nd=0;else if(k==='mg+'||k==='mg-')c.gain=0;
+  else if(k==='sh+'||k==='sh-'){if(t.wbMode)c.wb=5600;else c.shutter=50;}else return false;setMsg(t,'Reset');return true;}
 function mount(el){el.innerHTML=`<div class="cr-wrap cc-wrap">${panel()}</div>`;const svg=el.querySelector('#cc-svg'),tip=document.getElementById('cr-tip');
-  svg.addEventListener('pointerdown',e=>{const b=e.target.closest('.cc-b,.cr-soft');if(b){e.preventDefault();const s=+b.dataset.s,k=b.dataset.k,t=STRIPS[s];
+  svg.addEventListener('pointerdown',e=>{if(e.shiftKey){const r=e.target.closest('.cc-b,.cc-w,.cc-joy');if(r&&reset(+r.dataset.s,r.classList.contains('cc-joy')?'joy':r.dataset.k)){e.preventDefault();draw();return;}}
+    const b=e.target.closest('.cc-b,.cr-soft');if(b){e.preventDefault();const s=+b.dataset.s,k=b.dataset.k,t=STRIPS[s];
       if(k==='bars'){const c=CAMS[t.cam];if(c.bars){c.bars=false;draw();return;}const tm=setTimeout(()=>{c.bars=true;draw();},3000);setMsg(t,'Hold BARS 3 s…');const up=()=>{clearTimeout(tm);removeEventListener('pointerup',up);};addEventListener('pointerup',up);draw();return;}
       if(k==='wb'){const tm=setTimeout(()=>{CAMS[t.cam].wb=SCENE_K;t.wbMode=false;setMsg(t,'Auto white balance: 5600 K');draw();},2000);const up=()=>{clearTimeout(tm);removeEventListener('pointerup',up);};addEventListener('pointerup',up);}
       if(k==='call'){t.call=true;const up=()=>{t.call=false;removeEventListener('pointerup',up);draw();};addEventListener('pointerup',up);draw();return;}

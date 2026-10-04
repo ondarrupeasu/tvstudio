@@ -15,7 +15,8 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     <li>Graphics from vMix: <b>DSK 1 CUT</b> or <b>DSK 1 AUTO</b> puts them on air (vMix must have <b>External</b> on). <b>TIE</b> makes them follow the next transition. <b>FTB</b> = fade to black.</li>
     <li><b>AUX</b> (system control) + select row: choose what each SDI output of the ATEM carries.</li>
     <li><b>Camera control (CCU)</b> (right): one strip per camera. <b>Joystick</b> up / down = iris (exposure); scroll on it = master black. <b>MASTER GAIN</b>, <b>SHUTTER</b> and <b>ND</b> △▽ also change the exposure. <b>W/B</b> then SHUTTER △▽ = colour temperature (the studio light is 5600 K). The <b>WHITE</b> wheels change the highlights of each colour, the <b>BLACK</b> wheels the shadows (with BLACK/FLARE: the mid-tones).</li>
-    <li>The camera number turns <b>red</b> when that camera is on air. <b>CALL</b> flashes its tally, <b>BARS</b> (hold 3 s) sends colour bars, <b>PREVIEW</b> sends the camera to the preview aux. Scene files 1-5 store / recall a look.</li></ol></div>
+    <li>The camera number turns <b>red</b> when that camera is on air. <b>CALL</b> flashes its tally, <b>BARS</b> (hold 3 s) sends colour bars, <b>PREVIEW</b> sends the camera to the preview aux. Scene files 1-5 store / recall a look.</li>
+    <li><b>Shift+click</b> a CCU wheel, knob, the joystick or a △▽ pair = back to its default (simulator shortcut).</li></ol></div>
   <div class="pwr-tip" id="cr-tip"></div>`;
   document.getElementById('cr-close').onclick=()=>window.closeControlRoom();
   const gd=document.getElementById('cr-guide');document.getElementById('cr-guidebtn').onclick=()=>gd.classList.toggle('on');document.getElementById('cr-guideclose').onclick=()=>gd.classList.remove('on');

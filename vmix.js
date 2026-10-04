@@ -10,13 +10,15 @@ const CAT=[{n:'All',c:'#293038'},{n:'RED',c:'#8B0000'},{n:'GREEN',c:'#006400'},{
 const FX=['Fade','Merge','Wipe','Slide','Zoom','Fly','VerticalWipe','VerticalSlide','CrossZoom'];
 const V={inputs:[],next:1,pv:null,pgm:null,cat:0,search:'',trans:[{fx:'Fade',ms:1000},{fx:'Merge',ms:1000},{fx:'Wipe',ms:1000},{fx:'Zoom',ms:1000}],
   T:null,tbar:0,tbarDir:1,ov:Array.from({length:8},()=>({inp:null,a:0,target:0})),ftb:false,mixer:false,basic:false,lock:false,
-  rec:false,recT0:0,stream:false,streamT0:0,ext:false,alpha:'None',fps:0,rt:0};
+  rec:false,recT0:0,stream:false,streamT0:0,ext:false,alpha:'None',fps:0,rt:0,
+  ovset:Array.from({length:8},()=>({type:'Fullscreen',fx:'Fade',ms:500,dur:0,zoom:.45,px:.55,py:-.55}))};   // Overlay Settings per channel
 let A=null;   // audio
 
 /* ---------- inputs ---------- */
 function mkCanvas(w=W,h=H){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
 function addInput(o){const inp=Object.assign({id:V.next,num:V.inputs.length+1,name:'Input',type:'colour',cat:0,el:null,dirty:true,audio:false,vol:.8,mute:false,solo:false,afv:true,bus:{M:true,A:false,B:false},
-  key:{on:false,col:[0,1,0],tol:[.35,.35,.35],chroma:0,filter:false,filt:.6,luma:0},pos:{zoom:1,px:0,py:0,cx1:0,cx2:1,cy1:0,cy2:1},loop:true,collapsed:false},o);V.next++;
+  key:{on:false,col:[0,1,0],tol:[.35,.35,.35],chroma:0,filter:false,filt:.6,luma:0},pos:{zoom:1,px:0,py:0,cx1:0,cx2:1,cy1:0,cy2:1},
+  ca:{bs:0,ws:0,r:1,g:1,b:1,alpha:1,sat:1},cc:{lift:[0,0,0],gamma:[0,0,0],gain:[0,0,0],hue:0,sat:1},layers:[],loop:true,collapsed:false},o);V.next++;
   V.inputs.push(inp);renumber();if(!V.pv&&V.pgm!==inp)V.pv=inp;if(!V.pgm){V.pgm=inp;V.pv=null;}attachAudio(inp);draw();return inp;}
 function renumber(){V.inputs.forEach((x,i)=>x.num=i+1);}
 function colourInput(name,hex){const c=mkCanvas(16,9),g=c.getContext('2d');g.fillStyle=hex;g.fillRect(0,0,16,9);return addInput({type:'colour',name,el:c,hex});}
@@ -49,15 +51,20 @@ function removeInput(inp){if(V.lock)return;if(inp.stream)inp.stream.getTracks().
 const gc=mkCanvas();const gl=gc.getContext('webgl',{premultipliedAlpha:true,alpha:true,preserveDrawingBuffer:true});
 const VS=`attribute vec2 p;uniform vec4 r;uniform vec4 cr;varying vec2 uv;void main(){uv=vec2(mix(cr.x,cr.z,p.x),mix(cr.y,cr.w,p.y));vec2 q=r.xy+p*r.zw;gl_Position=vec4(q.x*2.-1.,1.-q.y*2.,0.,1.);}`;
 const FS=`precision mediump float;varying vec2 uv;uniform sampler2D t;uniform float op;uniform float key;uniform vec3 kc;uniform vec3 tol;uniform float chroma;uniform float filt;uniform float keyOnly;
+uniform vec4 ca;uniform vec3 cs;uniform vec3 lift;uniform vec3 gam;uniform vec3 gain;uniform vec2 hs;
 vec2 cbcr(vec3 c){return vec2(-.169*c.r-.331*c.g+.5*c.b,.5*c.r-.419*c.g-.081*c.b);}
 void main(){vec4 c=texture2D(t,uv);float a=c.a;vec3 rgb=a>0.?c.rgb/a:c.rgb;
  if(key>.5){vec3 d=abs(rgb-kc)/max(tol,vec3(.002));float m=max(d.r,max(d.g,d.b));float ak=smoothstep(1.,1.35,m);
   if(chroma>0.){float dc=distance(cbcr(rgb),cbcr(kc));float th=mix(.02,.32,chroma);ak=min(max(ak,0.),smoothstep(th,th+.07,dc))+ (1.-step(.001,chroma))*ak;}
   a*=ak;if(filt>0.){int dom=kc.g>=kc.r&&kc.g>=kc.b?1:(kc.b>=kc.r?2:0);if(dom==1)rgb.g=mix(rgb.g,min(rgb.g,max(rgb.r,rgb.b)),filt);else if(dom==2)rgb.b=mix(rgb.b,min(rgb.b,max(rgb.r,rgb.g)),filt);}}
- a*=op;if(keyOnly>.5){gl_FragColor=vec4(vec3(a),1.);return;}gl_FragColor=vec4(rgb*a,a);}`;
+ rgb*=ca.rgb;rgb=clamp((rgb-cs.x)/max(.05,1.-cs.x-cs.y),0.,1.);
+ rgb=(gain+1.)*(rgb+lift*(1.-rgb));rgb=pow(max(rgb,0.),1./max(vec3(.05),gam+1.));
+ float y=dot(rgb,vec3(.299,.587,.114));vec3 iq=vec3(dot(rgb,vec3(.596,-.274,-.322)),dot(rgb,vec3(.211,-.523,.312)),0.);float ch=cos(hs.x),sn=sin(hs.x);
+ vec2 r2=vec2(iq.x*ch-iq.y*sn,iq.x*sn+iq.y*ch)*hs.y*cs.z;rgb=clamp(vec3(y+.956*r2.x+.621*r2.y,y-.272*r2.x-.647*r2.y,y-1.106*r2.x+1.703*r2.y),0.,1.);
+ a*=ca.a*op;if(keyOnly>.5){gl_FragColor=vec4(vec3(a),1.);return;}gl_FragColor=vec4(rgb*a,a);}`;
 function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s));return s;}
 const prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(prog);gl.useProgram(prog);
-const U=n=>gl.getUniformLocation(prog,n);const u={r:U('r'),cr:U('cr'),t:U('t'),op:U('op'),key:U('key'),kc:U('kc'),tol:U('tol'),chroma:U('chroma'),filt:U('filt'),keyOnly:U('keyOnly')};
+const U=n=>gl.getUniformLocation(prog,n);const u={r:U('r'),cr:U('cr'),t:U('t'),op:U('op'),key:U('key'),kc:U('kc'),tol:U('tol'),chroma:U('chroma'),filt:U('filt'),keyOnly:U('keyOnly'),ca:U('ca'),cs:U('cs'),lift:U('lift'),gam:U('gam'),gain:U('gain'),hs:U('hs')};
 const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([0,0,1,0,0,1,1,1]),gl.STATIC_DRAW);
 const pl=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(pl);gl.vertexAttribPointer(pl,2,gl.FLOAT,false,0,0);
 gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
@@ -65,10 +72,12 @@ function tex(inp){if(!inp.tex){inp.tex=gl.createTexture();gl.bindTexture(gl.TEXT
   gl.bindTexture(gl.TEXTURE_2D,inp.tex);const el=inp.el,live=inp.type==='video'||inp.type==='camera';
   if((live&&el.readyState>=2)||inp.dirty){try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,el);inp.dirty=false;inp.ready=true;}catch(e){}}return inp.ready;}
 /* one layer: input + geometry (x,y,w,h in 0..1 of the frame) + opacity */
-function layer(inp,o={}){if(!inp||!tex(inp))return;const p=inp.pos,z=p.zoom*(o.s??1);let w=z,h=z,x=(1-w)/2+p.px/2+(o.dx||0),y=(1-h)/2+p.py/2+(o.dy||0);
+function layer(inp,o={}){if(!inp||!tex(inp))return;const p=o.pos||inp.pos,z=p.zoom*(o.s??1);let w=z,h=z,x=(1-w)/2+p.px/2+(o.dx||0),y=(1-h)/2+p.py/2+(o.dy||0);
   gl.uniform4f(u.r,x+p.cx1*w,y+p.cy1*h,w*(p.cx2-p.cx1),h*(p.cy2-p.cy1));gl.uniform4f(u.cr,p.cx1,p.cy1,p.cx2,p.cy2);
   const k=inp.key;gl.uniform1f(u.key,k.on?1:0);gl.uniform3fv(u.kc,k.col);gl.uniform3fv(u.tol,k.tol);gl.uniform1f(u.chroma,k.chroma);gl.uniform1f(u.filt,k.filter?k.filt:0);
-  gl.uniform1f(u.op,o.op??1);gl.uniform1f(u.keyOnly,o.keyOnly?1:0);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);}
+  const A=inp.ca,C=inp.cc;gl.uniform4f(u.ca,A.r,A.g,A.b,A.alpha);gl.uniform3f(u.cs,A.bs,A.ws,A.sat);gl.uniform3fv(u.lift,C.lift);gl.uniform3fv(u.gam,C.gamma);gl.uniform3fv(u.gain,C.gain);gl.uniform2f(u.hs,C.hue*Math.PI/180,C.sat);
+  gl.uniform1f(u.op,o.op??1);gl.uniform1f(u.keyOnly,o.keyOnly?1:0);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  if((o.depth||0)<2)(inp.layers||[]).forEach(L=>{const li=L.on&&byId(L.id);if(li&&li!==inp)layer(li,{op:o.op,dx:o.dx,dy:o.dy,keyOnly:o.keyOnly,depth:(o.depth||0)+1,pos:{zoom:L.zoom*(o.s??1),px:L.px,py:L.py,cx1:0,cx2:1,cy1:0,cy2:1}});});}
 function wipeScissor(f,vert){gl.enable(gl.SCISSOR_TEST);if(vert)gl.scissor(0,Math.round(H*(1-f)),W,Math.round(H*f)+1);else gl.scissor(0,0,Math.round(W*f),H);}
 /* scene: base input (or a transition between two) + overlays */
 function scene(out,{a,b,p,fx,ovs,keyOnly,transparent}){gl.viewport(0,0,W,H);gl.disable(gl.SCISSOR_TEST);gl.clearColor(0,0,0,transparent?0:1);gl.clear(gl.COLOR_BUFFER_BIT);
@@ -81,7 +90,9 @@ function scene(out,{a,b,p,fx,ovs,keyOnly,transparent}){gl.viewport(0,0,W,H);gl.d
       case 'CrossZoom':layer(a,{s:1+e*1.5,op:1-e,keyOnly});layer(b,{s:2.5-1.5*e,op:e,keyOnly});break;
       default:layer(a,{keyOnly});layer(b,{op:e,keyOnly});}}
   else layer(a,{keyOnly});
-  (ovs||[]).forEach(o=>{if(o.inp&&o.a>0){if(o.inp.type==='title'){o.inp.anim=o.a;drawTitle(o.inp);layer(o.inp,{keyOnly});}else layer(o.inp,{op:o.a,keyOnly});}});
+  (ovs||[]).forEach((o,n)=>{if(!o.inp||o.a<=0)return;const S=V.ovset[n],a=o.a,pos=S.type==='Picture In Picture'?{zoom:S.zoom,px:S.px,py:S.py,cx1:0,cx2:1,cy1:0,cy2:1}:null,
+      g={Fade:{op:a},Cut:{op:1},Zoom:{s:Math.max(.01,a)},Fly:{dy:1-a},Slide:{dx:a-1}}[S.fx]||{op:a};
+    if(o.inp.type==='title'){o.inp.anim=a;drawTitle(o.inp);layer(o.inp,{pos,keyOnly});}else layer(o.inp,{...g,pos,keyOnly});});
   const g=out.getContext('2d');g.clearRect(0,0,out.width,out.height);g.drawImage(gc,0,0,out.width,out.height);}
 
 /* ---------- audio ---------- */
@@ -196,6 +207,7 @@ function act(a,b,e){
   if(a==='stream')return toggleStream();if(a==='strset')return streamDialog(false);
   if(a==='ext'){V.ext=!V.ext;if(V.ext)openExtWin();else if(V.extWin&&!V.extWin.closed)V.extWin.close();return draw();}if(a==='extset')return extDialog();
   if(a==='multiview')return openMvWin('MultiView');if(a==='fullscreen')return fullscreenMenu(b);if(a==='snap')return snapshot();
+  if(a==='overlay')return overlayDialog();
   if(a==='multicorder'||a==='mcset')return alertBox('MultiCorder','MultiCorder is not available in the HD edition (4K / Pro / Max only).');
   notYet(b.textContent.trim()||a);}
 function notYet(name){alertBox(name,'This part is not simulated yet. It will come in the next versions of the simulator.');}
@@ -239,7 +251,8 @@ let last=performance.now(),acc=0,frames=0;
 function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on'))return;const t0=performance.now();
   packSync();
   if(V.T&&!V.T.manual){const p=Math.min(1,(now-V.T.t0)/V.T.ms);V.T.p=p;if(p>=1)finishTrans();}
-  V.ov.forEach(o=>{const sp=1/30;o.a+=Math.sign(o.target-o.a)*Math.min(Math.abs(o.target-o.a),sp);if(o.a===0&&o.target===0&&o.inp&&!o.pend){}});
+  V.ov.forEach((o,n)=>{const S=V.ovset[n],sp=S.fx==='Cut'||!S.ms?1:Math.min(1,(now-(V.lastNow||now)+1)/S.ms);o.a+=Math.sign(o.target-o.a)*Math.min(Math.abs(o.target-o.a),sp);
+    if(o.target>0&&o.a>=1&&S.dur>0){o.t1=o.t1||now;if(now-o.t1>S.dur){o.target=0;o.t1=0;draw();}}else if(o.target===0)o.t1=0;});V.lastNow=now;   // effect duration + auto close (Duration)
   const T=V.T;const cpg=$('.vx-cpg',root),cpv=$('.vx-cpv',root);
   scene(cpg,{a:T?T.a:V.pgm,b:T?T.b:null,p:T?T.p||0:0,fx:T?T.fx:null,ovs:V.ov});
   scene(cpv,{a:V.pv,ovs:V.ov.map(o=>o.pend?{inp:o.pend,a:1}:{inp:null,a:0})});
@@ -303,7 +316,7 @@ function addInputDialog(){const m=modal('Input Select',`<div class="vx-is"><div 
 /* Input Settings — General · Colour Key / Chroma Key · Position (the others listed, not simulated) */
 function inputSettings(inp){const k=inp.key,p=inp.pos,hex=c=>'#'+c.map(v=>Math.round(v*255).toString(16).padStart(2,'0')).join('');
   const tabs=['General','Colour Adjust','Colour Key / Chroma Key','Colour Correction','Effects','Position','Layers / MultiView','Triggers','Tally Lights','PTZ','Advanced','Copy From'];
-  const m=modal('Input: '+inp.name,`<div class="vx-iset"><div class="vx-isl">${tabs.map((t,i)=>`<button data-tab="${i}" class="${[0,2,5].includes(i)?'':'na'}">${t}</button>`).join('')}</div><div class="vx-isr"><div class="vx-isp"></div><canvas class="vx-isprev" width="${W}" height="${H}"></canvas><p class="vx-hint vx-pick"></p></div></div>`,{w:880,ok:'OK',cancel:false});
+  const m=modal('Input: '+inp.name,`<div class="vx-iset"><div class="vx-isl">${tabs.map((t,i)=>`<button data-tab="${i}" class="${[0,1,2,3,5,6].includes(i)?'':'na'}">${t}</button>`).join('')}</div><div class="vx-isr"><div class="vx-isp"></div><canvas class="vx-isprev" width="${W}" height="${H}"></canvas><p class="vx-hint vx-pick"></p></div></div>`,{w:880,ok:'OK',cancel:false});
   const ph=$('.vx-isp',m),pv=$('.vx-isprev',m);V.editing=inp;
   const sl=(lbl,val,min,max,step,fn,cls='')=>{const id='s'+Math.random().toString(36).slice(2);setTimeout(()=>{const r=$('#'+id,m);if(r)r.oninput=()=>{fn(+r.value);};},0);return `<label class="vx-sl ${cls}">${lbl}<input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}"></label>`;};
   const show=i=>{$$('[data-tab]',m).forEach(b=>b.classList.toggle('on',+b.dataset.tab===i));$('.vx-pick',m).textContent='';
@@ -321,11 +334,44 @@ function inputSettings(inp){const k=inp.key,p=inp.pos,hex=c=>'#'+c.map(v=>Math.r
     else if(i===5){ph.innerHTML=`<div class="vx-kbox"><div>${sl('Zoom',p.zoom,.1,3,.01,v=>p.zoom=v)}${sl('Pan X',p.px,-2,2,.01,v=>p.px=v)}${sl('Pan Y',p.py,-2,2,.01,v=>p.py=v)}<button data-pos="reset">Reset</button></div>
         <div>${sl('Crop X1',p.cx1,0,1,.01,v=>p.cx1=Math.min(v,p.cx2-.01))}${sl('Crop X2',p.cx2,0,1,.01,v=>p.cx2=Math.max(v,p.cx1+.01))}${sl('Crop Y1',p.cy1,0,1,.01,v=>p.cy1=Math.min(v,p.cy2-.01))}${sl('Crop Y2',p.cy2,0,1,.01,v=>p.cy2=Math.max(v,p.cy1+.01))}</div></div>`;
       $('[data-pos]',ph).onclick=()=>{Object.assign(p,{zoom:1,px:0,py:0,cx1:0,cx2:1,cy1:0,cy2:1});show(5);};}
+    else if(i===1){const A=inp.ca;ph.innerHTML=`<div class="vx-kbox"><div>${sl('Black Stretch',A.bs,0,.4,.005,v=>A.bs=v)}${sl('White Stretch',A.ws,0,.4,.005,v=>A.ws=v)}${sl('Saturation',A.sat,0,2,.01,v=>A.sat=v)}${sl('Alpha',A.alpha,0,1,.01,v=>A.alpha=v)}</div>
+        <div>${sl('<span style="color:#e53935">Red</span>',A.r,0,2,.01,v=>A.r=v)}${sl('<span style="color:#43a047">Green</span>',A.g,0,2,.01,v=>A.g=v)}${sl('<span style="color:#1e88e5">Blue</span>',A.b,0,2,.01,v=>A.b=v)}<button data-ca="reset">Reset</button></div></div>`;
+      $('[data-ca]',ph).onclick=()=>{Object.assign(A,{bs:0,ws:0,r:1,g:1,b:1,alpha:1,sat:1});show(1);};}
+    else if(i===3){const C=inp.cc;C.w=C.w||{lift:[0,0,0],gamma:[0,0,0],gain:[0,0,0]};
+      ph.innerHTML=`<div class="vx-ccw">${['lift','gamma','gain'].map(k=>`<div class="vx-wheel"><b>${k[0].toUpperCase()+k.slice(1)}</b><div class="vx-wd" data-w="${k}"><span></span></div>${sl('',C.w[k][2],-1,1,.01,v=>{C.w[k][2]=v;applyW(k);},'vx-wl')}</div>`).join('')}</div>
+        <div class="vx-kbox"><div>${sl('Hue',C.hue,-180,180,1,v=>C.hue=v)}</div><div>${sl('Saturation',C.sat,0,2,.01,v=>C.sat=v)}</div></div><button data-cc="reset">Reset</button>
+        <p class="vx-hint">Lift = shadows · Gamma = mid-tones · Gain = highlights. Drag the dot towards a colour to tint, the slider under each wheel for brightness.</p>`;
+      const K={lift:.25,gamma:.6,gain:.6};
+      const applyW=k=>{const [x,y,l]=C.w[k],d=Math.min(1,Math.hypot(x,y)),t=Math.atan2(-y,x);C[k]=[0,-2*Math.PI/3,2*Math.PI/3].map(o=>(Math.cos(t+o)*d+l)*K[k]);};
+      $$('.vx-wd',ph).forEach(el=>{const k=el.dataset.w,dot=el.firstChild,place=()=>{dot.style.left=(50+C.w[k][0]*45)+'%';dot.style.top=(50+C.w[k][1]*45)+'%';};place();
+        el.onpointerdown=e=>{const mv=ev=>{const r=el.getBoundingClientRect();let x=((ev.clientX-r.left)/r.width-.5)/.45,y=((ev.clientY-r.top)/r.height-.5)/.45;const d=Math.hypot(x,y);if(d>1){x/=d;y/=d;}C.w[k][0]=x;C.w[k][1]=y;applyW(k);place();};
+          mv(e);const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);};addEventListener('pointermove',mv);addEventListener('pointerup',up);};
+        el.ondblclick=()=>{C.w[k]=[0,0,C.w[k][2]];applyW(k);place();};});
+      $('[data-cc]',ph).onclick=()=>{Object.assign(C,{lift:[0,0,0],gamma:[0,0,0],gain:[0,0,0],hue:0,sat:1,w:{lift:[0,0,0],gamma:[0,0,0],gain:[0,0,0]}});show(3);};}
+    else if(i===6){const L=inp.layers,opts=id=>`<option value="">(none)</option>`+V.inputs.filter(x=>x!==inp).map(x=>`<option value="${x.id}" ${x.id===id?'selected':''}>${x.num} ${x.name}</option>`).join('');
+      while(L.length<4)L.push({on:false,id:null,zoom:.33,px:[-.6,.6,-.6,.6][L.length],py:[-.6,-.6,.6,.6][L.length]});
+      ph.innerHTML=`<p class="vx-hint">Up to 10 layers in vMix (4 here): each one shows another input on top of this one — e.g. two cameras side by side for an interview, or a picture-in-picture.</p><div class="vx-lays">${L.map((l,j)=>`<div class="vx-lay" data-l="${j}"><label><input type="checkbox" class="ly-on" ${l.on?'checked':''}> Layer ${j+1}</label><select class="ly-in">${opts(l.id)}</select>
+        ${sl('Zoom',l.zoom,.05,1,.01,v=>l.zoom=v)}${sl('Pan X',l.px,-2,2,.01,v=>l.px=v)}${sl('Pan Y',l.py,-2,2,.01,v=>l.py=v)}</div>`).join('')}</div>`;
+      $$('.vx-lay',ph).forEach(d=>{const l=L[+d.dataset.l];$('.ly-on',d).onchange=e=>{l.on=e.target.checked;};$('.ly-in',d).onchange=e=>{l.id=+e.target.value||null;if(l.id)l.on=true;show(6);};});}
     else ph.innerHTML=`<p class="vx-hint">${tabs[i]} — not simulated yet.</p>`;};
   $$('[data-tab]',m).forEach(b=>b.onclick=()=>show(+b.dataset.tab));show(inp.key.on?2:0);
   pv.onclick=e=>{if(!V.picking||!inp.el)return;const r=pv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;const c=mkCanvas(W,H),g=c.getContext('2d');try{g.drawImage(inp.el,0,0,W,H);const d=g.getImageData(Math.floor(x*W),Math.floor(y*H),1,1).data;k.col=[d[0]/255,d[1]/255,d[2]/255];k.on=true;}catch(_){}V.picking=false;show(2);};
   const chk=mkCanvas(W,H),cg=chk.getContext('2d');for(let y=0;y<H;y+=24)for(let x=0;x<W;x+=24){cg.fillStyle=((x+y)/24)%2?'#555':'#777';cg.fillRect(x,y,24,24);}
   const tick=()=>{if(!m.classList.contains('on')||!m.contains(pv))return;scene(pv,{a:inp,transparent:true});const g=pv.getContext('2d');g.globalCompositeOperation='destination-over';g.drawImage(chk,0,0);g.globalCompositeOperation='source-over';requestAnimationFrame(tick);};tick();}
+/* Overlay Settings: Number, Type (Fullscreen / Picture In Picture with pan and zoom), Effect, Effect Duration, Duration */
+function overlayDialog(n=0){const S=V.ovset[n],FXO=['Cut','Fade','Zoom','Fly','Slide'];
+  const m=modal('Overlay Settings',`<div class="vx-ovs"><label>Number <select class="ov-n">${V.ovset.map((_,i)=>`<option value="${i}" ${i===n?'selected':''}>Overlay ${i+1}</option>`).join('')}</select></label>
+    <label>Type <select class="ov-t">${['Fullscreen','Picture In Picture'].map(t=>`<option ${S.type===t?'selected':''}>${t}</option>`).join('')}</select></label>
+    <label>Effect <select class="ov-fx">${FXO.map(t=>`<option ${S.fx===t?'selected':''}>${t}</option>`).join('')}</select></label>
+    <label>Effect Duration (ms) <input type="number" class="ov-ms" min="0" max="5000" step="100" value="${S.ms}"></label>
+    <label>Duration (ms, 0 = stays until you turn it off) <input type="number" class="ov-dur" min="0" max="600000" step="500" value="${S.dur}"></label>
+    <div class="ov-pip" ${S.type==='Fullscreen'?'hidden':''}><div class="ov-frame"><div class="ov-box"></div></div>
+      <label class="vx-sl">Zoom<input type="range" class="ov-z" min=".1" max="1" step=".01" value="${S.zoom}"></label><label class="vx-sl">Pan X<input type="range" class="ov-x" min="-1" max="1" step=".01" value="${S.px}"></label><label class="vx-sl">Pan Y<input type="range" class="ov-y" min="-1" max="1" step=".01" value="${S.py}"></label></div></div>
+    <p class="vx-hint">Each overlay channel (1-8) has its own effect and, as Picture In Picture, its own size and position — e.g. Overlay 2 = a camera in the top-right corner.</p>`,{w:460,cancel:false});
+  const box=$('.ov-box',m),upd=()=>{const w=S.zoom*100,x=(1-S.zoom)/2+S.px/2,y=(1-S.zoom)/2+S.py/2;box.style.cssText=`width:${w}%;height:${w}%;left:${x*100}%;top:${y*100}%`;};upd();
+  $('.ov-n',m).onchange=e=>overlayDialog(+e.target.value);$('.ov-t',m).onchange=e=>{S.type=e.target.value;$('.ov-pip',m).hidden=S.type==='Fullscreen';};
+  $('.ov-fx',m).onchange=e=>S.fx=e.target.value;$('.ov-ms',m).oninput=e=>S.ms=Math.max(0,+e.target.value||0);$('.ov-dur',m).oninput=e=>S.dur=Math.max(0,+e.target.value||0);
+  [['ov-z','zoom'],['ov-x','px'],['ov-y','py']].forEach(([c,k])=>$('.'+c,m).oninput=e=>{S[k]=+e.target.value;upd();});}
 function titleEditor(inp){modal('Title Editor — '+inp.name,`<div class="vx-te">${Object.keys(inp.fields).map(k=>`<label>${k}<input data-f="${k}" value="${inp.fields[k]}"></label>`).join('')}<label class="vx-live"><input type="checkbox" checked disabled> Live (updates as you type)</label></div>`,{w:480,cancel:false});
   $$('[data-f]',$('#vx-modal')).forEach(i=>i.oninput=()=>{inp.fields[i.dataset.f]=i.value;drawTitle(inp);});}
 function catDialog(){const L=V.catLabels||(V.catLabels=CAT.map(()=>''));modal('Input Categories',`<div class="vx-cd">${CAT.slice(1).map((c,i)=>`<label><span style="background:${c.c}"></span><input data-c="${i+1}" value="${L[i+1]}" placeholder="${c.n}"></label>`).join('')}</div><p class="vx-hint">Type a label for each category. Drag an input's thumbnail onto a category button to move it there.</p>`,{w:420,onOk:m=>{$$('[data-c]',m).forEach(x=>L[+x.dataset.c]=x.value.trim());draw();}});}
