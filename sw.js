@@ -16,6 +16,7 @@ const ASSETS = [
   './ccu.js',
   './atempanel.js',
   './controlroom.js',
+  './ultimatte.js',
   './manifest.webmanifest',
   './icon.svg',
   './img/rack-v2.jpg',

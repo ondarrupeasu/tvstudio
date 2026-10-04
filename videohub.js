@@ -6,19 +6,19 @@
 (function(){
 const root=document.getElementById('vh');if(!root)return;
 const N=20,PW=1080,PH=100;                    // panel drawing units (1 RU ≈ 10.8 : 1)
-const KEY='vh-state5';
+const KEY='vh-state6';
 /* ---------- what can be cabled ---------- */
 const SRCS={none:'— nothing —',cam1:'CAM 1',cam2:'CAM 2',cam3:'CAM 3',cam4:'CAM 4',cam5:'CAM 5',cam6:'CAM 6',cam7:'CAM 7',cam8:'CAM 8',
-  vfill:'vMix FILL',vkey:'vMix KEY',atem:'ATEM PGM',hdk:'HyperDeck'};
+  vfill:'vMix FILL',vkey:'vMix KEY',atem:'ATEM PGM',hdk:'HyperDeck',gscam:'Chroma camera (test)',ult1:'Ultimatte 1 PGM',ult2:'Ultimatte 2 PGM'};
 const SRCL={vfill:'vMix PC · DeckLink SDI 1 (Fill)',vkey:'vMix PC · DeckLink SDI 2 (Key)',atem:'ATEM Constellation · Program out',hdk:'HyperDeck Studio HD Pro · SDI out'};
 const DSTS={none:'— nothing —',atem1:'ATEM IN 1',atem2:'ATEM IN 2',atem3:'ATEM IN 3',atem4:'ATEM IN 4',atem5:'ATEM IN 5',atem6:'ATEM IN 6',atem7:'ATEM IN 7',atem8:'ATEM IN 8',atem9:'ATEM IN 9',atem10:'ATEM IN 10',atem11:'ATEM IN 11',atem12:'ATEM IN 12',
-  vmix:'vMix IN',vmix1:'vMix DeckLink SDI 1',vmix2:'vMix DeckLink SDI 2',vmix3:'vMix DeckLink SDI 3',vmix4:'vMix DeckLink SDI 4',hdk:'HyperDeck REC',mon:'Monitor wall',ult1:'Ultimatte 1',ult2:'Ultimatte 2'};
+  vmix:'vMix IN',vmix1:'vMix DeckLink SDI 1',vmix2:'vMix DeckLink SDI 2',vmix3:'vMix DeckLink SDI 3',vmix4:'vMix DeckLink SDI 4',u1fg:'Ultimatte 1 FG',u1bg:'Ultimatte 1 BG',u2fg:'Ultimatte 2 FG',u2bg:'Ultimatte 2 BG',hdk:'HyperDeck REC',mon:'Monitor wall',ult1:'Ultimatte 1',ult2:'Ultimatte 2'};
 /* proposed cabling (to be confirmed with the real room) */
 /* working cabling (Alex, 4-oct): IN/OUT 1-8 = the 8 cameras of the multicam pack, 9-10 = vMix fill/key → ATEM IN 1-10;
    OUT 11-14 → the DeckLink inputs of the vMix PC (routed to CAM 1-4 by default). */
-const DEF={cabIn:['cam1','cam2','cam3','cam4','cam5','cam6','cam7','cam8','vfill','vkey',...Array(10).fill('none')],
-  cabOut:['atem1','atem2','atem3','atem4','atem5','atem6','atem7','atem8','atem9','atem10','vmix1','vmix2','vmix3','vmix4',...Array(6).fill('none')],
-  routes:[0,1,2,3,4,5,6,7,8,9,0,1,2,3,...Array(6).fill(0)],locks:Array(N).fill(false),useTake:true,net:[[192,168,11,50],[255,255,255,0],[192,168,11,1]]};
+const DEF={cabIn:['cam1','cam2','cam3','cam4','cam5','cam6','cam7','cam8','vfill','vkey','gscam','ult1',...Array(8).fill('none')],
+  cabOut:['atem1','atem2','atem3','atem4','atem5','atem6','atem7','atem8','atem9','atem10','vmix1','vmix2','vmix3','vmix4','u1fg','u1bg',...Array(4).fill('none')],
+  routes:[0,1,2,3,4,5,6,7,8,9,0,1,2,3,10,2,...Array(4).fill(0)],locks:Array(N).fill(false),useTake:true,net:[[192,168,11,50],[255,255,255,0],[192,168,11,1]]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(_){}};   // routes survive a power cut (real: "power fail protection")
 const inLab=i=>{const v=st.cabIn[i],m=/^ao(\d+)$/.exec(v);return v==='none'?'Input '+(i+1):m?'ATEM OUT '+m[1]:SRCS[v];};

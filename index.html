@@ -206,6 +206,13 @@
   @media (max-width:900px){.swbtn{top:auto;bottom:14px}}
   /* Midas M32R */
   .rc-sim{border:0;cursor:pointer;font-family:inherit}
+  /* Ultimatte 12 HD + Smart Remote 4 */
+  .um{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.um.on{display:flex}.um .pwr-hd{padding:8px 16px 6px;align-items:center}.um .pwr-hd p{font-size:11.5px}.um .pwr-btns button{padding:6px 10px;font-size:12px}
+  .um-body{flex:1;min-height:0;overflow:auto;padding:8px 12px;display:flex;flex-direction:column;gap:12px}.um-row{display:flex;gap:12px;justify-content:center}.um-unit{position:relative;width:min(48%,560px)}
+  .um-lcd{position:absolute;left:64.4%;top:9%;width:22.4%;height:81%;pointer-events:none}.um-row2{display:flex;gap:14px;align-items:flex-start;justify-content:center}.um-srw{position:relative;width:min(62%,900px)}.um-monw{flex:1;max-width:620px}
+  #um-touch{position:absolute;left:37.5%;top:10%;width:50.1%;height:75%;cursor:pointer}#um-mon{width:100%;aspect-ratio:16/9;background:#000;border:6px solid #15161a;border-radius:6px;display:block}.um-note{font-size:11.5px;color:var(--ce-muted)}
+  .um-k{cursor:pointer}.um-k rect{fill:#1f2125;stroke:#000}.um-kt{font-size:7px;font-weight:700;fill:#e8e9eb;text-anchor:middle}.um-k:hover rect{stroke:var(--ce-accent);stroke-width:1.5}.um-k.green rect{fill:#1e8449}.um-k.blue rect{fill:#2e6fd6}.um-k.red rect{fill:#c0392b}.um-k.amber rect{fill:#c77a12}
+  .um-sr rect{fill:#c9cdd2}.um-sr .um-kt{fill:#111}.um-name{font-size:13px;font-weight:700;fill:#fff}.um-tape{font-size:9px;fill:#d8c79a}.um-logo{font-size:30px;font-style:italic;font-weight:700;fill:#fff;text-anchor:middle}.um-st{font-size:12px;font-weight:700;fill:#e8e9eb;text-anchor:middle}.um-srk{cursor:ns-resize}
   /* Control room — vision (multiview + ATEM panel + CCU) */
   .cr{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.cr.on{display:flex}
   .cr .pwr-hd{padding:8px 16px 6px;align-items:center}.cr .pwr-hd p{font-size:11.5px}.cr .pwr-btns button{padding:6px 10px;font-size:12px}
@@ -618,7 +625,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=81"></script>
+<script src="power.js?v=82"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -628,7 +635,7 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=81"></script>
+<script src="desk.js?v=82"></script>
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
@@ -663,18 +670,20 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=81"></script>
+<script src="m32r.js?v=82"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=81"></script>
-<script src="constellation.js?v=81"></script>
-<script src="hyperdeck.js?v=81"></script>
-<script src="cables.js?v=81"></script>
+<script src="videohub.js?v=82"></script>
+<script src="constellation.js?v=82"></script>
+<script src="hyperdeck.js?v=82"></script>
+<script src="cables.js?v=82"></script>
 <div class="cr" id="cr"></div>
-<script src="ccu.js?v=81"></script>
-<script src="atempanel.js?v=81"></script>
-<script src="controlroom.js?v=81"></script>
+<div class="um" id="um"></div>
+<script src="ccu.js?v=82"></script>
+<script src="atempanel.js?v=82"></script>
+<script src="controlroom.js?v=82"></script>
+<script src="ultimatte.js?v=82"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=81"></script>
+<script src="vmix.js?v=82"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
@@ -706,9 +715,9 @@ const DATA={
 };
 // --- Interactive rack: devices top→bottom (y/h = % of the photo height) ---
 const RACK=[
-  {name:"Ultimatte 12 HD (×2)",prod:"img/producto/ultimatte.jpg",link:"https://www.blackmagicdesign.com/products/ultimatte",desc:"Real-time chroma key — one per camera.",y:4,h:9,x:8,w:44},
+  {name:"Ultimatte 12 HD (×2)",prod:"img/producto/ultimatte.jpg",link:"https://www.blackmagicdesign.com/products/ultimatte",desc:"Real-time chroma key — one per camera.",sim:"um",y:4,h:9,x:8,w:44},
   {name:"Longshine LCS-GS8116",prod:"img/producto/switch.jpg",link:"https://www.longshine.de/products/networking/16-port-1g-switch-fanless-rackmountable-rackmount/",desc:"16-port unmanaged Gigabit Ethernet switch — the rack's network backbone.",y:4,h:7,x:53,w:39},
-  {name:"Ultimatte Smart Remote 4",prod:"img/producto/smart-remote.jpg",link:"https://www.blackmagicdesign.com/products/ultimatte",desc:"Touch remote to set up the Ultimatte units.",y:17,h:13,x:8,w:84},
+  {name:"Ultimatte Smart Remote 4",prod:"img/producto/smart-remote.jpg",link:"https://www.blackmagicdesign.com/products/ultimatte",desc:"Touch remote to set up the Ultimatte units.",sim:"um",y:17,h:13,x:8,w:84},
   {name:"Caymon PSR119GS — power distribution",prod:"img/producto/caymon.png",link:"https://caymon.eu/products/d/psr119gs---19inch-power-distribution-unit---9-x-german-sockets-plus-rear-switch",desc:"The rack's switched power strip (9× sockets).",y:35,h:8.5,x:8,w:84},
   {name:"HyperDeck Studio HD Pro",prod:"img/producto/hyperdeck.jpg",link:"https://www.blackmagicdesign.com/products/hyperdeckstudio",desc:"Records the programme to cards / SSD.",y:43.7,h:4,x:8,w:84},
   {name:"Smart Videohub 20×20",prod:"img/producto/videohub.jpg",link:"https://www.blackmagicdesign.com/es/products/blackmagicvideohub",desc:"SDI matrix: routes any source to any destination. Its front panel has a small screen to check the routed signal.",sim:true,y:47.9,h:3.9,x:8,w:84},
@@ -745,7 +754,7 @@ function showDev(d,z){
   if(z){document.querySelectorAll('.rhs.on').forEach(e=>e.classList.remove('on'));z.classList.add('on');}
   document.getElementById('rackcard').innerHTML=`${d.prod?`<img class="rc-img" src="${d.prod}" alt="${escAttr(d.name)}" onerror="this.style.visibility='hidden'">`:''}`+
     `<div class="rc-txt"><div class="rc-name">${d.name}</div><div class="rc-desc">${d.desc}</div>`+
-    `<div class="rc-btns">${d.link?`<a class="rc-btn" href="${d.link}" target="_blank" rel="noopener">Maker's site ↗</a>`:''}${d.sim?`<button class="rc-btn rc-sim" onclick="openVideohub()">▶ Open the simulator</button>`:''}</div></div>`;
+    `<div class="rc-btns">${d.link?`<a class="rc-btn" href="${d.link}" target="_blank" rel="noopener">Maker's site ↗</a>`:''}${d.sim?`<button class="rc-btn rc-sim" onclick="${d.sim==='um'?'openUltimatte()':'openVideohub()'}">▶ Open the simulator</button>`:''}</div></div>`;
 }
 function resetCard(){document.getElementById('rackcard').innerHTML='<div class="rc-hint">Hover a unit to see its name · click it to see its card here.</div>';}
 /* which simulator each place on the plan opens (card button) */
