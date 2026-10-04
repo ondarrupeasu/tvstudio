@@ -74,7 +74,7 @@ function strip(slot,x,main){let s='';
   s+=btn('mute:'+slot,x,854,'MUTE','mute',38,18);
   return s+fader(slot,x);}
 
-function surface(){let s=`<svg class="mx-svg" viewBox="0 -70 1000 1295" role="img" aria-label="Midas M32R"><g class="mx-rear" id="mxRear" transform="translate(0,-66)">${rearSvg()}</g><g id="mxTop">`;
+function surface(){let s=`<svg class="mx-svg" viewBox="0 -304 1000 1529" role="img" aria-label="Midas M32R"><g class="mx-rear" id="mxRear" transform="translate(0,-300)">${rearSvg()}</g><g id="mxTop">`;
   s+=`<defs><linearGradient id="mxbody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26272c"/><stop offset="1" stop-color="#1b1c20"/></linearGradient></defs>`;
   s+=`<rect x="2" y="78" width="996" height="490" rx="22" fill="url(#mxbody)" stroke="#0c0c0e" stroke-width="3"/>`;
   // TALKBACK
@@ -131,25 +131,41 @@ function surface(){let s=`<svg class="mx-svg" viewBox="0 -70 1000 1295" role="im
   s+=`<rect id="zStr" x="0" y="578" width="1000" height="295" fill="none"/><rect id="zFad" x="0" y="876" width="1000" height="334" fill="none"/>`;
   return s+'</g></svg>';}
 
+/* rear panel exactly as seen from behind (official QSG drawing): talkback/monitor · aux in/out · OUT 8…1 on the left,
+   IN 8…1 / IN 16…9 on the right, and the bottom row AC/POWER · DN32-USB card · ETHERNET · MIDI · ULTRANET · AES50 B/A */
 function rearSvg(){const tip=(n,t,inner)=>`<g data-name="${n}" data-tip="${t}">${inner}</g>`;
-  const xlr=(x,y,r=8)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#111" stroke="#9a9a9a"/><circle cx="${x}" cy="${y}" r="${r*.45}" fill="#2a2a2e"/>`;
-  const rj=(x,y)=>`<rect x="${x-9}" y="${y-8}" width="18" height="16" rx="2" fill="#111" stroke="#9a9a9a"/><rect x="${x-5}" y="${y-3}" width="10" height="7" fill="#333"/>`;
-  let s=`<rect x="2" y="4" width="996" height="122" rx="10" fill="#2b2c31" stroke="#0e0e10"/>`;
-  s+=`<g class="mx-power" data-name="POWER switch" data-tip="Switches the console on (it boots in a moment). Click it!"><rect x="22" y="38" width="44" height="44" rx="4" fill="#0d0d0f"/><rect class="pr1" x="27" y="43" width="17" height="34" rx="2"/><rect class="pr2" x="44" y="43" width="17" height="34" rx="2"/>${T(35,64,'I','mx-wt')}${T(53,64,'O','mx-wt')}${T(44,98,'POWER','mx-wt')}</g>`;
-  s+=tip('AC POWER','100-240 V mains input (IEC).',`<rect x="76" y="44" width="30" height="30" rx="3" fill="#0d0d0f" stroke="#888"/>${T(91,98,'AC IN','mx-wt')}`);
-  s+=tip('DN32-USB card','Klark Teknik card: 32×32 audio over USB to a computer (record / playback).',`<rect x="120" y="36" width="70" height="46" rx="3" fill="#1a1b1f" stroke="#777"/>${T(155,56,'DN32-USB','mx-wt')}<rect x="146" y="62" width="18" height="10" fill="#111" stroke="#999"/>`);
-  s+=tip('ETHERNET','Remote control from a computer or tablet.',rj(212,58)+T(212,98,'ETHERNET','mx-wt'));
-  s+=tip('MIDI IN / OUT','MIDI control.',xlr(245,58,9)+xlr(270,58,9)+T(257,98,'MIDI','mx-wt'));
-  s+=tip('ULTRANET','16 channels to personal monitor mixers (P16).',rj(300,58)+T(300,98,'ULTRANET','mx-wt'));
-  s+=tip('AES50 A / B','Digital snakes: 48×48 channels each to stage boxes.',rj(335,58)+rj(362,58)+T(348,98,'AES50 B · A','mx-wt'));
-  s+=`<g class="mx-sock" data-in="talk" data-name="TALKBACK MIC">${xlr(398,58)}<g class="mx-plug"><circle cx="398" cy="58" r="10.5" class="mx-plugr"/><circle cx="398" cy="58" r="6" fill="#141416"/><path d="M398 68 V75" stroke="#141416" stroke-width="7"/></g>${T(398,98,'TALK','mx-wt')}<circle cx="398" cy="58" r="13" fill="transparent"/></g>`;
-  s+=tip('MONITOR L / R','Outputs to the control-room speakers (MONITOR LEVEL).',xlr(428,50,6)+xlr(428,70,6)+T(428,98,'MON','mx-wt'));
-  s+=tip('AUX IN / OUT 1-6','Line-level jacks (and RCA on 5/6).',[0,1,2].map(k=>xlr(458+k*16,50,5)+xlr(458+k*16,70,5)).join('')+T(474,98,'AUX','mx-wt'));
-  const sock=(n,x,y)=>`<g class="mx-sock" data-in="${n}" data-name="IN ${n}">${xlr(x,y,9)}<g class="mx-plug"><circle cx="${x}" cy="${y}" r="10.5" class="mx-plugr"/><circle cx="${x}" cy="${y}" r="6" fill="#141416"/><path d="M${x} ${y+10} V${y+17}" stroke="#141416" stroke-width="7"/></g>${T(x,y-12,n,'mx-xs')}<circle cx="${x}" cy="${y}" r="13" fill="transparent"/></g>`;
-  for(let k=0;k<8;k++)s+=sock(8-k,530+k*30,40)+sock(16-k,530+k*30,76);
-  s+=T(635,104,'INPUTS · click a socket to plug / unplug','mx-wt');
-  let outs='';for(let k=0;k<8;k++)outs+=xlr(790+k*26,56,8);
-  s+=tip('OUTPUTS 1-8','8 XLR outputs. OUT 7/8 = MAIN L/R by default.',outs+T(880,98,'OUT 8 (MAIN R) · 7 (MAIN L) … 1','mx-wt'));
+  const xlr=(x,y,r=17)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#1a1b1e" stroke="#a9abb0" stroke-width="1.4"/><circle cx="${x}" cy="${y}" r="${r*.62}" fill="#2c2d31"/>${[[-.3,-.15],[.3,-.15],[0,.32]].map(([a,b])=>`<circle cx="${x+a*r}" cy="${y+b*r}" r="${r*.11}" fill="#8d8f94"/>`).join('')}`;
+  const jack=(x,y,r=11)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#111" stroke="#a9abb0" stroke-width="1.2"/><circle cx="${x}" cy="${y}" r="${r*.42}" fill="#000"/>`;
+  const rca=(x,y,c)=>`<circle cx="${x}" cy="${y}" r="9" fill="${c}" stroke="#ddd"/><circle cx="${x}" cy="${y}" r="3" fill="#111"/>`;
+  const rj=(x,y)=>`<rect x="${x-20}" y="${y-17}" width="40" height="34" rx="4" fill="#111" stroke="#a9abb0"/><rect x="${x-11}" y="${y-8}" width="22" height="16" fill="#333"/>`;
+  const din=(x,y)=>`<circle cx="${x}" cy="${y}" r="19" fill="#151515" stroke="#a9abb0"/>${[0,1,2,3,4].map(k=>`<circle cx="${x+11*Math.cos(Math.PI*(.15+k*.175))}" cy="${y-11*Math.sin(Math.PI*(.15+k*.175))}" r="2" fill="#888"/>`).join('')}`;
+  const box=(x0,y0,x1,y1)=>`<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}" rx="4" fill="none" stroke="#d6d7da" stroke-width="1.6"/>`;
+  const sockG=(n,x,y,lbl)=>`<g class="mx-sock" data-in="${n}" data-name="IN ${n}">${xlr(x,y)}<g class="mx-plug"><circle cx="${x}" cy="${y}" r="19.5" class="mx-plugr"/><circle cx="${x}" cy="${y}" r="11" fill="#141416"/></g>${T(x,lbl,'IN '+n,'mx-wt')}<circle cx="${x}" cy="${y}" r="22" fill="transparent"/></g>`;
+  let s=`<rect x="2" y="2" width="996" height="352" rx="6" fill="#3a3c41" stroke="#0e0e10" stroke-width="2"/>`;
+  s+=`<text x="22" y="54" class="mx-rlogo">◉ MIDAS</text><text x="285" y="54" class="mx-rlogo">M32R</text>`;
+  [[440,'FCC'],[540,'CAUTION'],[650,'中文'],[760,'SERIAL NUMBER · DATE CODE']].forEach(([x,t])=>s+=`<rect x="${x}" y="22" width="${x===760?225:96}" height="36" rx="2" fill="none" stroke="#9fa1a6"/>`+T(x+(x===760?112:48),44,t,'mx-xsw'));
+  // talkback + monitor
+  s+=box(16,64,132,157)+T(47,78,'TALKBACK','mx-wt')+T(107,78,'MONITOR','mx-wt');
+  s+=`<g class="mx-sock" data-in="talk" data-name="TALKBACK MIC">${xlr(47,115)}<g class="mx-plug"><circle cx="47" cy="115" r="19.5" class="mx-plugr"/><circle cx="47" cy="115" r="11" fill="#141416"/></g>${T(47,150,'MIC','mx-wt')}<circle cx="47" cy="115" r="22" fill="transparent"/></g>`;
+  s+=tip('MONITOR L / R','Outputs to the control-room speakers (MONITOR LEVEL). XLR or ¼" jack.',jack(107,96)+jack(107,136)+T(122,99,'L','mx-xsw','start')+T(122,139,'R','mx-xsw','start'));
+  // aux in / out
+  s+=box(138,64,495,157);
+  s+=tip('AUX IN 1-6 / AUX OUT 1-6','Line-level ¼" jacks (and RCA on 5/6) — e.g. a computer or a playback player.',
+    [175,292,336,380,424,468].map((x,k)=>jack(x,96)+jack(x,136)+T(x,77,[6,5,4,3,2,1][k],'mx-xsw')).join('')+rca(218,96,'#111')+rca(248,96,'#fff')+rca(218,136,'#111')+rca(248,136,'#fff')+T(150,118,'AUX IN','mx-xsw','start')+T(150,154,'AUX OUT','mx-xsw','start'));
+  // outputs 8 … 1
+  s+=box(15,161,495,241);
+  s+=tip('OUTPUTS 1-8','8 XLR outputs. OUT 7 = MAIN LEFT, OUT 8 = MAIN RIGHT (to the PA / recorder).',[8,7,6,5,4,3,2,1].map((n,k)=>{const x=50+k*59;return xlr(x,192)+T(x,232,'OUT '+n,'mx-wt')+(n>=7?T(x,221,n===8?'(MAIN RIGHT)':'(MAIN LEFT)','mx-xsw'):'');}).join(''));
+  // inputs: IN 8…1 (top), IN 16…9 (bottom)
+  s+=box(501,64,985,241);
+  for(let k=0;k<8;k++){const x=533+k*59.6;s+=sockG(8-k,x,113,82)+sockG(16-k,x,192,234);}
+  // bottom row
+  s+=`<g class="mx-power" data-name="AC / POWER switch" data-tip="Mains input + power switch. Click it!">${box(21,258,88,336)}<rect x="34" y="266" width="40" height="24" rx="3" fill="#0d0d0f"/><rect class="pr1" x="37" y="269" width="17" height="18" rx="2"/><rect class="pr2" x="54" y="269" width="17" height="18" rx="2"/>${T(45,283,'I','mx-wt')}${T(62,283,'O','mx-wt')}<rect x="37" y="296" width="34" height="30" rx="3" fill="#0d0d0f" stroke="#888"/>${T(54,250,'AC/POWER','mx-wt')}</g>`;
+  s+=tip('DN32-USB card','Klark Teknik card: 32×32 channels over USB to a computer (record / play back a multitrack).',box(95,260,474,332)+T(105,276,'KLARK TEKNIK','mx-xsw','start')+T(460,276,'DN32-USB','mx-xsw','end')+`<rect x="333" y="296" width="22" height="18" fill="#111" stroke="#999"/>`);
+  s+=tip('ETHERNET','Remote control from a computer or tablet (M32-Edit / M32-Mix).',box(480,255,534,334)+rj(507,295)+T(507,329,'ETHERNET','mx-xsw'));
+  s+=tip('MIDI IN / OUT','MIDI control.',box(545,255,658,334)+din(570,292)+din(635,292)+T(570,267,'IN','mx-xsw')+T(635,267,'OUT','mx-xsw')+T(601,329,'MIDI','mx-xsw'));
+  s+=tip('ULTRANET','16 channels to personal monitor mixers (P16).',box(667,255,743,334)+rj(705,290)+T(705,329,'ULTRANET','mx-xsw'));
+  s+=tip('AES50 B / A','Digital snakes: 48×48 channels each to stage boxes (channels 17-32 would come from here).',box(754,255,880,334)+rj(785,290)+rj(847,290)+T(817,329,'B ━ AES50 ━ A','mx-xsw'));
+  s+=`<text x="890" y="300" class="mx-rlogo2">◉ MIDAS</text>`;
   return s;}
 
 /* ---------- audio engine ---------- */
@@ -258,6 +274,12 @@ const SRC={in1:'pres',in2:'guest',in3:'music',in4:'amb',in5:'tone'};for(let i=6;
 const SRCX={};
 const PACK={};          // name → File, from the multicam pack folder chosen by the user
 const PACKLEN=211;      // every file in the pack lasts 211 s and starts at the same instant
+const SONG_AT=12.5;     // in the pack the band starts playing 12.5 s in (same moment as in the camera files)
+/* multitrack playback of the pack (like the computer/recorder playing it into the desk): one clock for all pack files */
+const packIds=()=>Object.keys(SRC).filter(id=>SRC[id].startsWith('pk:'));
+function packPos(){if(!A||A.packT0==null)return 0;return A.packPaused!=null?A.packPaused:((A.ctx.currentTime-A.packT0)%PACKLEN+PACKLEN)%PACKLEN;}
+function packPlayFrom(pos){if(!A)return;A.packPaused=null;A.packT0=A.ctx.currentTime-pos;packIds().forEach(id=>setSource(id,SRC[id]));}
+function packPause(){if(!A||A.packPaused!=null)return;A.packPaused=packPos();packIds().forEach(stopSource);}
 function registerPack(files){let n=0;[...files].forEach(f=>{const m=f.name.match(/^(STEM_\w+|MIX_synced|CAM\d)\.(m4a|mp4|wav|mp3)$/i);if(!m)return;const key=m[1];PACK[key]=f;n++;
   const nice=key.replace(/^STEM_/,'').replace('MIX_synced','MIX').toUpperCase();
   SOURCES['pk:'+key]={l:'Pack · '+(key.startsWith('CAM')?key+' (camera audio)':key.startsWith('STEM_')?nice.toLowerCase()+' stem':'full mix (mono)'),name:nice,mic:'Multitrack playback (line)',color:key.startsWith('STEM_')?'magenta':'cyan'};});return n;}   // extra per channel: deviceId, file name
@@ -267,7 +289,7 @@ async function setSource(id,kind,opt={}){SRC[id]=kind;const meta=SOURCES[kind];i
   if(!A){draw();return;}const ctx=A.ctx,n=id==='talk'?A.talk:A.ch[id];stopSource(id);
   const lv=ctx.createGain();lv.connect(n.in);n.srcNodes=[lv];const loop=b=>{const x=ctx.createBufferSource();x.buffer=b;x.loop=true;x.connect(lv);x.start();n.srcNodes.push(x);};
   try{
-    if(kind.startsWith('pk:')){lv.gain.value=db2g(-20);const key=kind.slice(3),f=PACK[key];if(!f)throw new Error('Load the pack folder first');
+    if(kind.startsWith('pk:')){if(A.packPaused!=null)return;lv.gain.value=db2g(-20);const key=kind.slice(3),f=PACK[key];if(!f)throw new Error('Load the pack folder first');
       A.pbufs=A.pbufs||{};if(!A.pbufs[key])A.pbufs[key]=await ctx.decodeAudioData(await f.arrayBuffer());
       if(A.packT0==null)A.packT0=ctx.currentTime;const x=ctx.createBufferSource();x.buffer=A.pbufs[key];x.loop=true;x.loopEnd=Math.min(PACKLEN,x.buffer.duration);x.connect(lv);
       x.start(0,((ctx.currentTime-A.packT0)%PACKLEN+PACKLEN)%PACKLEN);n.srcNodes.push(x);}   // same position as the other pack files: they play together
@@ -307,7 +329,11 @@ async function plugMenu(n,ev){const menu=document.getElementById('mx-plugmenu'),
 const buf=new Float32Array(1024);
 function peakDb(an){an.getFloatTimeDomainData(buf);let m=0;for(let i=0;i<buf.length;i++){const v=Math.abs(buf[i]);if(v>m)m=v;}return m>0?20*Math.log10(m):-120;}
 const lev={};   // smoothed meter levels
-function meterTick(){requestAnimationFrame(meterTick);if(!root.classList.contains('on'))return;
+function trpTick(){const tr=document.getElementById('mx-trp');if(!tr)return;const on=packIds().length>0&&G.power;tr.hidden=!on;if(!on)return;
+  const p=packPos(),f=t=>String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t%60)).padStart(2,'0');
+  tr.querySelector('.mx-tt').textContent=f(p)+' / '+f(PACKLEN)+(p<SONG_AT?' · the song starts at 00:12':'');tr.querySelector('[data-t="pp"]').textContent=A&&A.packPaused!=null?'▶':'❚❚';
+  tr.querySelector('.mx-tbar i').style.width=(p/PACKLEN*100)+'%';}
+function meterTick(){requestAnimationFrame(meterTick);if(!root.classList.contains('on'))return;trpTick();
   const L=(k,on)=>{const e=svg.querySelector(`[data-l="${k}"]`);if(e)e.classList.toggle('lit',!!on);};
   const sm=(k,v)=>lev[k]=Math.max(v,(lev[k]??-120)-1.4);
   if(!A||!G.power){svg.querySelectorAll('.mx-led.lit').forEach(e=>{if(!e.dataset.l?.startsWith('eqm'))e.classList.remove('lit');});updLeds();return;}
@@ -547,6 +573,9 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.addEventListener('mouseleave',()=>tip.classList.remove('on'));
   document.getElementById('mx-photo').addEventListener('click',e=>{const on=root.classList.toggle('photo');e.currentTarget.textContent=on?'Recreation':'Real photo';});
   document.getElementById('mx-close').addEventListener('click',()=>window.closeMixer());
+  document.getElementById('mx-trp').addEventListener('click',e=>{const b=e.target.closest('[data-t]'),bar=e.target.closest('.mx-tbar');if(!A)return;
+    if(bar){const r=bar.getBoundingClientRect();return packPlayFrom((e.clientX-r.left)/r.width*PACKLEN);}
+    if(!b)return;const t=b.dataset.t;if(t==='pp')A.packPaused!=null?packPlayFrom(A.packPaused):packPause();else if(t==='start')packPlayFrom(0);else if(t==='song')packPlayFrom(SONG_AT-.5);});
   document.getElementById('mx-lay').addEventListener('click',()=>{LAY=LAY==='side'?'real':'side';fit();});
   document.getElementById('mx-guidebtn').addEventListener('click',()=>{document.getElementById('mx-guide').classList.toggle('on');});
   document.getElementById('mx-guideclose').addEventListener('click',()=>document.getElementById('mx-guide').classList.remove('on'));
@@ -569,8 +598,8 @@ function fit(){if(!root.classList.contains('on'))return;const body=root.querySel
   const aw=body.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ah=body.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-4;
   if(!LAY)LAY=innerWidth/innerHeight>1.25&&innerWidth>900?'side':'real';
   const top=svg.querySelector('#mxTop'),bot=svg.querySelector('#mxBot'),rr=svg.querySelector('#mxRear');let vb;
-  if(LAY==='side'){rr.setAttribute('transform','translate(0,-66)');top.setAttribute('transform','translate(0,-12)');bot.setAttribute('transform','translate(1010,-630)');vb=[0,-70,2012,666];}
-  else{rr.setAttribute('transform','translate(0,-66)');top.removeAttribute('transform');bot.removeAttribute('transform');vb=[0,-70,1000,1295];}
+  if(LAY==='side'){rr.setAttribute('transform','translate(0,-300)');top.setAttribute('transform','translate(0,-18)');bot.setAttribute('transform','translate(1010,-864)');vb=[0,-304,2012,866];}
+  else{rr.setAttribute('transform','translate(0,-300)');top.removeAttribute('transform');bot.removeAttribute('transform');vb=[0,-304,1000,1529];}
   VB0=vb.slice();ZV=null;svg.setAttribute('viewBox',vb.join(' '));
   const W=LAY==='side'?Math.min(aw,ah*vb[2]/vb[3]):Math.min(aw,1100);document.getElementById('mx-front').style.width=Math.floor(W)+'px';
   root.classList.toggle('side',LAY==='side');const b=document.getElementById('mx-lay');if(b)b.textContent=LAY==='side'?'Real layout':'Side by side';}
