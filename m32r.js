@@ -24,11 +24,12 @@ mk('mainc','M/C','Main C','white','mainc');mk('main','LR','MAIN','white','main')
 const P={};   // processing of the input channels (sources: see SOURCES / setSource below)
 for(let i=1;i<=32;i++)P['in'+i]={gain:0,p48:false,pol:false,lc:false,lcf:80,gate:false,gthr:-60,comp:false,cthr:-20,ratio:3,eq:true,band:'low',
   b:{low:{t:'LSHV',f:80,g:0,q:2},lomid:{t:'PEQ',f:300,g:0,q:2},himid:{t:'PEQ',f:3000,g:0,q:2},high:{t:'HSHV',f:10000,g:0,q:2}},pan:0,st:true,mono:false,mcl:0,sends:Array(17).fill(0)};
+const P0=JSON.parse(JSON.stringify(P.in32));   // factory channel settings
 const LAYERS_IN={i1:['in',1],i2:['in',9],i3:['in',17],i4:['in',25],aux:['aux',1],fxr:['fx',1],b1:['bus',1],b2:['bus',9]};
 const LAYERS_BUS={dca:['dca',1],b1:['bus',1],b2:['bus',9],mtx:null};
 const G={power:false,inL:'i1',busL:'dca',sel:'in1',tab:'home',page:'home',flip:false,rem:false,dim:false,talkA:false,talkB:false,
   assign:[true,true,true,true,false,false,false,false],mon:.6,phones:.5,talk:.5,fxSel:1,
-  dcaM:{},mg:Array.from({length:6},()=>({on:false,m:[]})),holdSel:null,holdEnc:null,scene:0};
+  dcaM:{},mg:Array.from({length:6},()=>({on:false,m:[]})),holdSel:null,holdEnc:null,scene:0,sigT:{},clip:null};
 for(let i=1;i<=8;i++)G.dcaM['dca'+i]=[];
 const busN=id=>+id.slice(3);
 /* effective level of an input channel: own fader + its DCAs; muted by own MUTE, a muted DCA or an active mute group */
@@ -342,7 +343,7 @@ function meterTick(){requestAnimationFrame(meterTick);if(!root.classList.contain
   const sm=(k,v)=>lev[k]=Math.max(v,(lev[k]??-120)-1.4);
   if(!A||!G.power){svg.querySelectorAll('.mx-led.lit').forEach(e=>{if(!e.dataset.l?.startsWith('eqm'))e.classList.remove('lit');});updLeds();return;}
   // gates (control-rate) + per-channel levels
-  Object.entries(A.ch).forEach(([id,n])=>{const pre=peakDb(n.preAn),p=P[id];sm(id+':pre',pre);
+  Object.entries(A.ch).forEach(([id,n])=>{const pre=peakDb(n.preAn),p=P[id];sm(id+':pre',pre);if(pre>=-30)G.sigT[id]=performance.now();
     const open=!p.gate||pre>p.gthr;n.gateOpen=open;n.gate.gain.setTargetAtTime(open?1:0,A.ctx.currentTime,open?.005:.08);
     sm(id+':post',peakDb(n.postAn));});
   // strips
@@ -350,6 +351,7 @@ function meterTick(){requestAnimationFrame(meterTick);if(!root.classList.contain
   [...stripsIn().map((id,k)=>['a'+k,id]),...stripsBus().map((id,k)=>['b'+k,id])].forEach(([slot,id])=>{const n=id&&A.ch[id],isB=id&&['bus','fx','mtx','mainc'].includes(S[id].type);const v=n?lev[id+':post']:isB?lev[id]:-120;
     [null,0,-6,-12,-18,-30,-60].forEach((th,k)=>{if(k===0)return;L('m:'+slot+':'+k,(n||isB)&&(k===1?v>=-0.1:v>=th));});
     L('m:'+slot+':0',n&&P[id].comp&&n.comp.reduction<-1);L('m:'+slot+':7',slot.startsWith('a')&&n&&P[id].gate&&!n.gateOpen);});
+  const ok=performance.now()-(G.sigT[G.sel]||-1e9)<1500;if(ok!==G.sigOk){G.sigOk=ok;diag();}
   // selected channel: preamp + dynamics meters
   const n=A.ch[G.sel],pv=n?lev[G.sel+':pre']:-120;
   [0,-3,-6,-9,-12,-18,-30,-60].forEach((th,k)=>L('pre:'+k,n&&(k===0?pv>=-0.1:pv>=th)));
@@ -415,6 +417,10 @@ function encDefs(){const p=P[G.sel],b=p&&p.b[p.band],s=S[G.sel];
   if(G.page==='effects'){const d=FXDEF[G.fxSel||1],u=A&&A.fx[G.fxSel||1];if(!d)return [null,null,null,null,null,{l:'Slot',get:()=>'FX'+G.fxSel,set:dd=>{G.fxSel=cl((G.fxSel||1)+Math.sign(dd),1,8);},v:()=>((G.fxSel||1)-1)/7}];
     const par=k=>{const q=d.p[k];return {l:q.l,get:()=>q.f(q.v),set:dd=>{q.v=q.log?cl(q.v*Math.pow(1.04,dd),q.min,q.max):cl(q.v+dd*(q.max-q.min)/100,q.min,q.max);if(u)setFx(u);},v:()=>q.log?Math.log(q.v/q.min)/Math.log(q.max/q.min):(q.v-q.min)/(q.max-q.min)};};
     return [par(0),par(1),null,null,null,{l:'Slot',get:()=>'FX'+G.fxSel,set:dd=>{G.fxSel=cl((G.fxSel||1)+Math.sign(dd),1,8);},v:()=>((G.fxSel||1)-1)/7}];}
+  if(G.page==='utility'&&P[G.sel]){const id=G.sel,push=(l,f)=>({l,get:()=>'push',set:()=>{},v:()=>0,press:f}),keep=()=>({sends:P[id].sends.slice()});
+    return [push('Copy',()=>{G.clip={from:S[id].num,d:JSON.parse(JSON.stringify(P[id]))};G.msg='Copied '+S[id].num;}),
+      push('Paste',()=>{if(!G.clip){G.msg='Nothing copied yet';return;}P[id]=JSON.parse(JSON.stringify(G.clip.d));G.msg='Pasted '+G.clip.from+' → '+S[id].num;}),
+      push('Default',()=>{P[id]=JSON.parse(JSON.stringify(P0));G.msg=S[id].num+' back to default';}),null,null,null];}
   if(G.page!=='home')return [];
   const E=(l,get,set,v)=>({l,get,set,v});
   const fd=E('Fader',()=>fmtDb(f2db(s.fader))+' dB',d=>{s.fader=cl(s.fader+d*.01);},()=>s.fader);
@@ -453,6 +459,9 @@ function drawScreen(){const g=scr();if(!g)return;const on=G.power;
     for(let k=-2;k<=2;k++){const n=G.scene+k;if(n<0||n>99)continue;const y=52+(k+2)*14,cur=k===0;
       h+=(cur?`<rect x="20" y="${y-9}" width="212" height="12" rx="2" fill="#3d6db3"/>`:'')+T(26,y,String(n).padStart(2,'0')+'  '+(sc[n]?sc[n].name+'  · saved':'(empty)'),cur?'mx-sv':'mx-st').replace('text-anchor="middle"','text-anchor="start"');}
     if(G.msg)h+=T(126,121,G.msg,'mx-samb');}
+  else if(G.page==='utility'&&P[G.sel]){const s=S[G.sel];h+=T(126,28,'UTILITY — '+s.num+' '+s.name,'mx-sv')+T(126,46,'push 1 = Copy this channel\'s settings · push 2 = Paste them here','mx-st')+
+      T(126,60,'(gain, 48 V, low cut, gate, dynamics, EQ, pan, sends — not the source or the fader)','mx-st')+T(126,78,'Clipboard: '+(G.clip?G.clip.from:'empty'),'mx-st')+
+      T(126,96,'push 3 = Default (simulator shortcut: back to factory settings)','mx-st')+(G.msg?T(126,121,G.msg,'mx-samb'):'');}
   else{const NA={routing:'ROUTING: local IN 1-16 → channels 1-16, OUT 7/8 = MAIN L/R. Choose what arrives at each IN by clicking its socket on the rear panel.',library:'LIBRARY: presets for channels, effects and routing. Not simulated.',setup:'SETUP: global settings, scribble strips, preamps, card. Not simulated.',monitor:'MONITOR: monitor source, talkback and oscillator. Use the MONITOR / PHONES knobs.',scenes:'SCENES: save / recall full console snapshots. Not simulated yet.',mutegrp:'MUTE GRP: the 6 mute groups on the screen encoders. Not simulated yet.',utility:'UTILITY: copy / paste / name channels. Not simulated.'};
     h+=T(126,40,G.page.toUpperCase(),'mx-sbig')+wrap(NA[G.page]||'',126,62,40);}
   // encoder row
@@ -491,7 +500,7 @@ function drawScreenMeters(){const g=svg.querySelector('#mx-smet')||svg.querySele
   g.innerHTML=h;}
 function diag(){const el=document.getElementById('mx-diag');if(!el)return;const s=S[G.sel],p=P[G.sel],has=!!(A&&A.ch[G.sel]);
   const it=(ok,t)=>`<span class="pw-chip ${ok?'ok':'bad'}"><i></i>${t}</span>`;
-  el.innerHTML=it(G.power,'Console POWER (rear)')+(p?it(has&&(!s.cond||p.p48)&&p.gain>=20,'Signal at the preamp (GAIN'+(s.cond?' + 48 V':'')+')')+it(p.st,'MAIN STEREO on')+it(!s.mute&&s.fader>.3,'Channel fader up, not muted'):'')+
+  el.innerHTML=it(G.power,'Console POWER (rear)')+(p?it(has&&(!s.cond||p.p48)&&performance.now()-(G.sigT[G.sel]||-1e9)<1500,'Signal at the preamp (input meter ≥ −30 dB'+(s.cond?' · needs 48 V':'')+')')+it(p.st,'MAIN STEREO on')+it(!s.mute&&s.fader>.3,'Channel fader up, not muted'):'')+
     it(!S.main.mute&&S.main.fader>.3,'MAIN fader up')+it(Math.max(G.mon,G.phones)>.05,'MONITOR / PHONES level')+`<span class="mx-sel">Selected: <b>${s.num} ${s.name}</b>${s.mic?' · '+s.mic:''}</span>`;}
 
 /* ---------- interaction ---------- */
