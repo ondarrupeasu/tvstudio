@@ -9,7 +9,8 @@ function centre(sel){const w=wrap(),e=w&&w.querySelector(sel);if(!e)return null;
 /* the cables we know about (working assumption — see the Videohub notes) */
 function list(){const L=[],st=window.VH?VH.state():null;if(!st)return L;
   st.cabOut.forEach((v,o)=>{const m=/^atem(\d+)$/.exec(v);if(m)L.push({a:`.vh-sock[data-s="o${o}"]`,b:`.at-sock[data-s="i${+m[1]-1}"]`,info:`Videohub SDI OUT ${o+1} → ATEM SDI INPUT ${m[1]}`});});
-  st.cabIn.forEach((v,i)=>{if(v==='none')return;const tag={cam1:'CAM 1',cam2:'CAM 2',cam3:'CAM 3',cam4:'CAM 4',vfill:'vMix FILL',vkey:'vMix KEY'}[v]||v;
+  st.cabIn.forEach((v,i)=>{const ao=/^ao(\d+)$/.exec(v)||(v==='atem'?[0,'1']:null);if(ao){L.push({a:`.at-sock[data-s="o${+ao[1]-1}"]`,b:`.vh-sock[data-s="i${i}"]`,info:`ATEM SDI OUTPUT ${ao[1]} → Videohub SDI IN ${i+1}`});return;}
+    if(v==='none')return;const tag={cam1:'CAM 1',cam2:'CAM 2',cam3:'CAM 3',cam4:'CAM 4',vfill:'vMix FILL',vkey:'vMix KEY'}[v]||v;
     const up=i%2===0;   // top-row BNC (odd numbers) → cable and tag go up; bottom row → down
     L.push({a:`.vh-sock[data-s="i${i}"]`,hang:up?-35:34,tag,info:`${tag} → Videohub SDI IN ${i+1}`+(v.startsWith('cam')?' (from the studio patch panel, VIDEO '+v.slice(3)+')':' (DeckLink SDI out of the vMix PC)')});});
   L.push({a:'.at-sock[data-s="m0"]',hang:-26,tag:'MONITOR',info:'ATEM MULTIVIEW 1 → control-room monitor wall'});
@@ -41,23 +42,31 @@ function loop(){raf=requestAnimationFrame(loop);const root=document.getElementBy
 /* ---------- PATCH MODE (admin): re-cable the rear and keep it ---------- */
 let sel=null,wired=false;
 function msg(t){const d=document.getElementById('vh-diag');if(d)d.innerHTML=`<span class="pw-chip bad"><i></i>PATCH MODE</span><span class="mx-sel">${t}</span>`;}
-function mark(){document.querySelectorAll('#vh-rearwrap .psel').forEach(e=>e.classList.remove('psel'));if(sel)document.querySelector(`#vh-rearwrap .vh-sock[data-s="${sel}"]`)?.classList.add('psel');}
+function mark(){document.querySelectorAll('#vh-rearwrap .psel').forEach(e=>e.classList.remove('psel'));if(sel)document.querySelector(`#vh-rearwrap .${sel[0]==='h'?'vh':'at'}-sock[data-s="${sel.slice(1)}"]`)?.classList.add('psel');}
 function wire(){if(wired)return;wired=true;const root=document.getElementById('vh');
   document.getElementById('vh-patch').onclick=e=>{const on=!root.classList.contains('patch');if(on&&!confirm('Patch mode (admin): you can re-cable the rear panels. Changes are saved in this browser. Continue?'))return;
-    root.classList.toggle('patch',on);e.currentTarget.classList.toggle('on',on);e.currentTarget.textContent=on?'Exit patch mode':'Patch mode';sel=null;mark();if(on)msg('Click a router IN to choose what is cabled into it · click a router OUT and then an ATEM input to run a cable · click a plugged OUT / ATEM input to unplug it.');else VH.save();};
+    root.classList.toggle('patch',on);e.currentTarget.classList.toggle('on',on);e.currentTarget.textContent=on?'Exit patch mode':'Patch mode';sel=null;mark();if(on)msg('Click a free socket and then the other end to run a cable (router OUT → ATEM IN, or ATEM OUT → router IN), in either order · click a plugged socket to unplug it · click a router socket twice for cameras, vMix and other devices.');else VH.save();};
   document.getElementById('vh-exp').onclick=()=>{const st=VH.state(),b=new Blob([JSON.stringify({tvstudio:'video-rack-cabling',v:1,cabIn:st.cabIn,cabOut:st.cabOut},null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='tvstudio-video-cabling.json';a.click();};
   const fi=document.getElementById('vh-impfile');document.getElementById('vh-imp').onclick=()=>fi.click();
   fi.onchange=async()=>{try{const d=JSON.parse(await fi.files[0].text());if(!Array.isArray(d.cabIn)||!Array.isArray(d.cabOut))throw 0;const st=VH.state();st.cabIn=d.cabIn;st.cabOut=d.cabOut;VH.save();msg('Cabling imported.');}catch(_){alert('That file is not a cabling file.');}fi.value='';};
   document.getElementById('vh-def').onclick=()=>{if(!confirm('Put back the default (Tartanga) cabling?'))return;const st=VH.state();st.cabIn=[...VH.DEF.cabIn];st.cabOut=[...VH.DEF.cabOut];VH.save();msg('Default cabling restored.');};
-  wrap().addEventListener('click',e=>{if(!root.classList.contains('patch'))return;const h=e.target.closest('.vh-sock'),a=e.target.closest('.at-sock');if(!h&&!a)return;e.stopPropagation();const st=VH.state();
-    if(h){const d=h.dataset.s[0],k=+h.dataset.s.slice(1);
-      if(d==='i'){sel=null;mark();VH.plugMenu(h.dataset.s,e);return;}
-      if(st.cabOut[k]!=='none'&&sel!==h.dataset.s){st.cabOut[k]='none';sel=null;mark();VH.save();msg(`Router OUT ${k+1} unplugged.`);return;}
-      if(sel===h.dataset.s){sel=null;mark();VH.plugMenu(h.dataset.s,e);return;}   // second click = other destinations
-      sel=h.dataset.s;mark();msg(`Router OUT ${k+1} selected: click an ATEM input on the rear below (or click the OUT again for other destinations).`);return;}
-    const d=a.dataset.s[0],k=+a.dataset.s.slice(1);if(d!=='i'){msg('Only the ATEM SDI inputs take cables from the router here.');return;}
-    const v='atem'+(k+1),o=st.cabOut.indexOf(v);
-    if(sel){st.cabOut.forEach((x,i)=>{if(x===v)st.cabOut[i]='none';});st.cabOut[+sel.slice(1)]=v;const t=`Cable: router OUT ${+sel.slice(1)+1} → ATEM IN ${k+1}.`;sel=null;mark();VH.save();msg(t);return;}
-    if(o>=0){st.cabOut[o]='none';VH.save();msg(`ATEM IN ${k+1} unplugged.`);}else msg('Select a router OUT first.');},true);}
+  const nm=k=>({hi:'router IN ',ho:'router OUT ',ai:'ATEM IN ',ao:'ATEM OUT ',am:'ATEM MULTIVIEW '}[k.slice(0,2)]+(+k.slice(2)+1));
+  const plugged=k=>{const st=VH.state(),t=k.slice(0,2),n=+k.slice(2);return t==='hi'?st.cabIn[n]!=='none':t==='ho'?st.cabOut[n]!=='none':t==='ai'?st.cabOut.includes('atem'+(n+1)):t==='ao'?st.cabIn.some(v=>v==='ao'+(n+1)||(n===0&&v==='atem')):true;};
+  function unplug(k){const st=VH.state(),t=k.slice(0,2),n=+k.slice(2);
+    if(t==='hi')st.cabIn[n]='none';else if(t==='ho')st.cabOut[n]='none';
+    else if(t==='ai')st.cabOut.forEach((v,i)=>{if(v==='atem'+(n+1))st.cabOut[i]='none';});
+    else if(t==='ao')st.cabIn.forEach((v,i)=>{if(v==='ao'+(n+1)||(n===0&&v==='atem'))st.cabIn[i]='none';});}
+  function connect(x,y){const st=VH.state(),p={[x.slice(0,2)]:+x.slice(2),[y.slice(0,2)]:+y.slice(2)};
+    if('ho' in p&&'ai' in p){unplug('ai'+p.ai);st.cabOut[p.ho]='atem'+(p.ai+1);return `Cable: router OUT ${p.ho+1} → ATEM IN ${p.ai+1}.`;}
+    if('ao' in p&&'hi' in p){unplug('ao'+p.ao);st.cabIn[p.hi]='ao'+(p.ao+1);return `Cable: ATEM OUT ${p.ao+1} → router IN ${p.hi+1}.`;}
+    return null;}
+  wrap().addEventListener('click',e=>{if(!root.classList.contains('patch'))return;const g=e.target.closest('.vh-sock,.at-sock');if(!g)return;e.stopPropagation();
+    const k=(g.classList.contains('vh-sock')?'h':'a')+g.dataset.s;
+    if(k.startsWith('am')){msg('The MULTIVIEW output feeds the control-room monitor (fixed).');return;}
+    if(sel){if(sel===k){sel=null;mark();if(k[0]==='h')VH.plugMenu(k.slice(1),e);else msg('Cancelled.');return;}   // same socket again = other sources / destinations
+      const t=connect(sel,k);if(t){sel=null;mark();VH.save();msg(t);return;}
+      msg(`${nm(sel)} cannot be cabled to ${nm(k)} (an output must go to an input).`);return;}
+    if(plugged(k)){unplug(k);VH.save();msg(nm(k)+' unplugged.');return;}
+    sel=k;mark();msg(`${nm(k)} selected: now click where the other end goes${k[0]==='h'?' — or click it again for other sources / destinations':''}.`);},true);}
 window.CABLES={start(){sig='';wire();if(!raf)loop();}};
 })();

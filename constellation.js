@@ -42,7 +42,8 @@ function render(){const g=pgmCv.getContext('2d'),T=S.T;
   if(S.ftb.a>0){g.fillStyle=`rgba(0,0,0,${S.ftb.a})`;g.fillRect(0,0,CW,CH);}
   src(S.pvw,pvwCv.getContext('2d'),CW,CH);}
 function outFrame(id,g,w,h){const c={pgm:pgmCv,pvw:pvwCv,clean1:cleanCv}[id];if(c){g.drawImage(c,0,0,w,h);return true;}if(id==='mv1'){g.drawImage(mvCv,0,0,w,h);return true;}return src(id,g,w,h);}
-window.VH_SOURCES=window.VH_SOURCES||{};VH_SOURCES.atem=(g,w,h)=>outFrame(st.outs[0],g,w,h);   // ATEM SDI OUT 1 cabled back into the router
+window.VH_SOURCES=window.VH_SOURCES||{};VH_SOURCES.atem=(g,w,h)=>outFrame(st.outs[0],g,w,h);   // ATEM SDI OUT 1 cabled back into the router (old name)
+const aoUsed=k=>!!window.VH&&VH.state().cabIn.some(v=>v==='ao'+(k+1)||(k===0&&v==='atem'));
 /* ---------- multiview 1: preview + program on top, inputs 1-8 below ---------- */
 const mvCv=mk(960,540);
 function drawMV(){const g=mvCv.getContext('2d'),W=960,H=540;g.fillStyle='#000';g.fillRect(0,0,W,H);
@@ -103,8 +104,8 @@ function drawLcd(){const cv=document.getElementById('at-lcd');if(!cv)return;cons
     else if(m.page==='set')list('Settings',['Switching mode','IP address'],m.i,k=>k?st.ip.join('.'):st.mode==='pp'?'Program / Preview':'Cut Bus');
     return;}
   c.fillStyle='#000';c.fillRect(0,0,w,h);c.drawImage(pgmCv,0,0,w-26,(w-26)*9/16+0);
-  c.fillStyle='rgba(0,0,0,.6)';c.fillRect(0,0,w-26,24);c.fillStyle='#fff';c.font='700 15px sans-serif';c.fillText('♫ '+(S.audioSel?inName(S.audioSel):'Master'),8,17);
-  const lv=Math.max(0,.55+S.master/40+Math.sin(performance.now()/180)*.08);['#3be07a'].forEach(col=>{c.fillStyle='#222';c.fillRect(w-22,4,7,h-40);c.fillRect(w-12,4,7,h-40);c.fillStyle=col;const hh=(h-40)*Math.min(1,lv);c.fillRect(w-22,4+(h-40)-hh,7,hh);c.fillRect(w-12,4+(h-40)-hh*.96,7,hh*.96);});
+  c.fillStyle='rgba(0,0,0,.6)';c.fillRect(0,0,w-26,24);c.fillStyle='#fff';c.font='700 15px sans-serif';c.fillText(S.audioSel?inName(S.audioSel):'Master',8,17);
+  const lv=0;   // no embedded audio is simulated on the video sources['#3be07a'].forEach(col=>{c.fillStyle='#222';c.fillRect(w-22,4,7,h-40);c.fillRect(w-12,4,7,h-40);c.fillStyle=col;const hh=(h-40)*Math.min(1,lv);c.fillRect(w-22,4+(h-40)-hh,7,hh);c.fillRect(w-12,4+(h-40)-hh*.96,7,hh*.96);});
   c.fillStyle='#fff';c.font='700 16px sans-serif';c.textAlign='right';c.fillText((S.master>=0?'':'')+S.master.toFixed(1)+'dB',w-6,h-12);c.textAlign='left';
   c.font='600 13px sans-serif';c.fillStyle='#c9ced6';c.fillText(S.locked?'🔒 Panel locked':(S.msg||'PGM '+srcLabel(S.pgm)+' · PVW '+srcLabel(S.pvw)),8,h-12);}
 /* ---------- keys ---------- */
@@ -115,7 +116,7 @@ function draw(){for(let n=1;n<=20;n++){setK('s'+n,'pgm',S.pgm===n||(S.T&&S.pvw==
   ['mix','wipe','dip','dve'].forEach(t=>{setK('t'+t,'sel',S.trans===t);setK('t'+t,'pgm',S.trans===t&&!!S.T);});
   setK('auto','amber',!!S.T);setK('cut','sel',false);setK('key1','pgm',S.key1.on);setK('dsk1','pgm',S.dsk1.on);setK('dsk2','pgm',S.dsk2.on);setK('ftb','blink',S.ftb.on);
   setK('lock','pgm',S.locked);setK('lock','blink',S.lockFlash>performance.now());setK('menu','sel',!!S.menu);
-  document.querySelectorAll('#at-rsvg .at-sock').forEach(g=>{const d=g.dataset.s[0],k=+g.dataset.s.slice(1);g.classList.toggle('plugged',d==='i'?hubOutFor(k+1)>=0:d==='m'?k===0:false);});
+  document.querySelectorAll('#at-rsvg .at-sock').forEach(g=>{const d=g.dataset.s[0],k=+g.dataset.s.slice(1);g.classList.toggle('plugged',d==='i'?hubOutFor(k+1)>=0:d==='m'?k===0:aoUsed(k));});
   drawLcd();}
 function take(){if(S.T)return;const a=S.pgm;S.pgm=S.pvw;S.pvw=a;}
 function auto(){if(S.T)return;S.T={t0:performance.now(),ms:st.rate*40,p:0,fx:S.trans};}
@@ -171,5 +172,5 @@ function loop(now){requestAnimationFrame(loop);const vis=document.getElementById
   if(vis){drawLcd();if(S.ftb.on||S.lockFlash>now)draw();}
   if(pop){const c=mvWin.document.getElementById('mv');if(c)c.getContext('2d').drawImage(mvCv,0,0);}}
 requestAnimationFrame(loop);
-window.ATEMR={mount,redraw:()=>draw(),state:()=>st,program:()=>pgmCv};
+window.ATEMR={mount,redraw:()=>draw(),outFrame:(k,g,w,h)=>outFrame(st.outs[k],g,w,h),outLabel:k=>srcLabel(st.outs[k]),state:()=>st,program:()=>pgmCv};
 })();

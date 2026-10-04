@@ -20,7 +20,7 @@ const DEF={cabIn:['cam1','cam2','cam3','cam4','vfill','vkey',...Array(14).fill('
   routes:[...Array(N).keys()],locks:Array(N).fill(false),useTake:true,net:[[192,168,11,50],[255,255,255,0],[192,168,11,1]]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(_){}};   // routes survive a power cut (real: "power fail protection")
-const inLab=i=>st.cabIn[i]==='none'?'Input '+(i+1):SRCS[st.cabIn[i]];
+const inLab=i=>{const v=st.cabIn[i],m=/^ao(\d+)$/.exec(v);return v==='none'?'Input '+(i+1):m?'ATEM OUT '+m[1]:SRCS[v];};
 const outLab=o=>st.cabOut[o]==='none'?'Output '+(o+1):DSTS[st.cabOut[o]];
 /* front-panel state */
 const U={mode:'dest',dest:0,pend:null,video:false,menu:null,blink:0,holdT:null,msg:''};
@@ -33,12 +33,13 @@ function camFrame(c,n,w,h,t){const v=PACK.v[n];
   c.font=`600 ${h*.07}px sans-serif`;c.fillText('simulated camera · load the pack for real images',w/2,h*.7);
   const s=Math.floor(t/1000);c.fillText(String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')+':'+String(Math.floor(t/40)%25).padStart(2,'0'),w/2,h*.82);return true;}
 /* draws input i into c; false = no signal */
-function sigFrame(c,i,w,h){const k=st.cabIn[i],t=performance.now();
+function sigFrame(c,i,w,h){const k=st.cabIn[i],t=performance.now(),ao=/^ao(\d+)$/.exec(k);
+  if(ao)return window.ATEMR?ATEMR.outFrame(+ao[1]-1,c,w,h)!==false:false;   // an ATEM SDI output cabled back into the router
   if(k.startsWith('cam'))return camFrame(c,+k.slice(3),w,h,t);
   const ext=window.VH_SOURCES&&window.VH_SOURCES[k];   // other simulators can feed a signal (vMix fill/key, ATEM PGM…)
   if(ext){try{return ext(c,w,h)!==false;}catch(_){}}
   return false;}
-const hasSig=i=>{const k=st.cabIn[i];return k.startsWith('cam')||!!(window.VH_SOURCES&&window.VH_SOURCES[k]);};
+const hasSig=i=>{const k=st.cabIn[i];return k.startsWith('cam')||/^ao\d+$/.test(k)||!!(window.VH_SOURCES&&window.VH_SOURCES[k]);};
 
 /* ---------- drawing ---------- */
 const X=f=>f*PW,Y=f=>f*PH;

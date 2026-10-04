@@ -235,7 +235,7 @@
   .vh-cab{fill:none;stroke:#1d2a44;stroke-width:4.5;stroke-linecap:round;pointer-events:stroke;cursor:help}.vh-cab.bnc{stroke:#2f5fb3}.vh-cab:hover,.vh-cab.hl{stroke:#ffcf5a;stroke-width:6.5;filter:drop-shadow(0 0 4px #ffcf5a)}
   .vh-tag{font:700 8.5px -apple-system,sans-serif;fill:#fff}.vh-tagbg{fill:#c2185b}.vh-plugc{fill:#1b1d22;stroke:#8fa6c9;stroke-width:2;pointer-events:none}
   .vh-sock.hl .vh-bnc,.at-sock.hl .vh-bnc{stroke:#ffcf5a;stroke-width:3}
-  .vh-pbtns{display:none}.vh.patch .vh-pbtns{display:contents}.vh.patch .vh-rearwrap .vh-sock,.vh.patch .vh-rearwrap .at-sock[data-s^="i"]{cursor:copy}.vh.patch .vh-rearwrap .vh-sock[data-s^="o"].plugged,.vh.patch .vh-rearwrap .at-sock[data-s^="i"].plugged{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Ccircle cx='11' cy='11' r='9' fill='%23c2185b' stroke='white' stroke-width='2'/%3E%3Crect x='6' y='9.8' width='10' height='2.4' fill='white'/%3E%3C/svg%3E") 11 11,not-allowed}.vh.patch .vh-rearwrap .vh-sock[data-s^="i"]{cursor:context-menu}.vh.patch .vh-rearwrap{outline:2px dashed #c2185b;outline-offset:4px;border-radius:6px}
+  .vh-pbtns{display:none}.vh.patch .vh-pbtns{display:contents}.vh.patch .vh-rearwrap .vh-sock,.vh.patch .vh-rearwrap .at-sock[data-s^="i"],.vh.patch .vh-rearwrap .at-sock[data-s^="o"]{cursor:copy}.vh.patch .vh-rearwrap .vh-sock.plugged,.vh.patch .vh-rearwrap .at-sock[data-s^="i"].plugged,.vh.patch .vh-rearwrap .at-sock[data-s^="o"].plugged{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Ccircle cx='11' cy='11' r='9' fill='%23c2185b' stroke='white' stroke-width='2'/%3E%3Crect x='6' y='9.8' width='10' height='2.4' fill='white'/%3E%3C/svg%3E") 11 11,not-allowed}.vh.patch .vh-rearwrap{outline:2px dashed #c2185b;outline-offset:4px;border-radius:6px}
   .psel .vh-bnc{stroke:#ff4fa3!important;stroke-width:4!important}#vh-patch.on{background:#c2185b;color:#fff}
   .at-pgmnote{font-size:11.5px;color:var(--ce-muted);margin-top:6px}
   .vh-lab{margin:6px 0 0;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ce-muted)}.vh-lab span{font-weight:400;letter-spacing:0}
@@ -572,7 +572,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=54"></script>
+<script src="power.js?v=55"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -582,7 +582,7 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=54"></script>
+<script src="desk.js?v=55"></script>
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
@@ -617,14 +617,14 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=54"></script>
+<script src="m32r.js?v=55"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=54"></script>
-<script src="constellation.js?v=54"></script>
-<script src="hyperdeck.js?v=54"></script>
-<script src="cables.js?v=54"></script>
+<script src="videohub.js?v=55"></script>
+<script src="constellation.js?v=55"></script>
+<script src="hyperdeck.js?v=55"></script>
+<script src="cables.js?v=55"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=54"></script>
+<script src="vmix.js?v=55"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
