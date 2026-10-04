@@ -10,6 +10,8 @@ const CAT=[{n:'All',c:'#293038'},{n:'RED',c:'#8B0000'},{n:'GREEN',c:'#006400'},{
 const FX=['Fade','Merge','Wipe','Slide','Zoom','Fly','VerticalWipe','VerticalSlide','CrossZoom'];
 const V={inputs:[],next:1,pv:null,pgm:null,cat:0,search:'',trans:[{fx:'Fade',ms:1000},{fx:'Merge',ms:1000},{fx:'Wipe',ms:1000},{fx:'Zoom',ms:1000}],
   T:null,tbar:0,tbarDir:1,ov:Array.from({length:8},()=>({inp:null,a:0,target:0})),ftb:false,mixer:false,basic:false,lock:false,
+  pl:{items:[],loop:true,run:false,idx:-1,t0:0},keys:false,
+  busA:{vol:.8,mute:false,M:false},busB:{vol:.8,mute:false,M:false},hpVol:1,
   rec:false,recT0:0,stream:false,streamT0:0,ext:false,alpha:'None',fps:0,rt:0,
   ovset:Array.from({length:8},()=>({type:'Fullscreen',fx:'Fade',ms:500,dur:0,zoom:.45,px:.55,py:-.55})),
   stingers:[{inp:null,cut:600,dur:1200},{inp:null,cut:600,dur:1200}]};   // Stinger 1-2 (Overlay Settings › Number)   // Overlay Settings per channel
@@ -99,12 +101,20 @@ function scene(out,{a,b,p,fx,ovs,keyOnly,transparent}){gl.viewport(0,0,W,H);gl.d
 /* ---------- audio ---------- */
 function ensureAudio(){if(A){A.ctx.resume();return;}const ctx=new (window.AudioContext||window.webkitAudioContext)();
   A={ctx,master:ctx.createGain(),an:[ctx.createAnalyser(),ctx.createAnalyser()],sp:ctx.createChannelSplitter(2),hp:ctx.createGain(),dest:ctx.createMediaStreamDestination()};
-  A.master.connect(A.sp);A.sp.connect(A.an[0],0);A.sp.connect(A.an[1],1);A.master.connect(A.hp);A.hp.connect(ctx.destination);A.master.connect(A.dest);A.an.forEach(a=>a.fftSize=512);
+  A.master.connect(A.sp);A.sp.connect(A.an[0],0);A.sp.connect(A.an[1],1);A.master.connect(A.dest);A.an.forEach(a=>a.fftSize=512);
+  /* buses A / B (own fader, mute, M = also into the master), solo bus → headphones (here: the speakers) */
+  ['A','B'].forEach(k=>{const b=A['bus'+k]={in:ctx.createGain(),out:ctx.createGain(),toM:ctx.createGain(),an:ctx.createAnalyser()};b.an.fftSize=512;b.in.connect(b.out);b.out.connect(b.an);b.out.connect(b.toM);b.toM.connect(A.master);});
+  A.solo=ctx.createGain();A.hpM=ctx.createGain();A.hpS=ctx.createGain();A.master.connect(A.hpM);A.solo.connect(A.hpS);A.hpM.connect(A.hp);A.hpS.connect(A.hp);A.hp.connect(ctx.destination);
   V.inputs.forEach(attachAudio);}
 function attachAudio(inp){if(!A||!inp.audio||inp.g)return;try{const s=inp.type==='camera'?A.ctx.createMediaStreamSource(inp.stream):A.ctx.createMediaElementSource(inp.el);
-  inp.g=A.ctx.createGain();inp.an=A.ctx.createAnalyser();inp.an.fftSize=512;s.connect(inp.g);inp.g.connect(inp.an);inp.g.connect(A.master);if(inp.type==='video')inp.el.muted=false;}catch(e){}}
+  const c=A.ctx;inp.trim=c.createGain();inp.pn=c.createStereoPanner();inp.g=c.createGain();inp.an=c.createAnalyser();inp.an.fftSize=512;s.connect(inp.trim);inp.trim.connect(inp.pn);inp.pn.connect(inp.g);inp.g.connect(inp.an);
+  inp.toM=c.createGain();inp.toA=c.createGain();inp.toB=c.createGain();inp.toS=c.createGain();inp.g.connect(inp.toM);inp.toM.connect(A.master);inp.g.connect(inp.toA);inp.toA.connect(A.busA.in);inp.g.connect(inp.toB);inp.toB.connect(A.busB.in);inp.g.connect(inp.toS);inp.toS.connect(A.solo);
+  if(inp.type==='video')inp.el.muted=false;applyAudio();}catch(e){}}
 function audioActive(inp){if(inp.mute)return false;if(!inp.afv)return true;return V.pgm===inp||V.ov.some(o=>o.inp===inp&&o.target>0);}
-function applyAudio(){if(!A)return;const t=A.ctx.currentTime;V.inputs.forEach(x=>{if(x.g)x.g.gain.setTargetAtTime(audioActive(x)?x.vol*x.vol*(x.bus.M?1:0):0,t,.05);});A.master.gain.setTargetAtTime(V.masterVol??.8,t,.05);}
+function applyAudio(){if(!A)return;const t=A.ctx.currentTime,T=(n,v)=>n&&n.gain.setTargetAtTime(v,t,.05),anySolo=V.inputs.some(x=>x.solo);
+  V.inputs.forEach(x=>{if(!x.g)return;T(x.g,audioActive(x)?x.vol*x.vol:0);T(x.toM,x.bus.M?1:0);T(x.toA,x.bus.A?1:0);T(x.toB,x.bus.B?1:0);T(x.toS,x.solo?1:0);T(x.trim,Math.pow(10,(x.gainDb||0)/20));if(x.pn)x.pn.pan.setTargetAtTime(x.panV||0,t,.05);});
+  ['A','B'].forEach(k=>{const B=V['bus'+k];T(A['bus'+k].out,B.mute?0:B.vol*B.vol);T(A['bus'+k].toM,B.M?1:0);});
+  T(A.master,V.masterMute?0:(V.masterVol??.8));T(A.hpM,anySolo?0:1);T(A.hpS,anySolo?1:0);T(A.hp,V.hpVol??1);}
 const fbuf=new Float32Array(512);const lvl=an=>{if(!an)return 0;an.getFloatTimeDomainData(fbuf);let m=0;for(const v of fbuf)m=Math.max(m,Math.abs(v));return m;};
 
 /* ---------- transitions ---------- */
@@ -187,8 +197,11 @@ function wire(){
   // tooltips (simulator help, outside the vMix look)
   root.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip]'),tip=$('#vx-tip');if(!t){tip.classList.remove('on');return;}tip.textContent=t.dataset.tip;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});
   document.addEventListener('pointerdown',e=>{const p=$('#vx-pop');if(p.classList.contains('on')&&!p.contains(e.target)&&!e.target.closest('[data-a^="trm"],[data-a="add"]'))p.classList.remove('on');});
-  addEventListener('keydown',e=>{if(!root.classList.contains('on')||e.target.closest('input,textarea,select'))return;
-    if(e.key==='Escape'){if($('#vx-modal').classList.contains('on'))closeModal();else window.closeVmix();}});}
+  addEventListener('keydown',e=>{if(!root.classList.contains('on')||e.target.closest?.('input,textarea,select'))return;
+    if(e.key==='Escape'){if($('#vx-modal').classList.contains('on'))closeModal();else window.closeVmix();return;}
+    if(!V.keys||$('#vx-modal').classList.contains('on'))return;const k=e.key;   /* class template shortcuts (Settings) */
+    if((e.ctrlKey||e.metaKey)&&/^[1-8]$/.test(k)){e.preventDefault();if(V.pv)toggleOverlay(+k-1,V.pv);return;}
+    if(/^[1-9]$/.test(k)){const x=V.inputs[+k-1];if(x){V.pv=x;draw();}}else if(k===' '){e.preventDefault();cut();}else if(k==='t'||k==='T'){const t=V.trans[0];doTrans(t.fx,t.ms);}else if(k==='q'||k==='Q')doTrans('Fade',500);else if(k==='b'||k==='B'){V.ftb=!V.ftb;draw();}});}
 const byId=id=>V.inputs.find(x=>x.id===id);
 function act(a,b,e){
   if(a==='exit')return window.closeVmix();
@@ -213,12 +226,12 @@ function act(a,b,e){
     if(a==='ib-loop'){inp.loop=!inp.loop;if(inp.el)inp.el.loop=inp.loop;return draw();}
     if(a==='ib-th'){V.pv=inp;return draw();}}
   if(a.startsWith('tp-')){const v=a.slice(3,5)==='pv'?V.pv:V.pgm,op=a.slice(6);if(!v||v.type!=='video')return;if(op==='play')v.el.paused?v.el.play():v.el.pause();if(op==='restart'){v.el.currentTime=0;}return draw();}
-  if(a==='mx-master'){V.masterMute=!V.masterMute;if(A)A.master.gain.value=V.masterMute?0:.8;return draw();}
+  if(a==='mx-master'){V.masterMute=!V.masterMute;applyAudio();return draw();}
   if(a==='rec')return toggleRec();if(a==='recset')return recDialog();
   if(a==='stream')return toggleStream();if(a==='strset')return streamDialog(false);
   if(a==='ext'){V.ext=!V.ext;if(V.ext)openExtWin();else if(V.extWin&&!V.extWin.closed)V.extWin.close();return draw();}if(a==='extset')return extDialog();
   if(a==='multiview')return openMvWin('MultiView');if(a==='fullscreen')return fullscreenMenu(b);if(a==='snap')return snapshot();
-  if(a==='overlay')return overlayDialog();if(a==='settings')return outputsDialog();
+  if(a==='overlay')return overlayDialog();if(a==='plset')return playlistDialog();if(a==='playlist'){if(!V.pl.items.length)return playlistDialog();V.pl.run=!V.pl.run;V.pl.idx=-1;return draw();}if(a==='settings')return outputsDialog();
   if(a==='save')return savePreset(false);if(a==='saveas')return savePreset(true);if(a==='open')return openPreset();
   if(a==='last'){let d=null;try{d=JSON.parse(localStorage.getItem('vx-last'));}catch(_){}return d?loadPreset(d):alertBox('Last','No preset saved yet on this computer.');}
   if(a==='new')return confirmBox('New preset','Close every input and start an empty production?',()=>{clearAll();V.preset=null;draw();});
@@ -249,13 +262,17 @@ function draw(){if(!root.dataset.built)return;
       <span>${[5,6,7,8].map(n=>`<button class="vx-o${V.ov[n-1].inp===x&&V.ov[n-1].target>0?' on':''}${V.ov[n-1].pend===x?' pend':''}" data-a="ib-ov${n-1}" data-ovin="${x.id}:${n-1}">${n}</button>`).join('')}<button class="vx-au${x.audio&&!x.mute?' on':''}" data-a="ib-audio">Audio</button><button data-a="ib-mon">${ICON.mon}</button><button data-a="ib-cog" style="color:${x.cat?CAT[x.cat].c:'#ddd'}">${ICON.cog}</button></span></div></div>`;}).join('')||`<div class="vx-empty">No inputs${V.cat?' in this category':''}. Use <b>Add Input</b> (bottom left).</div>`;
   // mixer
   const mx=$('.vx-mix',root);if(V.mixer){const ain=V.inputs.filter(x=>x.audio);
-    mx.innerHTML=`<div class="vx-mxb"><div class="vx-mxl">OUTPUTS</div><div class="vx-strip"><div class="vx-sth" style="background:#006400">Master</div><button data-a="mx-master" class="${V.masterMute?'':'on'}">${ICON.spk}</button><input type="range" class="vx-fd" orient="vertical" min="0" max="100" value="${(V.masterVol??.8)*100}" data-mv="master"><div class="vx-mm" data-meter="master"><i></i><i></i></div></div></div>
-      <div class="vx-mxb"><div class="vx-mxl">INPUTS</div>${ain.map(x=>`<div class="vx-strip" data-id="${x.id}"><div class="vx-sth">${x.name}</div><button class="vx-afv${x.afv?' on':''}" data-mx="afv" title="Audio follow video (automatically mix audio)">⇄</button><button class="${x.mute?'':'on'}" data-mx="mute">${ICON.spk}</button>
+    mx.innerHTML=`<div class="vx-mxb"><div class="vx-mxl">OUTPUTS</div><div class="vx-strip"><div class="vx-sth" style="background:#006400">Master</div><button data-a="mx-master" class="${V.masterMute?'':'on'}">${ICON.spk}</button><input type="range" class="vx-fd" orient="vertical" min="0" max="100" value="${(V.masterVol??.8)*100}" data-mv="master"><div class="vx-mm" data-meter="master"><i></i><i></i></div><label class="vx-hp" title="Headphones (solo) volume">🎧<input type="range" min="0" max="100" value="${(V.hpVol??1)*100}" data-hp></label></div>
+      ${['A','B'].map(k=>{const B=V['bus'+k];return `<div class="vx-strip" data-bus="${k}"><div class="vx-sth" style="background:#0087FF">Bus ${k}</div><button class="${B.mute?'':'on'}" data-bx="mute">${ICON.spk}</button>
+        <input type="range" class="vx-fd" orient="vertical" min="0" max="100" value="${B.vol*100}" data-bv="${k}"><div class="vx-mm" data-meter="bus${k}"><i></i><i></i></div><div class="vx-bus"><button class="${B.M?'on':''}" data-bx="M" title="Also send this bus to the Master">M</button></div></div>`;}).join('')}</div>
+      <div class="vx-mxb"><div class="vx-mxl">INPUTS</div>${ain.map(x=>`<div class="vx-strip" data-id="${x.id}"><div class="vx-sth">${x.name}</div><button data-mx="set" title="Audio Settings (gain, pan)">⚙</button><button class="vx-solo${x.solo?' on':''}" data-mx="solo" title="Solo: listen to this input alone in the headphones">S</button><button class="vx-afv${x.afv?' on':''}" data-mx="afv" title="Audio follow video (automatically mix audio)">⇄</button><button class="${x.mute?'':'on'}" data-mx="mute">${ICON.spk}</button>
         <input type="range" class="vx-fd" orient="vertical" min="0" max="100" value="${x.vol*100}" data-mv="${x.id}"><div class="vx-mm" data-meter="${x.id}"><i></i><i></i></div><div class="vx-bus">${['M','A','B'].map(k=>`<button class="${x.bus[k]?'on':''}" data-mx="bus${k}">${k}</button>`).join('')}</div></div>`).join('')||'<div class="vx-empty">No inputs with audio.</div>'}</div>`;
     $$('[data-mv]',mx).forEach(r=>r.oninput=()=>{const v=r.value/100;if(r.dataset.mv==='master')V.masterVol=v;else byId(+r.dataset.mv).vol=v;applyAudio();});
-    $$('[data-mx]',mx).forEach(b=>b.onclick=()=>{const x=byId(+b.closest('.vx-strip').dataset.id),k=b.dataset.mx;if(k==='afv')x.afv=!x.afv;else if(k==='mute')x.mute=!x.mute;else{const bb=k.slice(3);x.bus[bb]=!x.bus[bb];}applyAudio();draw();});}
+    $$('[data-mx]',mx).forEach(b=>b.onclick=()=>{const x=byId(+b.closest('.vx-strip').dataset.id),k=b.dataset.mx;if(k==='set')return audioSettings(x);if(k==='afv')x.afv=!x.afv;else if(k==='mute')x.mute=!x.mute;else if(k==='solo')x.solo=!x.solo;else{const bb=k.slice(3);x.bus[bb]=!x.bus[bb];}applyAudio();draw();});
+    $$('[data-bv]',mx).forEach(r=>r.oninput=()=>{V['bus'+r.dataset.bv].vol=r.value/100;applyAudio();});$$('[data-bx]',mx).forEach(b=>b.onclick=()=>{const B=V['bus'+b.closest('.vx-strip').dataset.bus];if(b.dataset.bx==='mute')B.mute=!B.mute;else B.M=!B.M;applyAudio();draw();});
+    const hp=$('[data-hp]',mx);if(hp)hp.oninput=()=>{V.hpVol=hp.value/100;applyAudio();};}
   // bottom bar
-  $('[data-a="rec"]',root).classList.toggle('live',V.rec);$('[data-a="stream"]',root).classList.toggle('live',!!V.stream);$('[data-a="stream"]',root).textContent=V.stream==='connecting'?'Connecting…':'Stream ▴';$('[data-a="ftb"]',root).dataset.tip='Fade To Black: fades Record, Stream, External and Fullscreen to black. The Output viewer stays visible so you can prepare the next shot.';$('[data-a="ext"]',root).classList.toggle('live',V.ext);
+  $('[data-a="rec"]',root).classList.toggle('live',V.rec);$('[data-a="stream"]',root).classList.toggle('live',!!V.stream);$('[data-a="stream"]',root).textContent=V.stream==='connecting'?'Connecting…':'Stream ▴';$('[data-a="ftb"]',root).dataset.tip='Fade To Black: fades Record, Stream, External and Fullscreen to black. The Output viewer stays visible so you can prepare the next shot.';$('[data-a="ext"]',root).classList.toggle('live',V.ext);$('[data-a="playlist"]',root).classList.toggle('live',V.pl.run);
   $('[data-a="lock"]',root).classList.toggle('lock',V.lock);$('[data-a="basic"]',root).textContent=V.basic?'Advanced':'Basic';
   $('[data-a="multicorder"]',root).dataset.tip='MultiCorder is not available in the HD edition (4K / Pro / Max only).';
   applyAudio();}
@@ -263,6 +280,8 @@ function draw(){if(!root.dataset.built)return;
 /* ---------- main loop ---------- */
 let last=performance.now(),acc=0,frames=0;
 function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on'))return;const t0=performance.now();
+  if(V.pl.run&&!V.T){const P=V.pl,it=P.items[P.idx];if(P.idx<0||(it&&now-P.t0>it.dur)){let n=P.idx+1;if(n>=P.items.length){if(!P.loop){P.run=false;draw();}n=0;}
+    const nx=P.items[n],inp=nx&&byId(nx.id);if(P.run&&inp){P.idx=n;P.t0=now;V.pv=inp;if(nx.fx==='Cut')cut();else doTrans(nx.fx,nx.ms);draw();}else if(P.run){P.run=false;draw();}}}   /* PlayList: Preview = next item, then its transition */
   packSync();V.inputs.forEach(x=>{if(x.type==='sdi')sdiFrame(x);else if(x.type==='vset')renderVset(x);});
   if(V.T&&!V.T.manual){const p=Math.min(1,(now-V.T.t0)/V.T.ms);V.T.p=p;if(p>=1)finishTrans();}
   V.ov.forEach((o,n)=>{const S=V.ovset[n],sp=S.fx==='Cut'||!S.ms?1:Math.min(1,(now-(V.lastNow||now)+1)/S.ms);o.a+=Math.sign(o.target-o.a)*Math.min(Math.abs(o.target-o.a),sp);
@@ -278,7 +297,7 @@ function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on')
   $$('.vx-box',root).forEach(bx=>{const inp=byId(+bx.dataset.id),c=$('canvas',bx);if(!inp||!c||!inp.ready&&inp.type!=='title')return;const g=c.getContext('2d');
     g.fillStyle='#000';g.fillRect(0,0,192,108);try{if(inp.type==='title'){inp.anim=1;drawTitle(inp);}g.drawImage(inp.el,0,0,192,108);}catch(_){}
     const m=$('.vx-im',bx);if(m&&inp.an){const v=lvl(inp.an);m.children[0].style.height=m.children[1].style.height=Math.min(100,v*130)+'%';}});
-  if(V.mixer&&A){$$('[data-meter]',root).forEach(m=>{const k=m.dataset.meter;let l=0,r=0;if(k==='master'){l=lvl(A.an[0]);r=lvl(A.an[1]);}else{const x=byId(+k);l=r=x&&x.an?lvl(x.an):0;}
+  if(V.mixer&&A){$$('[data-meter]',root).forEach(m=>{const k=m.dataset.meter;let l=0,r=0;if(k==='master'){l=lvl(A.an[0]);r=lvl(A.an[1]);}else if(k==='busA'||k==='busB'){l=r=lvl(A[k].an);}else{const x=byId(+k);l=r=x&&x.an?lvl(x.an):0;}
     m.children[0].style.height=Math.min(100,l*120)+'%';m.children[1].style.height=Math.min(100,r*120)+'%';});}
   // transport position
   ['pv','pg'].forEach(k=>{const inp=k==='pv'?V.pv:V.pgm,tp=$(`.vx-tp[data-v="${k}"]`,root);if(inp&&inp.type==='video'&&tp.firstChild){const d=inp.el.duration||0,c=inp.el.currentTime||0;
@@ -418,6 +437,23 @@ function stingerDialog(k){const st=V.stingers[k],cands=V.inputs.filter(x=>x.type
     <label>Stinger Cut Point (ms) <input type="number" class="st-c" min="0" max="10000" step="50" value="${st.cut}"></label></div>
     <p class="vx-hint">A stinger is an animation that covers the screen: at the <b>Cut Point</b> (when it hides everything) vMix cuts Preview to Output behind it. Add it with <i>Add Input › Image Sequence / Stinger</i>, set it here, then choose <b>Stinger ${k+1}</b> in the ▾ menu of a transition button.</p>`,{w:460,cancel:false});
   $('.ov-n',m).onchange=e=>overlayDialog(+e.target.value);$('.st-in',m).onchange=e=>{st.inp=byId(+e.target.value)||null;};$('.st-d',m).oninput=e=>{st.dur=Math.max(200,+e.target.value||1200);};$('.st-c',m).oninput=e=>{st.cut=Math.max(0,+e.target.value||0);};}
+function audioSettings(x){const m=modal('Audio Settings — '+x.name,`<div class="vx-kbox"><div><label class="vx-sl">Gain (dB)<input type="range" class="as-g" min="-20" max="20" step=".5" value="${x.gainDb||0}"></label><label class="vx-sl">Pan<input type="range" class="as-p" min="-1" max="1" step=".05" value="${x.panV||0}"></label></div>
+    <div><p class="vx-hint">Gain = input level before the fader. Pan = left / right. Buses: <b>M</b> = Master (record, stream, external), <b>A</b> / <b>B</b> = other mixes (e.g. a mix-minus for a video call). <b>S</b> (solo) = listen to it alone in the headphones.</p></div></div>`,{w:520,cancel:false});
+  $('.as-g',m).oninput=e=>{x.gainDb=+e.target.value;applyAudio();};$('.as-p',m).oninput=e=>{x.panV=+e.target.value;applyAudio();};}
+/* PlayList: Available Inputs › > › PlayList; per item Duration, Transition, Transition Duration; Loop; Start */
+function playlistDialog(){const P=V.pl,FXL=['Cut','Fade','Wipe','Slide','Zoom','Merge'];
+  const m=modal('PlayList',`<div class="vx-pl"><div><b>Available Inputs</b><select size="9" class="pl-av">${V.inputs.map(x=>`<option value="${x.id}">${x.num} ${x.name}</option>`).join('')}</select></div><div class="pl-mid"><button class="pl-add">&gt;</button><button class="pl-rm">&lt;</button><button class="pl-up">▲</button><button class="pl-dn">▼</button></div>
+    <div><b>PlayList</b><select size="9" class="pl-list"></select></div></div>
+    <div class="vx-kbox"><div><label class="vx-sl">Duration (s)<input type="number" class="pl-d" min="1" max="600" step="1"></label><label>Transition <select class="pl-fx">${FXL.map(f=>`<option>${f}</option>`).join('')}</select></label><label class="vx-sl">Transition (ms)<input type="number" class="pl-ms" min="0" max="5000" step="100"></label></div>
+      <div><label><input type="checkbox" class="pl-loop" ${P.loop?'checked':''}> Loop</label><button class="pl-go">${P.run?'Stop':'Start'}</button><p class="vx-hint">Each item goes to Preview and then on air with its transition, after the previous item's duration. While it runs the PlayList button is lit.</p></div></div>`,{w:640,cancel:false});
+  const L=$('.pl-list',m),sel=()=>P.items[L.selectedIndex];
+  const fill=()=>{const i=L.selectedIndex;L.innerHTML=P.items.map(it=>{const x=byId(it.id);return `<option>${x?x.name:'(closed)'} — ${it.dur/1000}s · ${it.fx}</option>`;}).join('');L.selectedIndex=Math.min(Math.max(i,0),P.items.length-1);show();};
+  const show=()=>{const it=sel();$('.pl-d',m).value=it?it.dur/1000:'';$('.pl-fx',m).value=it?it.fx:'Fade';$('.pl-ms',m).value=it?it.ms:'';};
+  $('.pl-add',m).onclick=()=>{const id=+$('.pl-av',m).value;if(id){P.items.push({id,dur:5000,fx:'Fade',ms:500});fill();L.selectedIndex=P.items.length-1;show();}};
+  $('.pl-rm',m).onclick=()=>{if(sel()){P.items.splice(L.selectedIndex,1);fill();}};
+  const mv=d=>{const i=L.selectedIndex,j=i+d;if(i<0||j<0||j>=P.items.length)return;[P.items[i],P.items[j]]=[P.items[j],P.items[i]];fill();L.selectedIndex=j;};$('.pl-up',m).onclick=()=>mv(-1);$('.pl-dn',m).onclick=()=>mv(1);
+  L.onchange=show;$('.pl-d',m).oninput=e=>{const it=sel();if(it){it.dur=Math.max(1,+e.target.value||5)*1000;fill();}};$('.pl-fx',m).onchange=e=>{const it=sel();if(it){it.fx=e.target.value;fill();}};$('.pl-ms',m).oninput=e=>{const it=sel();if(it)it.ms=Math.max(0,+e.target.value||0);};
+  $('.pl-loop',m).onchange=e=>P.loop=e.target.checked;$('.pl-go',m).onclick=e=>{if(!P.items.length)return;P.run=!P.run;P.idx=-1;e.target.textContent=P.run?'Stop':'Start';draw();};fill();}
 function titleEditor(inp){modal('Title Editor — '+inp.name,`<div class="vx-te">${Object.keys(inp.fields).map(k=>`<label>${k}<input data-f="${k}" value="${inp.fields[k]}"></label>`).join('')}<label class="vx-live"><input type="checkbox" checked disabled> Live (updates as you type)</label></div>`,{w:480,cancel:false});
   $$('[data-f]',$('#vx-modal')).forEach(i=>i.oninput=()=>{inp.fields[i.dataset.f]=i.value;drawTitle(inp);});}
 function catDialog(){const L=V.catLabels||(V.catLabels=CAT.map(()=>''));modal('Input Categories',`<div class="vx-cd">${CAT.slice(1).map((c,i)=>`<label><span style="background:${c.c}"></span><input data-c="${i+1}" value="${L[i+1]}" placeholder="${c.n}"></label>`).join('')}</div><p class="vx-hint">Type a label for each category. Drag an input's thumbnail onto a category button to move it there.</p>`,{w:420,onOk:m=>{$$('[data-c]',m).forEach(x=>L[+x.dataset.c]=x.value.trim());draw();}});}
@@ -478,11 +514,12 @@ function streamDialog(startAfter){modal('Streaming',`<div class="vx-dests">${[1,
   <p class="vx-hint">Simulator: nothing is actually sent to the internet. Type any key to practise the steps. (Real YouTube URL: rtmp://a.rtmp.youtube.com/live2 + your stream key from YouTube Studio.)</p>`,{w:520,ok:startAfter?'Start':'Save and Close',onOk:m=>{STR.dest=$('.sd',m).value;STR.url=$('.su',m).value;STR.key=$('.sk',m).value;STR.quality=$('.sq',m).value;if(startAfter&&STR.key)toggleStream();}});
   const sd=$('#vx-modal .sd');sd.onchange=()=>{const u={'YouTube':'rtmp://a.rtmp.youtube.com/live2','Facebook':'rtmps://live-api-s.facebook.com:443/rtmp/','Twitch':'rtmp://live.twitch.tv/app','Custom RTMP Server':'rtmp://'}[sd.value];$('#vx-modal .su').value=u;};}
 function outputsDialog(){const srcs=['Output','Preview',...V.inputs.map(x=>'Input '+x.num)];
-  modal('Settings — Outputs / NDI / SRT',`<table class="vx-otab"><tr><th></th><th>Source</th><th>External</th><th>NDI</th><th>SRT</th></tr>
+  modal('Settings — Outputs / NDI / SRT · Shortcuts',`<table class="vx-otab"><tr><th></th><th>Source</th><th>External</th><th>NDI</th><th>SRT</th></tr>
     <tr><td><b>Output 1</b></td><td><select class="o1">${srcs.map(x=>`<option ${EXT.src===x?'selected':''}>${x}${x.startsWith('Input ')?' — '+V.inputs[+x.slice(6)-1].name:''}</option>`).join('')}</select></td><td><input type="checkbox" class="oe" ${V.ext?'checked':''}></td><td><input type="checkbox" disabled></td><td><input type="checkbox" disabled></td></tr>
     ${[2,3,4].map(n=>`<tr class="na"><td>Output ${n}</td><td><select disabled><option>Output</option></select></td><td><input type="checkbox" disabled></td><td><input type="checkbox" disabled></td><td><input type="checkbox" disabled></td></tr>`).join('')}</table>
     <p class="vx-hint"><b>External</b> = the DeckLink card of the vMix PC (HD edition: 1 external output). With <b>Alpha Channel</b> set to Straight or Premultiplied in <i>External Output</i>, it sends <b>Fill on SDI 1</b> and <b>Key on SDI 2</b>. In Tartanga these go into the <b>Videohub IN 9 / IN 10</b> and from there to the <b>ATEM</b>, where DSK 1 keys them over the programme.</p>
-    <button class="vx-toext">External Output settings…</button>`,{w:600,onOk:m=>{EXT.src=$('.o1',m).value.split(' — ')[0];const on=$('.oe',m).checked;if(on!==V.ext){V.ext=on;if(on)openExtWin();else if(V.extWin&&!V.extWin.closed)V.extWin.close();}draw();}});
+    <label class="vx-short"><input type="checkbox" class="o-keys" ${V.keys?'checked':''}> <b>Shortcuts — class template</b> (vMix has none by default): <code>1-9</code> input to Preview · <code>Space</code> Cut · <code>T</code> transition 1 · <code>Q</code> Quick Play · <code>Ctrl+1-8</code> overlay · <code>B</code> FTB</label>
+    <button class="vx-toext">External Output settings…</button>`,{w:600,onOk:m=>{V.keys=$('.o-keys',m).checked;EXT.src=$('.o1',m).value.split(' — ')[0];const on=$('.oe',m).checked;if(on!==V.ext){V.ext=on;if(on)openExtWin();else if(V.extWin&&!V.extWin.closed)V.extWin.close();}draw();}});
   $('.vx-toext',$('#vx-modal')).onclick=()=>extDialog();}
 function extDialog(){modal('Settings — External Output',`<label><input type="radio" disabled> vMix Video / Streaming</label><label><input type="radio" checked> External Renderer</label>
   <label>Frame Rate <select disabled><option>25</option></select></label><label>Output Size <select disabled><option>1920x1080</option></select></label>
