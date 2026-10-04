@@ -21,7 +21,7 @@ for(let i=1;i<=16;i++)mk('bus'+i,'MX'+String(i).padStart(2,'0'),'MixBus '+i,'off
 for(let i=1;i<=8;i++)mk('dca'+i,'DCA'+i,'DCA '+i,'off','dca');
 for(let i=1;i<=6;i++)mk('mtx'+i,'MT'+i,'Matrix '+i,'off','mtx');
 mk('mainc','M/C','Main C','white','mainc');mk('main','LR','MAIN','white','main');
-const P={};   // processing of the input channels
+const P={};   // processing of the input channels (sources: see SOURCES / setSource below)
 for(let i=1;i<=32;i++)P['in'+i]={gain:0,p48:false,pol:false,lc:false,lcf:80,gate:false,gthr:-60,comp:false,cthr:-20,ratio:3,eq:true,band:'low',
   b:{low:{t:'LSHV',f:80,g:0,q:2},lomid:{t:'PEQ',f:300,g:0,q:2},himid:{t:'PEQ',f:3000,g:0,q:2},high:{t:'HSHV',f:10000,g:0,q:2}},pan:0,st:true,mono:false,mcl:0};
 const LAYERS_IN={i1:['in',1],i2:['in',9],i3:['in',17],i4:['in',25],aux:['aux',1],fxr:['fx',1],b1:['bus',1],b2:['bus',9]};
@@ -163,14 +163,8 @@ async function startAudio(){if(A){A.ctx.resume();return;}
   mainToMon.connect(mon);soloToMon.connect(mon);mon.connect(lim);lim.connect(ctx.destination);
   Object.assign(A,{mainBus,mainF,mainM,soloBus,mainToMon,soloToMon,mon,anL,anR,soloAn});
   const load=async u=>{const r=await fetch(u);return ctx.decodeAudioData(await r.arrayBuffer());};
-  const srcs={in1:['buf','audio/pres.mp3',db2g(-40)],in2:['buf','audio/guest.mp3',db2g(-40)],in3:['music',null,db2g(-14)],in4:['noise',null,db2g(-46)],in5:['osc',null,db2g(-18)]};
-  for(const id of ['in1','in2','in3','in4','in5','in6'])chain(id);
-  for(const [id,[kind,url,lvl]] of Object.entries(srcs)){let node;
-    if(kind==='buf'){node=ctx.createBufferSource();node.buffer=await load(url);node.loop=true;}
-    else if(kind==='music'){node=ctx.createBufferSource();node.buffer=musicBuffer(ctx);node.loop=true;}
-    else if(kind==='noise'){node=ctx.createBufferSource();node.buffer=noiseBuffer(ctx);node.loop=true;}
-    else{node=ctx.createOscillator();node.frequency.value=1000;}
-    const lv=ctx.createGain();lv.gain.value=lvl;node.connect(lv);lv.connect(A.ch[id].in);node.start();A.ch[id].src=node;}
+  for(let i=1;i<=8;i++)chain('in'+i);
+  for(const [id,k] of Object.entries(SRC))await setSource(id,k);
   applyAll();}
 function chain(id){const c=A.ctx,n={};
   n.in=c.createGain();                 // source arrives here at "mic level"
@@ -196,8 +190,48 @@ function applyMain(){if(!A)return;const t=A.ctx.currentTime,anySolo=Object.value
   const lvl=Math.max(G.mon,G.phones),v=lvl*lvl*(G.dim?0.1:1);
   A.mon.gain.setTargetAtTime(G.power?v:0,t,.02);A.mainToMon.gain.setTargetAtTime(anySolo?0:1,t,.02);A.soloToMon.gain.setTargetAtTime(anySolo?1:0,t,.02);}
 function applyAll(){Object.keys(P).forEach(applyCh);applyMain();}
-async function useMic(){if(!A)return;try{const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-  const src=A.ctx.createMediaStreamSource(st);const lv=A.ctx.createGain();lv.gain.value=db2g(-20);src.connect(lv);lv.connect(A.ch.in6.in);A.micOn=true;draw();}catch(e){A.micErr=true;draw();}}
+/* ---------- input sources (the patch: what arrives at IN 1-8) ---------- */
+const SOURCES={pres:{l:'Presenter (sample)',name:'PRESENTER',mic:'Lavalier (condenser)',cond:true,color:'blue'},
+  guest:{l:'Guest (sample)',name:'GUEST',mic:'Lavalier (condenser)',cond:true,color:'blue'},
+  music:{l:'Music (generated)',name:'MUSIC',mic:'Playback (line)',color:'magenta'},
+  amb:{l:'Ambience (generated)',name:'AMBIENCE',mic:'Room mic (dynamic)',color:'green'},
+  tone:{l:'Tone 1 kHz',name:'TONE 1k',mic:'Test oscillator (line)',color:'yellow'},
+  none:{l:'— nothing connected —',name:'',mic:'Nothing connected',color:'off'},
+  dev:{l:'Microphone / audio input of this computer',name:'MY MIC',mic:'Computer input (mic level)',color:'cyan'},
+  file:{l:'Audio or video file…',name:'FILE',mic:'File player (line)',color:'magenta'},
+  tab:{l:'Browser tab audio (YouTube…)',name:'TAB AUDIO',mic:'Shared browser tab (line)',color:'magenta'}};
+const SRC={in1:'pres',in2:'guest',in3:'music',in4:'amb',in5:'tone',in6:'none',in7:'none',in8:'none'};
+const SRCX={};   // extra per channel: deviceId, file name
+function stopSource(id){const n=A&&A.ch[id];if(!n)return;(n.srcNodes||[]).forEach(x=>{try{x.stop&&x.stop();}catch(_){}try{x.disconnect();}catch(_){}});
+  (n.streams||[]).forEach(st=>st.getTracks().forEach(t=>t.stop()));if(n.media){n.media.pause();n.media.src='';n.media=null;}n.srcNodes=[];n.streams=[];}
+async function setSource(id,kind,opt={}){SRC[id]=kind;const meta=SOURCES[kind];Object.assign(S[id],{name:kind==='file'&&opt.fileName?opt.fileName.replace(/\.[^.]+$/,'').slice(0,10).toUpperCase():meta.name,mic:meta.mic,cond:!!meta.cond,color:meta.color});
+  if(!A){draw();return;}const ctx=A.ctx,n=A.ch[id];stopSource(id);
+  const lv=ctx.createGain();lv.connect(n.in);n.srcNodes=[lv];const loop=b=>{const x=ctx.createBufferSource();x.buffer=b;x.loop=true;x.connect(lv);x.start();n.srcNodes.push(x);};
+  try{
+    if(kind==='pres'||kind==='guest'){lv.gain.value=db2g(-40);A.bufs=A.bufs||{};const u='audio/'+kind+'.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
+    else if(kind==='music'){lv.gain.value=db2g(-14);A.music=A.music||musicBuffer(ctx);loop(A.music);}
+    else if(kind==='amb'){lv.gain.value=db2g(-46);A.noise=A.noise||noiseBuffer(ctx);loop(A.noise);}
+    else if(kind==='tone'){lv.gain.value=db2g(-18);const o=ctx.createOscillator();o.frequency.value=1000;o.connect(lv);o.start();n.srcNodes.push(o);}
+    else if(kind==='dev'){lv.gain.value=db2g(-20);const st=await navigator.mediaDevices.getUserMedia({audio:{deviceId:opt.deviceId?{exact:opt.deviceId}:undefined,echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+      n.streams=[st];const m=ctx.createMediaStreamSource(st);m.connect(lv);n.srcNodes.push(m);SRCX[id]={deviceId:opt.deviceId,label:st.getAudioTracks()[0]?.label};}
+    else if(kind==='file'&&opt.file){lv.gain.value=db2g(-20);const el=document.createElement('audio');el.src=URL.createObjectURL(opt.file);el.loop=true;el.crossOrigin='anonymous';
+      const m=ctx.createMediaElementSource(el);m.connect(lv);n.srcNodes.push(m);n.media=el;await el.play();SRCX[id]={fileName:opt.file.name};}
+    else if(kind==='tab'){lv.gain.value=db2g(-20);const st=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});st.getVideoTracks().forEach(t=>t.stop());
+      if(!st.getAudioTracks().length)throw new Error('The shared tab has no audio (tick "Share tab audio").');n.streams=[st];const m=ctx.createMediaStreamSource(st);m.connect(lv);n.srcNodes.push(m);}
+    SRCX[id]=Object.assign(SRCX[id]||{},{err:null});
+  }catch(e){SRCX[id]={err:e.message||String(e)};Object.assign(S[id],{name:'NO SIGNAL',color:'off'});}
+  applyCh(id);draw();renderSrc();}
+/* patch dialog (HTML) */
+async function renderSrc(){const box=document.getElementById('mx-srclist');if(!box)return;
+  let devs=[];try{devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');}catch(_){}
+  box.innerHTML=Array.from({length:8},(_,k)=>{const id='in'+(k+1),cur=SRC[id],x=SRCX[id]||{};
+    const opts=Object.entries(SOURCES).filter(([key])=>key!=='dev').map(([key,m])=>`<option value="${key}" ${cur===key?'selected':''}>${m.l}</option>`).join('')+
+      `<optgroup label="Inputs of this computer">${devs.length?devs.map(d=>`<option value="dev:${d.deviceId}" ${cur==='dev'&&x.deviceId===d.deviceId?'selected':''}>${d.label||'Microphone / audio input'}</option>`).join(''):`<option value="dev:" ${cur==='dev'?'selected':''}>Microphone / audio input (default)</option>`}</optgroup>`;
+    return `<div class="mx-srow"><span class="mx-sin">IN ${k+1} → <b>Ch${String(k+1).padStart(2,'0')}</b></span><select data-ch="${id}">${opts}</select>${x.err?`<span class="mx-serr">${x.err}</span>`:cur==='file'&&x.fileName?`<span class="mx-sok">${x.fileName}</span>`:''}</div>`;}).join('');
+  box.querySelectorAll('select').forEach(sel=>sel.addEventListener('change',async()=>{const id=sel.dataset.ch,v=sel.value;
+    if(v==='file'){const inp=document.getElementById('mx-file');inp.onchange=()=>{if(inp.files[0])setSource(id,'file',{file:inp.files[0],fileName:inp.files[0].name});inp.value='';};inp.click();return;}
+    if(v.startsWith('dev:'))return setSource(id,'dev',{deviceId:v.slice(4)||undefined});
+    setSource(id,v);}));}
 
 /* ---------- meters ---------- */
 const buf=new Float32Array(1024);
@@ -288,7 +322,7 @@ function drawScreen(){const g=scr();if(!g)return;const on=G.power;
   h+=`<rect x="2" y="2" width="12" height="12" rx="2" fill="${COL[s.color]||COL.off}"/>`+T(18,11,s.num+'  '+(s.name||''),'mx-s','start')+T(150,11,'00 Default','mx-samb','start')+T(248,11,'12:00','mx-s','end');
   if(G.page==='home'){h+=TABS.map((t,i)=>`<rect x="${2+i*35.5}" y="19" width="34" height="11" rx="2" fill="${G.tab===t?'#3d6db3':'#22324a'}"/>`+T(19+i*35.5,27.4,t,'mx-st')).join('');h+=homeBody(s,p);}
   else if(G.page==='meters')h+=T(126,28,'METERS · channel','mx-s')+`<g id="mx-smet"></g>`;
-  else{const NA={routing:'ROUTING: default patch — local IN 1-16 → channels 1-16, OUT 7/8 = MAIN L/R. Editing not simulated.',library:'LIBRARY: presets for channels, effects and routing. Not simulated.',effects:'EFFECTS: 8-slot rack (reverbs, delays, chorus, GEQ…). Not simulated yet.',setup:'SETUP: global settings, scribble strips, preamps, card. Not simulated.',monitor:'MONITOR: monitor source, talkback and oscillator. Use the MONITOR / PHONES knobs.',scenes:'SCENES: save / recall full console snapshots. Not simulated yet.',mutegrp:'MUTE GRP: the 6 mute groups on the screen encoders. Not simulated yet.',utility:'UTILITY: copy / paste / name channels. Not simulated.'};
+  else{const NA={routing:'ROUTING: local IN 1-16 → channels 1-16, OUT 7/8 = MAIN L/R. Choose what arrives at IN 1-8 with the INPUT SOURCES button (top).',library:'LIBRARY: presets for channels, effects and routing. Not simulated.',effects:'EFFECTS: 8-slot rack (reverbs, delays, chorus, GEQ…). Not simulated yet.',setup:'SETUP: global settings, scribble strips, preamps, card. Not simulated.',monitor:'MONITOR: monitor source, talkback and oscillator. Use the MONITOR / PHONES knobs.',scenes:'SCENES: save / recall full console snapshots. Not simulated yet.',mutegrp:'MUTE GRP: the 6 mute groups on the screen encoders. Not simulated yet.',utility:'UTILITY: copy / paste / name channels. Not simulated.'};
     h+=T(126,40,G.page.toUpperCase(),'mx-sbig')+wrap(NA[G.page]||'',126,62,40);}
   // encoder row
   const E=encDefs();h+=`<rect x="0" y="128" width="252" height="30" fill="#14202f"/>`;
@@ -304,7 +338,7 @@ function homeBody(s,p){let h='';
   h+=blk(4,'Config',(p.p48?'48V ':'')+'+'+p.gain.toFixed(0),true)+blk(45,'Lo cut',p.lc?Math.round(p.lcf)+'Hz':'off',p.lc)+blk(86,'Gate',p.gate?p.gthr.toFixed(0):'off',p.gate)+blk(127,'Dyn',p.comp?p.cthr.toFixed(0):'off',p.comp)+blk(168,'EQ',p.eq?'on':'off',p.eq)+blk(209,'Main',(p.st?'LR ':'')+(p.mono?'M':''),p.st||p.mono);
   h+=`<g id="mx-shm"></g>`+T(126,122,'Fader '+fmtDb(f2db(s.fader))+' dB · Pan '+(p.pan===0?'C':(p.pan<0?'L':'R')+Math.round(Math.abs(p.pan)*100))+(s.mute?' · MUTED':''),'mx-s');
   if(S[G.sel].cond&&!p.p48)h+=T(126,108,'⚠ condenser mic: needs 48 V','mx-warn');
-  if(G.sel==='in6'&&A&&!A.micOn)h+=`<g class="mx-micbtn" data-b="usemic"><rect x="70" y="80" width="112" height="16" rx="3" fill="#3d6db3"/>${T(126,91,A.micErr?'mic blocked by browser':'▶ use my microphone','mx-st')}</g>`;
+  if(false)h+=`<g class="mx-micbtn" data-b="usemic"><rect x="70" y="80" width="112" height="16" rx="3" fill="#3d6db3"/>${T(126,91,A.micErr?'mic blocked by browser':'▶ use my microphone','mx-st')}</g>`;
   return h;}
 function eqGraph(p){const W=244,H=88,X=4,Y=34;let h=`<rect x="${X}" y="${Y}" width="${W}" height="${H}" fill="#0a111b" stroke="#2c3b55"/>`;
   [100,1000,10000].forEach(f=>{const x=X+W*Math.log(f/20)/Math.log(1000);h+=`<line x1="${x}" y1="${Y}" x2="${x}" y2="${Y+H}" stroke="#1e2a3d"/>`+T(x,Y+H-2,fmtF(f),'mx-st');});
@@ -343,7 +377,6 @@ function press(id){if(!G.power||G.boot)return;const p=P[G.sel];
   else if((m=id.match(/^scr:(.+)$/))){G.page=m[1];if(m[1]==='home')G.tab='home';}
   else if(id.startsWith('v')){const t={vcfg:'config',vgate:'gate',vdyn:'dyn',veq:'eq',vmain:'main',vsend:'sends'}[id];if(t){G.page='home';G.tab=t;}else G.page={vmon:'monitor',vrec:'utility',vasg:'setup'}[id]||G.page;}
   else if(id==='cur:left'||id==='cur:right'){if(G.page==='home'){const i=TABS.indexOf(G.tab);G.tab=TABS[(i+(id==='cur:right'?1:TABS.length-1))%TABS.length];}}
-  else if(id==='usemic')useMic();
   applyCh(G.sel);applyAll();draw();}
 function knobSet(id,d){const p=P[G.sel],b=p&&p.b[p.band];
   if(id.startsWith('enc')){const e=encDefs()[+id.slice(3)];if(e)e.set(d);}
@@ -391,6 +424,9 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('mx-photo').addEventListener('click',e=>{const on=root.classList.toggle('photo');e.currentTarget.textContent=on?'Recreation':'Real photo';});
   document.getElementById('mx-close').addEventListener('click',()=>window.closeMixer());
   document.getElementById('mx-lay').addEventListener('click',()=>{LAY=LAY==='side'?'real':'side';fit();});
+  document.getElementById('mx-srcbtn').addEventListener('click',()=>{const d=document.getElementById('mx-src');d.classList.toggle('on');if(d.classList.contains('on'))renderSrc();});
+  document.getElementById('mx-srcclose').addEventListener('click',()=>document.getElementById('mx-src').classList.remove('on'));
+  Object.entries(SRC).forEach(([id,k])=>{const m=SOURCES[k];Object.assign(S[id],{name:m.name,mic:m.mic,cond:!!m.cond,color:m.color});});
   draw();meterTick();}
 let LAY=null;
 function fit(){if(!root.classList.contains('on'))return;const body=root.querySelector('.mx-body'),cs=getComputedStyle(body);
