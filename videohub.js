@@ -16,7 +16,7 @@ const DSTS={none:'— nothing —',atem1:'ATEM IN 1',atem2:'ATEM IN 2',atem3:'AT
 /* proposed cabling (to be confirmed with the real room) */
 const DEF={cabIn:['cam1','cam2','cam3','cam4','vfill','vkey','atem','hdk',...Array(12).fill('none')],
   cabOut:['atem1','atem2','atem3','atem4','atem5','atem6','vmix','hdk','mon',...Array(11).fill('none')],
-  routes:[0,1,2,3,4,5,6,6,6,...Array(11).fill(0)],locks:Array(N).fill(false),useTake:true,net:[[192,168,10,240],[255,255,255,0],[192,168,10,1]]};
+  routes:[0,1,2,3,4,5,6,6,6,...Array(11).fill(0)],locks:Array(N).fill(false),useTake:true,net:[[192,168,11,50],[255,255,255,0],[192,168,11,1]]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(_){}};   // routes survive a power cut (real: "power fail protection")
 const inLab=i=>st.cabIn[i]==='none'?'Input '+(i+1):SRCS[st.cabIn[i]];
