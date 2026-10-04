@@ -11,7 +11,8 @@ const FX=['Fade','Merge','Wipe','Slide','Zoom','Fly','VerticalWipe','VerticalSli
 const V={inputs:[],next:1,pv:null,pgm:null,cat:0,search:'',trans:[{fx:'Fade',ms:1000},{fx:'Merge',ms:1000},{fx:'Wipe',ms:1000},{fx:'Zoom',ms:1000}],
   T:null,tbar:0,tbarDir:1,ov:Array.from({length:8},()=>({inp:null,a:0,target:0})),ftb:false,mixer:false,basic:false,lock:false,
   rec:false,recT0:0,stream:false,streamT0:0,ext:false,alpha:'None',fps:0,rt:0,
-  ovset:Array.from({length:8},()=>({type:'Fullscreen',fx:'Fade',ms:500,dur:0,zoom:.45,px:.55,py:-.55}))};   // Overlay Settings per channel
+  ovset:Array.from({length:8},()=>({type:'Fullscreen',fx:'Fade',ms:500,dur:0,zoom:.45,px:.55,py:-.55})),
+  stingers:[{inp:null,cut:600,dur:1200},{inp:null,cut:600,dur:1200}]};   // Stinger 1-2 (Overlay Settings › Number)   // Overlay Settings per channel
 let A=null;   // audio
 
 /* ---------- inputs ---------- */
@@ -87,7 +88,8 @@ function scene(out,{a,b,p,fx,ovs,keyOnly,transparent}){gl.viewport(0,0,W,H);gl.d
       case 'Fly':layer(a,{keyOnly});layer(b,{dy:1-e,keyOnly});break;
       case 'Zoom':layer(a,{op:1-e*.6,keyOnly});layer(b,{s:Math.max(.01,e),op:e,keyOnly});break;
       case 'CrossZoom':layer(a,{s:1+e*1.5,op:1-e,keyOnly});layer(b,{s:2.5-1.5*e,op:e,keyOnly});break;
-      default:layer(a,{keyOnly});layer(b,{op:e,keyOnly});}}
+      default:if(/^Stinger \d$/.test(fx)){const st=V.stingers[+fx.slice(8)-1],t=p*st.dur;layer(t<st.cut?a:b,{keyOnly});   // the cut happens behind the animation
+          if(st.inp){stingerFrame(st.inp,t);layer(st.inp,{keyOnly});}}else{layer(a,{keyOnly});layer(b,{op:e,keyOnly});}}}
   else layer(a,{keyOnly});
   (ovs||[]).forEach((o,n)=>{if(!o.inp||o.a<=0)return;const S=V.ovset[n],a=o.a,pos=S.type==='Picture In Picture'?{zoom:S.zoom,px:S.px,py:S.py,cx1:0,cx2:1,cy1:0,cy2:1}:null,
       g={Fade:{op:a},Cut:{op:1},Zoom:{s:Math.max(.01,a)},Fly:{dy:1-a},Slide:{dx:a-1}}[S.fx]||{op:a};
@@ -107,7 +109,17 @@ const fbuf=new Float32Array(512);const lvl=an=>{if(!an)return 0;an.getFloatTimeD
 
 /* ---------- transitions ---------- */
 function cut(){if(!V.pv||V.lockT)return;const o=V.pgm;V.pgm=V.pv;V.pv=o;V.T=null;V.tbar=0;playOnTransition(V.pgm);commitPreviewOverlays();applyAudio();draw();}
-function doTrans(fx,ms){if(!V.pv||V.T)return;V.T={fx,ms,t0:performance.now(),a:V.pgm,b:V.pv};playOnTransition(V.pv);}
+function doTrans(fx,ms){if(!V.pv||V.T)return;const sn=/^Stinger (\d)$/.exec(fx);if(sn){const st=V.stingers[+sn[1]-1];if(!st.inp)return alertBox(fx,'No Stinger Input set: Overlay Settings › Number › '+fx+'.');ms=st.dur;stingerStart(st.inp);}
+  V.T={fx,ms,t0:performance.now(),a:V.pgm,b:V.pv};playOnTransition(V.pv);}
+/* Stinger inputs: built-in animated wipe (with alpha), a video with alpha (WebM) or a PNG image sequence */
+function stingerStart(inp){if(inp.sv){inp.sv.currentTime=0;inp.sv.play().catch(()=>{});}inp.t0=performance.now();}
+function stingerFrame(inp,t){const g=inp.el.getContext('2d');g.clearRect(0,0,W,H);
+  if(inp.sv){if(inp.sv.readyState>=2)g.drawImage(inp.sv,0,0,W,H);}
+  else if(inp.frames){const f=inp.frames[Math.min(inp.frames.length-1,Math.floor(t/40))];if(f&&f.complete)g.drawImage(f,0,0,W,H);}
+  else{const d=1200,k=Math.min(1,t/d),cols=['#0b3d91','#1e88e5','#FF8C00','#ffffff'];   // built-in: four bands sweep in, cover the frame at ~50 %, sweep out
+    cols.forEach((c,i)=>{const s=Math.min(1,Math.max(0,(k-i*.05)/.4)),o=Math.min(1,Math.max(0,(k-.55-i*.05)/.3)),x0=(-1.3+s*1.3+o*1.45)*W+i*30;g.fillStyle=c;g.save();g.translate(x0,0);g.transform(1,0,-.35,1,0,0);g.fillRect(0,0,W*1.2,H);g.restore();});
+    if(k>.28&&k<.72){g.fillStyle='#fff';g.font='800 64px Segoe UI, sans-serif';g.textAlign='center';g.textBaseline='middle';g.globalAlpha=1-Math.abs(k-.5)/.22;g.fillText('TV STUDIO',W/2,H/2);g.globalAlpha=1;}}
+  inp.dirty=true;}
 function playOnTransition(inp){if(inp&&inp.type==='video'&&!inp.pack)inp.el.play().catch(()=>{});}
 function finishTrans(){const T=V.T;V.pgm=T.b;V.pv=T.a;V.T=null;commitPreviewOverlays();applyAudio();draw();}
 function commitPreviewOverlays(){V.ov.forEach(o=>{if(o.pend){o.inp=o.pend;o.target=1;o.pend=null;}});}
@@ -281,7 +293,7 @@ const fmt=s=>{s=Math.max(0,s||0);const m=Math.floor(s/60),x=Math.floor(s%60);ret
 
 /* ---------- popups & dialogs ---------- */
 function pop(html,anchor){const p=$('#vx-pop');p.innerHTML=html;const r=anchor.getBoundingClientRect(),rr=root.getBoundingClientRect();p.style.left=Math.min(r.left-rr.left,rr.width-240)+'px';p.style.top=(r.bottom-rr.top+2)+'px';p.classList.add('on');return p;}
-function transMenu(i,b){const t=V.trans[i];const p=pop(`<div class="vx-ph">Transition ${i+1}${i===0?' · also used by the T-Bar':''}</div>${FX.map(f=>`<button class="${t.fx===f?'on':''}" data-fx="${f}">${f}</button>`).join('')}<div class="vx-pdur">Duration <input type="number" min="0" max="10000" step="100" value="${t.ms}"> ms</div>`,b);
+function transMenu(i,b){const t=V.trans[i];const p=pop(`<div class="vx-ph">Transition ${i+1}${i===0?' · also used by the T-Bar':''}</div>${[...FX,'Stinger 1','Stinger 2'].map(f=>`<button class="${t.fx===f?'on':''}" data-fx="${f}">${f}</button>`).join('')}<div class="vx-pdur">Duration <input type="number" min="0" max="10000" step="100" value="${t.ms}"> ms</div>`,b);
   $$('[data-fx]',p).forEach(x=>x.onclick=()=>{t.fx=x.dataset.fx;p.classList.remove('on');draw();});$('input',p).onchange=e=>{t.ms=Math.max(0,+e.target.value||0);};}
 function modal(title,body,{w=560,ok='OK',onOk,cancel=true}={}){const m=$('#vx-modal');m.innerHTML=`<div class="vx-win" style="width:min(${w}px,96vw)"><div class="vx-wt">${title}<button data-x>✕</button></div><div class="vx-wb">${body}</div><div class="vx-wf">${cancel?'<button data-x>Cancel</button>':''}${ok?`<button class="vx-ok">${ok}</button>`:''}</div></div>`;
   m.classList.add('on');$$('[data-x]',m).forEach(b=>b.onclick=closeModal);if(ok)$('.vx-ok',m).onclick=()=>{if(onOk&&onOk(m)===false)return;closeModal();};return m;}
@@ -295,10 +307,18 @@ function ctxMenu(inp,e){const items=inp.type==='vset'?[...inp.vs.zooms.map((z,i)
   const p=pop(items.map((x,i)=>`<button data-i="${i}">${x[0]}</button>`).join(''),{getBoundingClientRect:()=>({left:e.clientX,bottom:e.clientY})});$$('[data-i]',p).forEach(b=>b.onclick=()=>{p.classList.remove('on');items[+b.dataset.i][1]();draw();});}
 
 /* Add Input — the real list of types; the ones not simulated are disabled */
-const TYPES=[['Video',1],['DVD',0],['List',0],['Camera',1],['NDI / Desktop Capture',0],['Stream / SRT',0],['Instant Replay',0,'Not available in the HD edition.'],['Image Sequence / Stinger',0],['Video Delay',0],['Image',1],['Photos',0],['PowerPoint',0],['Colour',1],['Audio',0],['Audio Input',0],['Title / XAML',1],['Flash / RTMP',0],['Virtual Set',1],['Web Browser',0],['Video Call',0]];
+const TYPES=[['Video',1],['DVD',0],['List',0],['Camera',1],['NDI / Desktop Capture',0],['Stream / SRT',0],['Instant Replay',0,'Not available in the HD edition.'],['Image Sequence / Stinger',1],['Video Delay',0],['Image',1],['Photos',0],['PowerPoint',0],['Colour',1],['Audio',0],['Audio Input',0],['Title / XAML',1],['Flash / RTMP',0],['Virtual Set',1],['Web Browser',0],['Video Call',0]];
 function addInputDialog(){const m=modal('Input Select',`<div class="vx-is"><div class="vx-isl">${TYPES.map(([n,ok,why],i)=>`<button data-t="${i}" ${ok?'':'class="na"'} title="${ok?'':(why||'Not simulated yet')}">${n}</button>`).join('')}</div><div class="vx-isr"><div class="vx-ish"></div><div class="vx-isp"></div></div></div>`,{w:860,onOk:()=>V.addOk&&V.addOk()});
   const sel=i=>{const [n,ok,why]=TYPES[i];$$('.vx-isl button',m).forEach(b=>b.classList.toggle('on',+b.dataset.t===i));const ph=$('.vx-isp',m),hd=$('.vx-ish',m);V.addOk=null;
     if(!ok){hd.textContent=n;ph.innerHTML=`<p class="vx-hint">${why||'This input type is not simulated yet.'}</p>`;return;}
+    if(n==='Image Sequence / Stinger'){hd.textContent='Stinger — an animation with transparency';ph.innerHTML=`<div class="vx-vsl"><label><input type="radio" name="st" value="builtin" checked> <b>Built-in stinger</b> (animated wipe, 1.2 s, covers the screen at 0.6 s)</label>
+        <label><input type="radio" name="st" value="file"> Browse… a video with alpha (WebM VP8/VP9) or a PNG image sequence (select all the frames) <input type="file" class="vx-stf" accept="video/webm,video/*,image/png" multiple hidden></label><div class="vx-files"></div></div>
+        <p class="vx-hint">Then: <b>Overlay</b> (bottom bar) › Number › <b>Stinger 1</b> › Stinger Input, and choose Stinger 1 in the ▾ menu of a transition button.</p>`;
+      let fl=null;const fi=$('.vx-stf',ph);$$('input[name=st]',ph).forEach(r=>r.onchange=()=>{if(r.value==='file')fi.click();});fi.onchange=()=>{fl=[...fi.files];$('.vx-files',ph).textContent=fl.length+' file(s)';};
+      V.addOk=()=>{let inp;if($('input[name=st]:checked',ph).value==='builtin'||!fl||!fl.length)inp=addInput({type:'stinger',name:'Stinger (built-in)',el:mkCanvas()});
+        else if(fl[0].type.startsWith('video')){const v=document.createElement('video');v.src=URL.createObjectURL(fl[0]);v.muted=true;v.playsInline=true;inp=addInput({type:'stinger',name:fl[0].name.replace(/\.[^.]+$/,''),el:mkCanvas(),sv:v,file:fl[0].name});v.onloadedmetadata=()=>{const st=V.stingers.find(x=>x.inp===inp);if(st){st.dur=Math.round(v.duration*1000);st.cut=Math.round(st.dur/2);}};}
+        else{const fr=fl.sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(f=>{const im=new Image();im.src=URL.createObjectURL(f);return im;});inp=addInput({type:'stinger',name:'Image Sequence',el:mkCanvas(),frames:fr});}
+        stingerFrame(inp,600);const free=V.stingers.find(x=>!x.inp);if(free){free.inp=inp;if(inp.frames){free.dur=inp.frames.length*40;free.cut=Math.round(free.dur/2);}}};return;}
     if(n==='Virtual Set'){hd.textContent='Virtual Set — choose a set';ph.innerHTML=`<div class="vx-vsl"><label><input type="radio" name="vs" value="demo" checked> <b>Demo Studio</b> — example exported by SetFrameR (2 screens + presenter)</label>
         <label><input type="radio" name="vs" value="browse"> Browse… a set folder (exported by <b>SetFrameR</b> or any vMix virtual set: config.xml + PNG files) <input type="file" class="vx-vsdir" webkitdirectory multiple hidden></label><div class="vx-files"></div></div>
         <p class="vx-hint">Then, in the input's settings: <b>Setup</b> = which input goes in each layer (the presenter camera needs its <b>Chroma Key</b> on) and <b>Camera</b> = the shots (Full, Medium, Close Up) with speed F / M / S / C.</p>`;
@@ -378,8 +398,8 @@ function inputSettings(inp){const k=inp.key,p=inp.pos,hex=c=>'#'+c.map(v=>Math.r
   const chk=mkCanvas(W,H),cg=chk.getContext('2d');for(let y=0;y<H;y+=24)for(let x=0;x<W;x+=24){cg.fillStyle=((x+y)/24)%2?'#555':'#777';cg.fillRect(x,y,24,24);}
   const tick=()=>{if(!m.classList.contains('on')||!m.contains(pv))return;scene(pv,{a:inp,transparent:true});const g=pv.getContext('2d');g.globalCompositeOperation='destination-over';g.drawImage(chk,0,0);g.globalCompositeOperation='source-over';requestAnimationFrame(tick);};tick();}
 /* Overlay Settings: Number, Type (Fullscreen / Picture In Picture with pan and zoom), Effect, Effect Duration, Duration */
-function overlayDialog(n=0){const S=V.ovset[n],FXO=['Cut','Fade','Zoom','Fly','Slide'];
-  const m=modal('Overlay Settings',`<div class="vx-ovs"><label>Number <select class="ov-n">${V.ovset.map((_,i)=>`<option value="${i}" ${i===n?'selected':''}>Overlay ${i+1}</option>`).join('')}</select></label>
+function overlayDialog(n=0){if(n>=8)return stingerDialog(n-8);const S=V.ovset[n],FXO=['Cut','Fade','Zoom','Fly','Slide'];
+  const m=modal('Overlay Settings',`<div class="vx-ovs"><label>Number <select class="ov-n">${V.ovset.map((_,i)=>`<option value="${i}" ${i===n?'selected':''}>Overlay ${i+1}</option>`).join('')}<option value="8">Stinger 1</option><option value="9">Stinger 2</option></select></label>
     <label>Type <select class="ov-t">${['Fullscreen','Picture In Picture'].map(t=>`<option ${S.type===t?'selected':''}>${t}</option>`).join('')}</select></label>
     <label>Effect <select class="ov-fx">${FXO.map(t=>`<option ${S.fx===t?'selected':''}>${t}</option>`).join('')}</select></label>
     <label>Effect Duration (ms) <input type="number" class="ov-ms" min="0" max="5000" step="100" value="${S.ms}"></label>
@@ -391,6 +411,13 @@ function overlayDialog(n=0){const S=V.ovset[n],FXO=['Cut','Fade','Zoom','Fly','S
   $('.ov-n',m).onchange=e=>overlayDialog(+e.target.value);$('.ov-t',m).onchange=e=>{S.type=e.target.value;$('.ov-pip',m).hidden=S.type==='Fullscreen';};
   $('.ov-fx',m).onchange=e=>S.fx=e.target.value;$('.ov-ms',m).oninput=e=>S.ms=Math.max(0,+e.target.value||0);$('.ov-dur',m).oninput=e=>S.dur=Math.max(0,+e.target.value||0);
   [['ov-z','zoom'],['ov-x','px'],['ov-y','py']].forEach(([c,k])=>$('.'+c,m).oninput=e=>{S[k]=+e.target.value;upd();});}
+function stingerDialog(k){const st=V.stingers[k],cands=V.inputs.filter(x=>x.type==='stinger'||x.type==='video');
+  const m=modal('Overlay Settings',`<div class="vx-ovs"><label>Number <select class="ov-n">${V.ovset.map((_,i)=>`<option value="${i}">Overlay ${i+1}</option>`).join('')}${[0,1].map(i=>`<option value="${8+i}" ${i===k?'selected':''}>Stinger ${i+1}</option>`).join('')}</select></label>
+    <label>Stinger Input <select class="st-in"><option value="">(none)</option>${cands.map(x=>`<option value="${x.id}" ${st.inp===x?'selected':''}>${x.num} ${x.name}</option>`).join('')}</select></label>
+    <label>Effect <select disabled><option>Cut</option></select></label><label>Duration (ms) <input type="number" class="st-d" min="200" max="10000" step="100" value="${st.dur}"></label>
+    <label>Stinger Cut Point (ms) <input type="number" class="st-c" min="0" max="10000" step="50" value="${st.cut}"></label></div>
+    <p class="vx-hint">A stinger is an animation that covers the screen: at the <b>Cut Point</b> (when it hides everything) vMix cuts Preview to Output behind it. Add it with <i>Add Input › Image Sequence / Stinger</i>, set it here, then choose <b>Stinger ${k+1}</b> in the ▾ menu of a transition button.</p>`,{w:460,cancel:false});
+  $('.ov-n',m).onchange=e=>overlayDialog(+e.target.value);$('.st-in',m).onchange=e=>{st.inp=byId(+e.target.value)||null;};$('.st-d',m).oninput=e=>{st.dur=Math.max(200,+e.target.value||1200);};$('.st-c',m).oninput=e=>{st.cut=Math.max(0,+e.target.value||0);};}
 function titleEditor(inp){modal('Title Editor — '+inp.name,`<div class="vx-te">${Object.keys(inp.fields).map(k=>`<label>${k}<input data-f="${k}" value="${inp.fields[k]}"></label>`).join('')}<label class="vx-live"><input type="checkbox" checked disabled> Live (updates as you type)</label></div>`,{w:480,cancel:false});
   $$('[data-f]',$('#vx-modal')).forEach(i=>i.oninput=()=>{inp.fields[i.dataset.f]=i.value;drawTitle(inp);});}
 function catDialog(){const L=V.catLabels||(V.catLabels=CAT.map(()=>''));modal('Input Categories',`<div class="vx-cd">${CAT.slice(1).map((c,i)=>`<label><span style="background:${c.c}"></span><input data-c="${i+1}" value="${L[i+1]}" placeholder="${c.n}"></label>`).join('')}</div><p class="vx-hint">Type a label for each category. Drag an input's thumbnail onto a category button to move it there.</p>`,{w:420,onOk:m=>{$$('[data-c]',m).forEach(x=>L[+x.dataset.c]=x.value.trim());draw();}});}
@@ -513,7 +540,7 @@ function vsShot(inp,i){const S=inp.vs;S.from={z:S.z,x:S.x,y:S.y};S.shot=i;S.t0=p
 /* ---------- Presets: New · Open · Save · Save As · Last (a whole production in one file) ---------- */
 const KEEP=['type','name','cat','key','pos','ca','cc','layers','hex','tpl','fields','loop','vol','mute','afv','bus','file','pack','id'];
 function presetData(){return {app:'tvstudio-vmix',v:1,name:V.preset||'Preset',inputs:V.inputs.map(x=>{const o={};KEEP.forEach(k=>{if(x[k]!==undefined)o[k]=JSON.parse(JSON.stringify(x[k]));});if(x.type==='colour'&&!x.hex)o.bars=true;if(x.type==='camera')o.label=x.name;if(x.type==='vset')o.vs={src:x.vsrc||null,shot:x.vs.shot,speed:x.vs.speed,layers:x.vs.layers.map(L=>({name:L.name,input:L.input}))};return o;}),
-  pv:V.pv?.id,pgm:V.pgm?.id,trans:V.trans,ovset:V.ovset,ov:V.ov.map(o=>({id:o.inp?.id||null,on:o.target>0})),catLabels:V.catLabels||null};}
+  pv:V.pv?.id,pgm:V.pgm?.id,trans:V.trans,ovset:V.ovset,stingers:V.stingers.map(x=>({id:x.inp?.id||null,cut:x.cut,dur:x.dur})),ov:V.ov.map(o=>({id:o.inp?.id||null,on:o.target>0})),catLabels:V.catLabels||null};}
 function clearAll(){[...V.inputs].forEach(x=>{V.lock=false;removeInput(x);});V.ov.forEach(o=>{o.inp=null;o.a=o.target=0;o.pend=null;});V.pv=V.pgm=null;}
 /* video / image / camera can't be stored in a file: they come back as a placeholder — Input Settings > General > Change… */
 /* General › Change…: another file for the same input, keeping all its settings */
@@ -525,13 +552,13 @@ function missingInput(o){const c=mkCanvas(),g=c.getContext('2d');g.fillStyle='#2
   g.fillText(o.type==='camera'?'Camera not connected':'Missing file',W/2,H/2-20);g.fillStyle='#ccc';g.font='22px Segoe UI, sans-serif';g.fillText(o.file||o.label||o.name,W/2,H/2+22);g.fillText('Input Settings › General › Change…',W/2,H/2+60);
   return addInput({type:'missing',was:o.type,name:o.name,el:c,file:o.file});}
 function loadPreset(d){if(!d||d.app!=='tvstudio-vmix')return alertBox('Open','That file is not a preset of this simulator.');clearAll();const map={};
-  d.inputs.forEach(o=>{let x;if(o.type==='title')x=titleInput(o.tpl,TITLES[o.tpl].f.map(k=>o.fields?.[k]));else if(o.type==='colour')x=o.bars?barsInput():colourInput(o.name,o.hex||'#000');else x=missingInput(o);
+  d.inputs.forEach(o=>{let x;if(o.type==='title')x=titleInput(o.tpl,TITLES[o.tpl].f.map(k=>o.fields?.[k]));else if(o.type==='colour')x=o.bars?barsInput():colourInput(o.name,o.hex||'#000');else if(o.type==='stinger'&&!o.file&&o.name==='Stinger (built-in)'){x=addInput({type:'stinger',name:o.name,el:mkCanvas()});stingerFrame(x,600);}else x=missingInput(o);
     ['name','cat','key','pos','ca','cc','layers','loop','vol','mute','afv','bus'].forEach(k=>{if(o[k]!==undefined)x[k]=o[k];});if(x.type==='title')drawTitle(x);map[o.id]=x;});
   V.inputs.forEach(x=>(x.layers||[]).forEach(L=>{L.id=L.id&&map[L.id]?map[L.id].id:null;}));
   d.inputs.filter(o=>o.type==='vset'&&o.vs&&o.vs.src==='demo').forEach(async o=>{const ph=map[o.id];const x=await loadVset(o.name,f=>fetch('vsets/DemoStudio/'+f).then(r=>r.blob()));x.vsrc='demo';   // the built-in set comes back by itself
     x.vs.speed=o.vs.speed;x.vs.shot=o.vs.shot;x.vs.z=x.vs.zooms[o.vs.shot]?.zoom||1;o.vs.layers.forEach(l=>{const L=x.vs.layers.find(k=>k.name===l.name);if(L)L.input=l.input&&map[l.input]?map[l.input].id:null;});
     V.inputs=V.inputs.filter(i=>i!==x);V.inputs.splice(V.inputs.indexOf(ph),1,x);if(V.pgm===ph)V.pgm=x;if(V.pv===ph)V.pv=x;renumber();draw();});
-  V.pgm=map[d.pgm]||V.inputs[0]||null;V.pv=map[d.pv]||null;if(d.trans)V.trans=d.trans;if(d.ovset)V.ovset=d.ovset;if(d.catLabels)V.catLabels=d.catLabels;
+  V.pgm=map[d.pgm]||V.inputs[0]||null;V.pv=map[d.pv]||null;if(d.trans)V.trans=d.trans;if(d.ovset)V.ovset=d.ovset;if(d.catLabels)V.catLabels=d.catLabels;if(d.stingers)d.stingers.forEach((x,i)=>{V.stingers[i]={inp:x.id&&map[x.id]&&map[x.id].type==='stinger'?map[x.id]:null,cut:x.cut,dur:x.dur};});
   (d.ov||[]).forEach((o,n)=>{if(o.on&&map[o.id]){V.ov[n].inp=map[o.id];V.ov[n].target=V.ov[n].a=1;}});V.preset=d.name;applyAudio();draw();}
 function savePreset(as){let name=V.preset||'Preset';if(as||!V.preset){const n=prompt('Save preset as:',name);if(!n)return;name=n.trim()||name;}V.preset=name;const d=presetData();
   try{localStorage.setItem('vx-last',JSON.stringify(d));}catch(_){}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,1)],{type:'application/json'}));a.download=name.replace(/[^\w\- ]+/g,'_')+'.vmixsim.json';a.click();draw();}
