@@ -6,7 +6,7 @@
 (function(){
 const root=document.getElementById('vh');if(!root)return;
 const N=20,PW=1080,PH=100;                    // panel drawing units (1 RU ≈ 10.8 : 1)
-const KEY='vh-state2';
+const KEY='vh-state3';
 /* ---------- what can be cabled ---------- */
 const SRCS={none:'— nothing —',cam1:'CAM 1',cam2:'CAM 2',cam3:'CAM 3',cam4:'CAM 4',cam5:'CAM 5',cam6:'CAM 6',cam7:'CAM 7',cam8:'CAM 8',
   vfill:'vMix FILL',vkey:'vMix KEY',atem:'ATEM PGM',hdk:'HyperDeck'};
@@ -14,9 +14,9 @@ const SRCL={vfill:'vMix PC · DeckLink SDI 1 (Fill)',vkey:'vMix PC · DeckLink S
 const DSTS={none:'— nothing —',atem1:'ATEM IN 1',atem2:'ATEM IN 2',atem3:'ATEM IN 3',atem4:'ATEM IN 4',atem5:'ATEM IN 5',atem6:'ATEM IN 6',atem7:'ATEM IN 7',atem8:'ATEM IN 8',
   vmix:'vMix IN',hdk:'HyperDeck REC',mon:'Monitor wall',ult1:'Ultimatte 1',ult2:'Ultimatte 2'};
 /* proposed cabling (to be confirmed with the real room) */
-/* known so far: IN 1-4 = studio cameras (patch-panel VIDEO 1-5 → CAM labels). The rest of the Tartanga cabling is not known yet. */
-const DEF={cabIn:['cam1','cam2','cam3','cam4',...Array(16).fill('none')],
-  cabOut:Array(N).fill('none'),
+/* working assumption (Alex, 4-oct): IN/OUT 1-4 = cameras, 5-6 = vMix fill/key → ATEM IN 1-6. The rest is not known yet. */
+const DEF={cabIn:['cam1','cam2','cam3','cam4','vfill','vkey',...Array(14).fill('none')],
+  cabOut:['atem1','atem2','atem3','atem4','atem5','atem6',...Array(14).fill('none')],
   routes:[...Array(N).keys()],locks:Array(N).fill(false),useTake:true,net:[[192,168,11,50],[255,255,255,0],[192,168,11,1]]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(_){}};   // routes survive a power cut (real: "power fail protection")
@@ -88,7 +88,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       <li><b>VIDEO</b>: with SRC or DEST, shows that signal as live video on the little screen — check it before you TAKE. Press VIDEO again for the labels.</li>
       <li><b>Lock</b> a destination so nobody changes it by mistake: select it and <b>hold DEST 2 s</b> (a padlock appears). Same again to unlock.</li>
       <li><b>MENU</b>: <i>network</i> (IP address, subnet, gateway) and <i>use take</i> (off = the source switches as soon as you pick it). Knob to move, TAKE to select / confirm, MENU to go back.</li>
-      <li><b>Rear panel:</b> the cables stay where they are — routing happens <b>inside</b> the router. Hover a BNC to see what is cabled there. Known so far: IN 1-4 = studio cameras; the rest of the Tartanga cabling is still to be confirmed.</li>
+      <li><b>Rear panel:</b> the cables stay where they are — routing happens <b>inside</b> the router. Hover a BNC to see what is cabled there. Assumed for now: IN 1-4 = studio cameras, IN 5-6 = vMix fill / key, and OUT 1-6 feed ATEM inputs 1-6; the rest is still to be confirmed.</li>
       <li>Cameras show a test image; <b>Load the pack folder</b> (multicam pack, CAM1-8) to see the real footage.</li>
     </ol></div>
   <input type="file" id="vh-packdir" webkitdirectory multiple hidden>
