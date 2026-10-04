@@ -10,7 +10,7 @@ function centre(sel){const w=wrap(),e=w&&w.querySelector(sel);if(!e)return null;
 function list(){const L=[],st=window.VH?VH.state():null;if(!st)return L;
   st.cabOut.forEach((v,o)=>{const m=/^atem(\d+)$/.exec(v);if(m)L.push({a:`.vh-sock[data-s="o${o}"]`,b:`.at-sock[data-s="i${+m[1]-1}"]`,info:`Videohub SDI OUT ${o+1} → ATEM SDI INPUT ${m[1]}`});});
   st.cabIn.forEach((v,i)=>{const ao=/^ao(\d+)$/.exec(v)||(v==='atem'?[0,'1']:null);if(ao){L.push({a:`.at-sock[data-s="o${+ao[1]-1}"]`,b:`.vh-sock[data-s="i${i}"]`,info:`ATEM SDI OUTPUT ${ao[1]} → Videohub SDI IN ${i+1}`});return;}
-    if(v==='none')return;const tag={cam1:'CAM 1',cam2:'CAM 2',cam3:'CAM 3',cam4:'CAM 4',vfill:'vMix FILL',vkey:'vMix KEY'}[v]||v;
+    if(v==='none')return;const tag=/^cam\d$/.test(v)?'CAM '+v.slice(3):{vfill:'vMix FILL',vkey:'vMix KEY',hdk:'HyperDeck'}[v]||v;
     const up=i%2===0;   // top-row BNC (odd numbers) → cable and tag go up; bottom row → down
     L.push({a:`.vh-sock[data-s="i${i}"]`,hang:up?-35:34,tag,info:`${tag} → Videohub SDI IN ${i+1}`+(v.startsWith('cam')?' (from the studio patch panel, VIDEO '+v.slice(3)+')':' (DeckLink SDI out of the vMix PC)')});});
   L.push({a:'.at-sock[data-s="m0"]',hang:-26,tag:'MONITOR',info:'ATEM MULTIVIEW 1 → control-room monitor wall'});

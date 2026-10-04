@@ -6,7 +6,7 @@
 (function(){
 const root=document.getElementById('vh');if(!root)return;
 const N=20,PW=1080,PH=100;                    // panel drawing units (1 RU ≈ 10.8 : 1)
-const KEY='vh-state3';
+const KEY='vh-state4';
 /* ---------- what can be cabled ---------- */
 const SRCS={none:'— nothing —',cam1:'CAM 1',cam2:'CAM 2',cam3:'CAM 3',cam4:'CAM 4',cam5:'CAM 5',cam6:'CAM 6',cam7:'CAM 7',cam8:'CAM 8',
   vfill:'vMix FILL',vkey:'vMix KEY',atem:'ATEM PGM',hdk:'HyperDeck'};
@@ -14,9 +14,9 @@ const SRCL={vfill:'vMix PC · DeckLink SDI 1 (Fill)',vkey:'vMix PC · DeckLink S
 const DSTS={none:'— nothing —',atem1:'ATEM IN 1',atem2:'ATEM IN 2',atem3:'ATEM IN 3',atem4:'ATEM IN 4',atem5:'ATEM IN 5',atem6:'ATEM IN 6',atem7:'ATEM IN 7',atem8:'ATEM IN 8',atem9:'ATEM IN 9',atem10:'ATEM IN 10',atem11:'ATEM IN 11',atem12:'ATEM IN 12',
   vmix:'vMix IN',hdk:'HyperDeck REC',mon:'Monitor wall',ult1:'Ultimatte 1',ult2:'Ultimatte 2'};
 /* proposed cabling (to be confirmed with the real room) */
-/* working assumption (Alex, 4-oct): IN/OUT 1-4 = cameras, 5-6 = vMix fill/key → ATEM IN 1-6. The rest is not known yet. */
-const DEF={cabIn:['cam1','cam2','cam3','cam4','vfill','vkey',...Array(14).fill('none')],
-  cabOut:['atem1','atem2','atem3','atem4','atem5','atem6',...Array(14).fill('none')],
+/* working cabling (Alex, 4-oct): IN/OUT 1-8 = the 8 cameras of the multicam pack, 9-10 = vMix fill/key → ATEM IN 1-10. */
+const DEF={cabIn:['cam1','cam2','cam3','cam4','cam5','cam6','cam7','cam8','vfill','vkey',...Array(10).fill('none')],
+  cabOut:['atem1','atem2','atem3','atem4','atem5','atem6','atem7','atem8','atem9','atem10',...Array(10).fill('none')],
   routes:[...Array(N).keys()],locks:Array(N).fill(false),useTake:true,net:[[192,168,11,50],[255,255,255,0],[192,168,11,1]]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(_){}};   // routes survive a power cut (real: "power fail protection")
@@ -97,10 +97,10 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       <li><b>VIDEO</b>: with SRC or DEST, shows that signal as live video on the little screen — check it before you TAKE. Press VIDEO again for the labels.</li>
       <li><b>Lock</b> a destination so nobody changes it by mistake: select it and <b>hold DEST 2 s</b> (a padlock appears). Same again to unlock.</li>
       <li><b>MENU</b>: <i>network</i> (IP address, subnet, gateway) and <i>use take</i> (off = the source switches as soon as you pick it). Knob to move, TAKE to select / confirm, MENU to go back.</li>
-      <li><b>Rear panel:</b> the cables stay where they are — routing happens <b>inside</b> the router. Hover a BNC to see what is cabled there. Assumed for now: IN 1-4 = studio cameras, IN 5-6 = vMix fill / key, and OUT 1-6 feed ATEM inputs 1-6; the rest is still to be confirmed.</li>
+      <li><b>Rear panel:</b> the cables stay where they are — routing happens <b>inside</b> the router. Hover a BNC to see what is cabled there. Cabled for now: IN 1-8 = cameras 1-8 (the multicam pack), IN 9-10 = vMix fill / key, and OUT 1-10 feed ATEM inputs 1-10.</li>
       <li>Cameras show a test image; <b>Load the pack folder</b> (multicam pack, CAM1-8) to see the real footage.</li>
-      <li><b>ATEM Constellation</b> (the switcher, under the router): its inputs come from the router outputs (OUT 1-6 → ATEM IN 1-6). Press a source key = <b>preview</b> (green); <b>CUT</b> or <b>AUTO</b> = it goes <b>on air</b> (red). MIX / WIPE / DIP / DVE choose the AUTO transition.</li>
-      <li><b>DSK 1 MIX</b> keys the vMix graphics over the programme (fill on IN 5, key on IN 6). In vMix turn on <b>External</b> with Alpha Channel <i>Straight</i> or <i>Premultiplied</i> so the fill and key arrive.</li>
+      <li><b>ATEM Constellation</b> (the switcher, under the router): its inputs come from the router outputs (OUT 1-10 → ATEM IN 1-10). Press a source key = <b>preview</b> (green); <b>CUT</b> or <b>AUTO</b> = it goes <b>on air</b> (red). MIX / WIPE / DIP / DVE choose the AUTO transition.</li>
+      <li><b>DSK 1 MIX</b> keys the vMix graphics over the programme (fill on IN 9, key on IN 10). In vMix turn on <b>External</b> with Alpha Channel <i>Straight</i> or <i>Premultiplied</i> so the fill and key arrive.</li>
       <li><b>FTB</b> fades everything to black. <b>MENU</b> → Outputs assigns what each of the 12 SDI outputs carries; Transitions = rate; Settings = cut-bus mode. <b>LOCK</b>: hold 2 s to lock the panel, 1 s to unlock.</li>
       <li>The <b>control-room monitor</b> at the bottom is the ATEM's MULTIVIEW 1: preview and programme on top, inputs 1-8 below with red / green tally. <i>Open on a second screen</i> puts it in its own window.</li>
     </ol></div>
@@ -175,10 +175,7 @@ function loadPack(files){let n=0;Object.values(PACK.v).forEach(v=>{v.pause();URL
   [...files].forEach(f=>{const m=f.name.match(/^CAM(\d)\.(mp4|mov|m4v|webm)$/i);if(!m)return;const v=document.createElement('video');v.src=URL.createObjectURL(f);v.muted=true;v.loop=true;v.playsInline=true;PACK.v[+m[1]]=v;n++;});
   const vs=Object.values(PACK.v);vs.forEach(v=>{v.currentTime=0;v.play().catch(()=>{});});   // all start together = in sync (the files are synced)
   U.msg=n?`Pack loaded: ${n} cameras`:'No CAM1-8 files in that folder';draw();
-  /* the room has 4 cameras: offer (visibly) to cable the extra pack cameras too — undo with Default cabling */
-  const extra=[5,6,7,8].filter(k=>PACK.v[k]&&!st.cabIn.includes('cam'+k));
-  if(extra.length&&confirm(`The pack has ${n} cameras but the room is cabled for CAM 1-4.\n\nCable CAM ${extra.join(', ')} too?\n→ router IN ${extra.map(k=>k+2).join(', ')} → router OUT ${extra.map(k=>k+2).join(', ')} → ATEM IN ${extra.map(k=>k+2).join(', ')}\n\n(Patch mode › Default cabling puts the room cabling back.)`)){
-    extra.forEach(k=>{const i=k+1;st.cabIn[i]='cam'+k;st.cabOut.forEach((v,o)=>{if(v==='atem'+(i+1))st.cabOut[o]='none';});st.cabOut[i]='atem'+(i+1);st.routes[i]=i;});save();draw();window.ATEMR&&ATEMR.redraw();U.msg=`CAM ${extra.join(', ')} cabled to router IN / ATEM IN ${extra.map(k=>k+2).join(', ')}`;draw();}}
+}
 /* ---------- events ---------- */
 function wire(){const tip=document.getElementById('vh-tip'),fs=document.getElementById('vh-fsvg');
   document.getElementById('vh-close').onclick=()=>window.closeVideohub();

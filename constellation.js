@@ -1,6 +1,6 @@
 /* Blackmagic ATEM 2 M/E Constellation HD — rack unit, front-panel switching ("emergency switching" in the real manual).
  * Front and rear drawn from the manual's line drawings (docs/constellation-spec.md). Inputs come from the Videohub
- * outputs that are cabled to "ATEM IN n"; DSK 1 = vMix fill (IN 5) + key (IN 6), linear. Program can feed the Videohub
+ * outputs that are cabled to "ATEM IN n"; DSK 1 = vMix fill (IN 9) + key (IN 10), linear. Program can feed the Videohub
  * and the MULTIVIEW output shows the control-room monitor. Not affiliated with Blackmagic Design. */
 (function(){
 const PW=1080,PH=100,X=f=>f*PW,Y=f=>f*PH,CW=480,CH=270;
@@ -26,7 +26,7 @@ function src(id,g,w,h){g.fillStyle='#000';g.fillRect(0,0,w,h);
 /* program = background (+transition) → [clean feed 1] → DSK 1 / DSK 2 → FTB */
 const pgmCv=mk(),pvwCv=mk(),cleanCv=mk(),tA=mk(),tB=mk(),fCv=mk(),kCv=mk();
 function dskOver(g,a){if(a<=0)return;const fg=fCv.getContext('2d',{willReadFrequently:true}),kg=kCv.getContext('2d',{willReadFrequently:true});
-  const okF=src(5,fg,CW,CH),okK=src(6,kg,CW,CH);if(!okF||!okK)return;
+  const okF=src(9,fg,CW,CH),okK=src(10,kg,CW,CH);if(!okF||!okK)return;
   const fd=fg.getImageData(0,0,CW,CH),kd=kg.getImageData(0,0,CW,CH).data,d=fd.data;
   for(let i=0;i<d.length;i+=4)d[i+3]=(kd[i]*.2126+kd[i+1]*.7152+kd[i+2]*.0722)*a;   // linear key: the key signal's luminance = transparency
   fg.putImageData(fd,0,0);g.drawImage(fCv,0,0);}
@@ -65,7 +65,7 @@ function front(){let s=`<svg viewBox="0 0 ${PW} ${PH}" class="vh-svg" id="at-fsv
   s+=`<rect x="${X(0.2155)}" y="${Y(0.151)}" width="${X(0.3207)}" height="${Y(0.693)}" rx="4" class="at-frame"/>`;
   for(let n=1;n<=20;n++){const c=(n-1)%10;s+=kBig('s'+n,0.2315+c*0.0321,n<=10?0.325:0.671,n,`Source ${n} (${inName(n)}): press = PREVIEW (green). In cut-bus mode it goes straight to PROGRAM.`);}
   s+=`<rect x="${X(0.558)}" y="${Y(0.151)}" width="${X(0.032)}" height="${Y(0.693)}" rx="4" class="at-frame"/>`+kBig('cut',0.574,0.325,'CUT','CUT: preview and program swap instantly.')+kBig('auto',0.574,0.671,'AUTO','AUTO: runs the selected transition (MIX, DIP, WIPE, DVE) at its rate.');
-  [['key1',0.6275,0.223,'KEY 1|MIX','KEY 1 MIX: upstream key 1 on/off with a mix (not set up here).'],['dsk1',0.6529,0.223,'DSK 1|MIX','DSK 1 MIX: downstream key 1 on/off — here the vMix graphics (fill IN 5 + key IN 6).'],['dsk2',0.6792,0.223,'DSK2|MIX','DSK 2 MIX: downstream key 2 (not set up here).'],['ftb',0.7046,0.223,'FTB','FTB: fade the whole programme to black (blinks while black).'],
+  [['key1',0.6275,0.223,'KEY 1|MIX','KEY 1 MIX: upstream key 1 on/off with a mix (not set up here).'],['dsk1',0.6529,0.223,'DSK 1|MIX','DSK 1 MIX: downstream key 1 on/off — here the vMix graphics (fill IN 9 + key IN 10).'],['dsk2',0.6792,0.223,'DSK2|MIX','DSK 2 MIX: downstream key 2 (not set up here).'],['ftb',0.7046,0.223,'FTB','FTB: fade the whole programme to black (blinks while black).'],
    ['bars',0.6275,0.5,'BARS','BARS: colour bars as a source.'],['black',0.6529,0.5,'BLACK','BLACK as a source.'],['mp1',0.6792,0.5,'MP 1','MP 1: media player 1 (a still) as a source.'],['mp2',0.7046,0.5,'MP 2','MP 2: media player 2 as a source.'],
    ['tmix',0.6275,0.782,'MIX','Transition type: MIX (cross-dissolve).'],['twipe',0.6529,0.782,'WIPE','Transition type: WIPE.'],['tdip',0.6792,0.782,'DIP','Transition type: DIP (through black).'],['tdve',0.7046,0.782,'DVE','Transition type: DVE (push).']].forEach(([id,x,y,l,t])=>s+=kSmall(id,x,y,l,t));
   s+=`<rect x="${X(0.740)}" y="${Y(0.085)}" width="${X(0.1)}" height="${Y(0.825)}" rx="2" class="vh-lcdb"/>`;

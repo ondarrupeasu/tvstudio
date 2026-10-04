@@ -409,7 +409,7 @@ function drawFill(f){extScene(f,false);const g=f.getContext('2d');g.globalCompos
   if(ftbA>.002){g.fillStyle=`rgba(0,0,0,${ftbA})`;g.fillRect(0,0,f.width,f.height);}}
 function drawKey(k){if(EXT.alpha!=='None'){gl.blendFunc(gl.ONE,gl.ONE);extScene(k,true);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);}else{const kg=k.getContext('2d');kg.fillStyle='#000';kg.fillRect(0,0,k.width,k.height);}}
 function renderExternal(){const w=V.extWin,d=w.document;const f=d.getElementById('fill'),k=d.getElementById('key');if(!f)return;drawFill(f);drawKey(k);}
-/* the DeckLink SDI outputs are cabled to the Videohub (IN 5 = fill, IN 6 = key): only while External is ON */
+/* the DeckLink SDI outputs are cabled to the Videohub (IN 9 = fill, IN 10 = key): only while External is ON */
 const hubF=mkCanvas(W/2,H/2),hubK=mkCanvas(W/2,H/2);window.VH_SOURCES=window.VH_SOURCES||{};
 VH_SOURCES.vfill=(c,w,h)=>{if(!V.ext)return false;drawFill(hubF);c.drawImage(hubF,0,0,w,h);};
 VH_SOURCES.vkey=(c,w,h)=>{if(!V.ext)return false;drawKey(hubK);c.drawImage(hubK,0,0,w,h);};
@@ -454,7 +454,7 @@ function outputsDialog(){const srcs=['Output','Preview',...V.inputs.map(x=>'Inpu
   modal('Settings — Outputs / NDI / SRT',`<table class="vx-otab"><tr><th></th><th>Source</th><th>External</th><th>NDI</th><th>SRT</th></tr>
     <tr><td><b>Output 1</b></td><td><select class="o1">${srcs.map(x=>`<option ${EXT.src===x?'selected':''}>${x}${x.startsWith('Input ')?' — '+V.inputs[+x.slice(6)-1].name:''}</option>`).join('')}</select></td><td><input type="checkbox" class="oe" ${V.ext?'checked':''}></td><td><input type="checkbox" disabled></td><td><input type="checkbox" disabled></td></tr>
     ${[2,3,4].map(n=>`<tr class="na"><td>Output ${n}</td><td><select disabled><option>Output</option></select></td><td><input type="checkbox" disabled></td><td><input type="checkbox" disabled></td><td><input type="checkbox" disabled></td></tr>`).join('')}</table>
-    <p class="vx-hint"><b>External</b> = the DeckLink card of the vMix PC (HD edition: 1 external output). With <b>Alpha Channel</b> set to Straight or Premultiplied in <i>External Output</i>, it sends <b>Fill on SDI 1</b> and <b>Key on SDI 2</b>. In Tartanga these go into the <b>Videohub IN 5 / IN 6</b> and from there to the <b>ATEM</b>, where DSK 1 keys them over the programme.</p>
+    <p class="vx-hint"><b>External</b> = the DeckLink card of the vMix PC (HD edition: 1 external output). With <b>Alpha Channel</b> set to Straight or Premultiplied in <i>External Output</i>, it sends <b>Fill on SDI 1</b> and <b>Key on SDI 2</b>. In Tartanga these go into the <b>Videohub IN 9 / IN 10</b> and from there to the <b>ATEM</b>, where DSK 1 keys them over the programme.</p>
     <button class="vx-toext">External Output settings…</button>`,{w:600,onOk:m=>{EXT.src=$('.o1',m).value.split(' — ')[0];const on=$('.oe',m).checked;if(on!==V.ext){V.ext=on;if(on)openExtWin();else if(V.extWin&&!V.extWin.closed)V.extWin.close();}draw();}});
   $('.vx-toext',$('#vx-modal')).onclick=()=>extDialog();}
 function extDialog(){modal('Settings — External Output',`<label><input type="radio" disabled> vMix Video / Streaming</label><label><input type="radio" checked> External Renderer</label>
