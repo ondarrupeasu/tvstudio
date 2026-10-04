@@ -112,12 +112,14 @@ function surface(){let s=`<svg class="mx-svg" viewBox="0 -70 1000 1430" role="im
   [['L:i1','INPUTS|1-8',805,384],['L:i2','INPUTS|9-16',850,384],['L:i3','INPUTS|17-24',805,420],['L:i4','INPUTS|25-32',850,420],['L:aux','AUX IN|USB',805,456],['L:fxr','FX|RET',850,456],['L:b1','BUS|1-8',805,492],['L:b2','BUS|9-16',850,492]].forEach(([id,l,x,y])=>s+=btn(id,x,y,l,'lay',40,28));
   [['B:dca','GROUP|DCA 1-8',955,384],['B:b1','BUS|1-8',955,420],['B:b2','BUS|9-16',955,456],['B:mtx','MATRIX|MAIN C',955,492]].forEach(([id,l,x,y])=>s+=btn(id,x,y,l,'lay',42,28));
   s+=btn('rem',902,400,'REM','fn',36,20,'REM: DAW remote control. Drawn only.')+T(902,420,'DAW REMOTE','mx-xs')+btn('flip',902,492,'FADER|FLIP','fn',40,28,'FADER FLIP (sends on fader). Not simulated yet.')+T(902,516,'SENDS ON FADER','mx-xs');
-  s+=`</g><g id="mxBot"><rect x="2" y="560" width="996" height="698" rx="22" fill="#1d1e22" stroke="#0c0c0e" stroke-width="3"/><rect x="0" y="1246" width="1000" height="112" rx="26" fill="#141518" stroke="#0a0a0c" stroke-width="3"/><rect x="60" y="1268" width="880" height="40" fill="#cfcab4" opacity=".85" transform="rotate(-.3 500 1288)"/>`;
+  s+=`<rect id="zCtl" x="10" y="98" width="592" height="450" fill="none"/><rect id="zScr" x="448" y="80" width="546" height="468" fill="none"/>`;
+  s+=`</g><g id="mxBot"><rect x="2" y="560" width="996" height="698" rx="22" fill="#1d1e22" stroke="#0c0c0e" stroke-width="3"/><rect x="0" y="1246" width="1000" height="112" rx="26" fill="#141518" stroke="#0a0a0c" stroke-width="3"/>`;
   // strips
   for(let k=0;k<8;k++)s+=strip('a'+k,35+k*56);
   for(let k=0;k<8;k++)s+=strip('b'+k,490+k*56);
   s+=strip('m',956,true)+T(956,898,'MAIN','mx-pt');
   s+=`<rect x="7" y="752" width="448" height="74" rx="3" fill="none" stroke="#000"/><rect x="462" y="752" width="453" height="74" rx="3" fill="none" stroke="#000"/>`;
+  s+=`<rect id="zStr" x="0" y="578" width="1000" height="295" fill="none"/><rect id="zFad" x="0" y="876" width="1000" height="334" fill="none"/>`;
   return s+'</g></svg>';}
 
 function rearSvg(){const tip=(n,t,inner)=>`<g data-name="${n}" data-tip="${t}">${inner}</g>`;
@@ -341,7 +343,7 @@ function homeBody(s,p){let h='';
   const blk=(x,l,v,on)=>`<rect x="${x}" y="36" width="38" height="40" rx="3" fill="${on?'#2c5a3a':'#20283a'}" stroke="#3b4a66"/>`+T(x+19,48,l,'mx-st')+T(x+19,64,v,'mx-sv');
   h+=blk(4,'Config',(p.p48?'48V ':'')+'+'+p.gain.toFixed(0),true)+blk(45,'Lo cut',p.lc?Math.round(p.lcf)+'Hz':'off',p.lc)+blk(86,'Gate',p.gate?p.gthr.toFixed(0):'off',p.gate)+blk(127,'Dyn',p.comp?p.cthr.toFixed(0):'off',p.comp)+blk(168,'EQ',p.eq?'on':'off',p.eq)+blk(209,'Main',(p.st?'LR ':'')+(p.mono?'M':''),p.st||p.mono);
   h+=`<g id="mx-shm"></g>`+T(126,126,'Fader '+fmtDb(f2db(s.fader))+' dB · Pan '+(p.pan===0?'C':(p.pan<0?'L':'R')+Math.round(Math.abs(p.pan)*100))+(s.mute?' · MUTED':''),'mx-s');
-  const nIn=+G.sel.slice(2);h+=T(126,108,'Source: Local IN '+nIn+(nIn<=16?' ← '+SOURCES[SRC[G.sel]].l:' (nothing patched)'),'mx-st');
+  const nIn=+G.sel.slice(2);h+=T(126,108,'Source: '+(nIn<=16?'Local IN '+nIn:'AES50-A '+(nIn-16)),'mx-st');
   if(S[G.sel].cond&&!p.p48)h+=T(126,117,'⚠ condenser mic: needs 48 V','mx-warn');
   if(false)h+=`<g class="mx-micbtn" data-b="usemic"><rect x="70" y="80" width="112" height="16" rx="3" fill="#3d6db3"/>${T(126,91,A.micErr?'mic blocked by browser':'▶ use my microphone','mx-st')}</g>`;
   return h;}
@@ -413,7 +415,16 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       const up=()=>{svg.removeEventListener('pointermove',mv);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);};
       svg.addEventListener('pointermove',mv);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);return;}
     const b=e.target.closest('[data-b]');if(b){e.preventDefault();press(b.dataset.b);}});
-  svg.addEventListener('wheel',e=>{const k=e.target.closest('.mx-k');if(!k||!G.power)return;e.preventDefault();knobSet(k.dataset.k,e.deltaY<0?2:-2);},{passive:false});
+  svg.addEventListener('wheel',e=>{
+    if(e.ctrlKey){e.preventDefault();const p=toVB(e);zoomAt(p.x,p.y,Math.exp(-e.deltaY*.012));return;}   // trackpad pinch / ctrl+wheel = zoom the desk
+    const k=e.target.closest('.mx-k');if(k&&G.power){e.preventDefault();knobSet(k.dataset.k,e.deltaY<0?2:-2);return;}
+    if(root.classList.contains('zoomed')){e.preventDefault();const [x,y,w,h]=curVB(),s2=w/svg.clientWidth;setVB([x+e.deltaX*s2,y+e.deltaY*s2,w,h]);}},{passive:false});
+  svg.addEventListener('dblclick',e=>{if(e.target.closest('[data-b],.mx-k,.mx-f,.mx-sock,.mx-power'))return;const p=toVB(e);root.classList.contains('zoomed')?setVB(VB0,true):(()=>{const [x,y,w,h]=curVB(),f=2.4;setVB([p.x-w/f/2,p.y-h/f/2,w/f,h/f],true);})();});
+  svg.addEventListener('pointerdown',e=>{if(!root.classList.contains('zoomed')||e.target.closest('[data-b],.mx-k,.mx-f,.mx-sock,.mx-power'))return;
+    const x0=e.clientX,y0=e.clientY,v0=curVB().slice(),s2=v0[2]/svg.clientWidth;try{svg.setPointerCapture(e.pointerId);}catch(_){}svg.classList.add('panning');
+    const mv=ev=>setVB([v0[0]-(ev.clientX-x0)*s2,v0[1]-(ev.clientY-y0)*s2,v0[2],v0[3]]),up=()=>{svg.classList.remove('panning');svg.removeEventListener('pointermove',mv);svg.removeEventListener('pointerup',up);};
+    svg.addEventListener('pointermove',mv);svg.addEventListener('pointerup',up);});
+  root.querySelectorAll('[data-zoom]').forEach(b=>b.addEventListener('click',()=>focus(b.dataset.zoom)));
   rear.querySelectorAll('.mx-sock').forEach(g=>g.addEventListener('click',e=>{e.stopPropagation();plugMenu(+g.dataset.in,e);}));
   root.addEventListener('pointerdown',e=>{if(!e.target.closest('#mx-plugmenu,.mx-sock'))document.getElementById('mx-plugmenu').classList.remove('on');});
   rear.querySelector('.mx-power').addEventListener('click',async()=>{G.power=!G.power;
@@ -441,14 +452,26 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('mx-guideclose').addEventListener('click',()=>document.getElementById('mx-guide').classList.remove('on'));
   Object.entries(SRC).forEach(([id,k])=>{const m=SOURCES[k];Object.assign(S[id],{name:m.name,mic:m.mic,cond:!!m.cond,color:m.color});});
   draw();meterTick();}
-let LAY=null;
+let LAY=null,VB0=null,ZV=null,anim=0;
+const curVB=()=>ZV||VB0;
+function setVB(v,smooth){const from=curVB().slice(),to=clampVB(v);cancelAnimationFrame(anim);
+  if(!smooth||document.hidden){ZV=to;svg.setAttribute('viewBox',to.join(' '));zoomUI();return;}
+  const t0=performance.now();const step=t=>{const k=Math.min(1,(t-t0)/260),e=1-Math.pow(1-k,3),v2=from.map((a,i)=>a+(to[i]-a)*e);svg.setAttribute('viewBox',v2.join(' '));ZV=v2;if(k<1)anim=requestAnimationFrame(step);else{ZV=to;zoomUI();}};anim=requestAnimationFrame(step);}
+function clampVB([x,y,w,h]){const [X,Y,W,H]=VB0;w=Math.min(W,Math.max(W/8,w));h=w*H/W;x=Math.min(X+W-w,Math.max(X,x));y=Math.min(Y+H-h,Math.max(Y,y));return [x,y,w,h];}
+function zoomAt(px,py,f){const [x,y,w,h]=curVB(),nw=w/f,nh=h/f;setVB([px-(px-x)*nw/w,py-(py-y)*nh/h,nw,nh]);}
+function toVB(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());}
+function rectOf(el){const r=el.getBoundingClientRect(),a=toVB({clientX:r.left,clientY:r.top}),b=toVB({clientX:r.right,clientY:r.bottom});return [a.x,a.y,b.x-a.x,b.y-a.y];}
+function focus(sel){if(sel==='all')return setVB(VB0,true);const [x,y,w,h]=rectOf(svg.querySelector(sel)),[,,W,H]=VB0,pad=12;
+  let nw=w+pad*2,nh=h+pad*2;if(nw/nh>W/H)nh=nw*H/W;else nw=nh*W/H;setVB([x+w/2-nw/2,y+h/2-nh/2,nw,nh],true);}
+function zoomUI(){const z=ZV&&VB0&&ZV[2]<VB0[2]-1;root.classList.toggle('zoomed',!!z);}
+
 function fit(){if(!root.classList.contains('on'))return;const body=root.querySelector('.mx-body'),cs=getComputedStyle(body);
   const aw=body.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ah=body.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-4;
   if(!LAY)LAY=innerWidth/innerHeight>1.25&&innerWidth>900?'side':'real';
   const top=svg.querySelector('#mxTop'),bot=svg.querySelector('#mxBot'),rr=svg.querySelector('#mxRear');let vb;
   if(LAY==='side'){rr.setAttribute('transform','translate(0,-66)');top.setAttribute('transform','translate(0,-12)');bot.setAttribute('transform','translate(1010,-630)');vb=[0,-70,2012,810];}
   else{rr.setAttribute('transform','translate(0,-66)');top.removeAttribute('transform');bot.removeAttribute('transform');vb=[0,-70,1000,1430];}
-  svg.setAttribute('viewBox',vb.join(' '));
+  VB0=vb.slice();ZV=null;svg.setAttribute('viewBox',vb.join(' '));
   const W=LAY==='side'?Math.min(aw,ah*vb[2]/vb[3]):Math.min(aw,1100);document.getElementById('mx-front').style.width=Math.floor(W)+'px';
   root.classList.toggle('side',LAY==='side');const b=document.getElementById('mx-lay');if(b)b.textContent=LAY==='side'?'Real layout':'Side by side';}
 addEventListener('resize',fit);
