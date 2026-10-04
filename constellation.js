@@ -141,7 +141,8 @@ function spin(d){const m=S.menu;
 let mvWin=null;
 function mount(){const f=document.getElementById('atem-front'),r=document.getElementById('atem-rear');if(!f||f.dataset.built)return;f.dataset.built='1';
   f.className='vh-front';f.innerHTML=front()+'<canvas id="at-lcd" width="320" height="240"></canvas>';
-  r.className='vh-rear';r.innerHTML=rear()+`<div class="at-mon"><div class="vh-lab">CONTROL-ROOM MONITOR <span>— ATEM MULTIVIEW 1 output</span> <button id="at-mvpop">Open on a second screen ↗</button></div><canvas id="at-mvc" width="960" height="540"></canvas></div>`;
+  r.className='vh-rear';r.innerHTML=rear();
+  const slot=document.getElementById('at-monslot')||r;slot.insertAdjacentHTML('beforeend',`<div class="at-mon"><div class="vh-lab">CONTROL-ROOM MONITOR <span>— ATEM MULTIVIEW 1</span> <button id="at-mvpop">Second screen ↗</button></div><canvas id="at-mvc" width="960" height="540"></canvas><div class="at-pgmnote">Top: <b style="color:#36d36e">preview</b> · <b style="color:#ff3b30">programme</b>. Below: inputs 1-8 (tally: red = on air, green = next).</div></div>`);
   const fs=document.getElementById('at-fsvg');let holdT=null,lockT0=0;
   fs.addEventListener('pointerdown',e=>{const k=e.target.closest('.at-k');if(!k)return;e.preventDefault();const id=k.dataset.k;k.classList.add('down');
     if(id==='lock'){lockT0=performance.now();holdT=setInterval(()=>{const t=performance.now()-lockT0;if(!S.locked&&t>=2000){S.locked=true;clearInterval(holdT);draw();}else if(S.locked&&t>=1000){S.locked=false;clearInterval(holdT);draw();}},50);}

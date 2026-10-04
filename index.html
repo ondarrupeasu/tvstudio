@@ -214,7 +214,7 @@
   .hd-led{fill:#2a2b2f}.hd-grill{fill:#050506}.hd-ring{fill:#1b1c1f;stroke:#3a3c41}.hd-dimple{fill:#2f3136}
   #hd-lcd{position:absolute;left:70.8%;top:16%;width:9.3%;height:68%;pointer-events:none;border-radius:2px}
   .hd-clips{position:absolute;left:0;right:0;top:100%;font-size:11.5px;color:var(--ce-muted);padding:4px 2px;display:flex;flex-wrap:wrap;gap:8px}.hd-clips a{color:var(--ce-accent)}.hd-clips a.on{font-weight:700}
-  #hd-front{margin-bottom:24px}
+  #hd-front{margin-bottom:24px}.at-mon{margin-top:0}
   /* ATEM 2 M/E Constellation HD (front-panel switching) */
   .at-face{fill:#16171a;stroke:#050506;stroke-width:1.2}.at-frame{fill:#0d0e10;stroke:#2a2c31}
   .at-k{cursor:pointer}.at-k rect{stroke:#000;stroke-width:.8}.at-s rect{fill:#1f2125}.at-st{font-size:4.3px;font-weight:700;fill:#e8e9eb;text-anchor:middle}
@@ -223,13 +223,22 @@
   .at-k.blink rect{animation:vhred .6s steps(1) infinite}.at-xlr{fill:#2b2d31;stroke:#000}.at-xlr2{fill:#0b0c0e}.at-tiny{font-size:4px;fill:#aaa;text-anchor:middle}.at-logo{font-size:7.5px;font-weight:600;fill:#eee;text-anchor:middle}
   #at-lcd{position:absolute;left:74.4%;top:9%;width:9.2%;height:81%;pointer-events:none;border-radius:2px}
   #atem-front,#atem-rear{margin-top:4px}.at-mon{margin-top:16px}.at-mon .vh-lab{display:flex;gap:10px;align-items:center}.at-mon button{font:inherit;font-size:11px;padding:4px 9px;border-radius:6px;border:1px solid var(--ce-line);background:#16171c;color:#fff;cursor:pointer}
-  #at-mvc{display:block;width:min(100%,760px);aspect-ratio:16/9;background:#000;border:6px solid #111;border-radius:6px}
+  #at-mvc{display:block;width:100%;aspect-ratio:16/9;background:#000;border:6px solid #111;border-radius:6px}
   /* Smart Videohub 20x20 simulator */
   .vh{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.vh.on{display:flex}
   .vh .pwr-hd{padding:8px 16px 6px;align-items:center}.vh .pwr-hd p{font-size:11.5px}.vh .pwr-btns button{padding:6px 10px;font-size:12px}.vh .pwr-status{padding:6px 16px;flex-wrap:wrap}
-  .vh-body{flex:1;min-height:0;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;align-items:center;gap:6px}
-  .vh-lab{align-self:stretch;max-width:1400px;margin:6px auto 0;width:100%;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ce-muted)}.vh-lab span{font-weight:400;letter-spacing:0}
-  .vh-front,.vh-rear{position:relative;width:100%;max-width:1400px}.vh-svg{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;touch-action:none}
+  .vh-body{flex:1;min-height:0;overflow:auto;padding:12px 16px;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);gap:18px;align-items:start}
+  .vh-units{display:flex;flex-direction:column;gap:6px;min-width:0}.vh-side{position:sticky;top:0}
+  @media (max-width:1000px){.vh-body{grid-template-columns:1fr}.vh-side{position:static;order:-1}}
+  .vh-hdwrap,.vh-rlab,.vh-rearwrap,#hd-rear{display:none}.vh.hd .vh-hdwrap{display:block}.vh.rear .vh-rlab,.vh.rear .vh-rearwrap{display:block}.vh.rear #hd-rear{display:block}
+  .vh.rear .vh-flab,.vh.rear .vh-front:not(#hd-front),.vh.rear #atem-front,.vh.rear #hd-front{display:none}.vh .pwr-btns button.on{border-color:var(--ce-accent);color:var(--ce-accent)}
+  .vh-rearwrap{position:relative}.vh-gap{height:70px}.vh-cables{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  .vh-cab{fill:none;stroke:#1d2a44;stroke-width:4.5;stroke-linecap:round;pointer-events:stroke;cursor:help}.vh-cab.bnc{stroke:#2f5fb3}.vh-cab:hover,.vh-cab.hl{stroke:#ffcf5a;stroke-width:6.5;filter:drop-shadow(0 0 4px #ffcf5a)}
+  .vh-tag{font:700 10px -apple-system,sans-serif;fill:#fff}.vh-tagbg{fill:#c2185b}.vh-plugc{fill:#1b1d22;stroke:#8fa6c9;stroke-width:2;pointer-events:none}
+  .vh-sock.hl .vh-bnc,.at-sock.hl .vh-bnc{stroke:#ffcf5a;stroke-width:3}
+  .at-pgmnote{font-size:11.5px;color:var(--ce-muted);margin-top:6px}
+  .vh-lab{margin:6px 0 0;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ce-muted)}.vh-lab span{font-weight:400;letter-spacing:0}
+  .vh-front,.vh-rear{position:relative;width:100%}.vh-svg{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;touch-action:none}
   .vh-svg text{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;pointer-events:none}
   #vh-lcd{position:absolute;left:66.2%;top:9%;width:9.8%;height:80%;border-radius:2px;pointer-events:none}
   .vh-face{fill:#7d8288;stroke:#3a3d42;stroke-width:1.2}.vh-rface{fill:#5d6166}.vh-rin{fill:#2a2c30;stroke:#1a1b1e}.vh-fold{stroke:#5f6368;stroke-width:1}.vh-hole{fill:#0b0c0f}
@@ -243,7 +252,7 @@
   .vh-bnc{fill:#9da2a8;stroke:#4a4d52}.vh-bnc2{fill:#c9cdd2;stroke:#6a6e74}.vh-bnc3{fill:#2a2c30}.vh-brk{fill:none;stroke:#9aa0a6;stroke-width:.8}
   .vh-sock{cursor:pointer}.vh-sock:hover .vh-bnc{stroke:var(--ce-accent);stroke-width:2}.vh-plug{fill:none;stroke:none}
   .vh-sock.plugged .vh-plug{fill:#1d1f23;stroke:#e8e8ea;stroke-width:2}.vh-sock.plugged.hl .vh-plug{stroke:#3c86ef;stroke-width:3}
-  .vh-tbl{width:100%;max-width:1400px;display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.vh-th{width:100%;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ce-muted)}
+  .vh-tbl{width:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.vh-th{width:100%;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ce-muted)}
   .vh-rt2{font-size:12px;color:var(--ce-muted);border:1px solid var(--ce-line);border-radius:8px;padding:4px 9px}.vh-rt2 b{color:#fff;font-weight:650}.vh-rt2.on{border-color:#3c86ef;background:#13233d}
   .mx{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.mx.on{display:flex}
   .mx .pwr-hd{padding:8px 16px 6px;align-items:center}.mx .pwr-hd p{font-size:11.5px}.mx .pwr-btns button{padding:6px 10px;font-size:12px}
@@ -612,6 +621,7 @@
 <script src="videohub.js"></script>
 <script src="constellation.js"></script>
 <script src="hyperdeck.js"></script>
+<script src="cables.js"></script>
 <div class="vx" id="vx"></div>
 <script src="vmix.js"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
