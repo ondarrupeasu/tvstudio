@@ -6,14 +6,33 @@
 (function(){
 const root=document.getElementById('um');if(!root)return;
 const CW=320,CH=180,mk=(w=CW,h=CH)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
-const PAGES={MATTE:[['Matte Density',-100,300,0],['Black Gloss',0,100,0],['Red Density',0,100,100],['Blue Density',0,100,100],['Clean Up Level',0,100,0],['Shadow Level',100,200,100],['Shadow Threshold',0,100,100],['Veil Master',0,100,0]],
-  FOREGROUND:[['Flare Level',0,200,100],['White Level',0,200,100],['Black Level',-100,100,0],['Saturation',0,200,100],['Contrast',0,200,100],['',0,0,0],['',0,0,0],['',0,0,0]],
-  BACKGROUND:[['BG Level',0,200,100],['BG Saturation',0,200,100],['',0,0,0],['',0,0,0],['',0,0,0],['',0,0,0],['',0,0,0],['',0,0,0]]};
-const TABS=['MATTE','FOREGROUND','BACKGROUND','LAYER','MATTE IN','SETTINGS'],MONS=['Program','Foreground Input','Background Input','Combined Matte','Internal Matte','Fill Out'];
-const defVals=()=>Object.fromEntries(Object.entries(PAGES).map(([k,v])=>[k,v.map(p=>p[3])]));
-const U=[1,2].map(n=>({n,vals:defVals(),backing:[40,170,60],mon:0,preset:0,quick:{},lock:false,menu:null,out:mk(),monCv:mk(),fg:mk(),bg:mk(),online:true}));
-const R={unit:0,tab:'MATTE',alt:false,msg:'',mt:0};
-const val=(u,page,i)=>u.vals[page][i];
+/* Ultimatte Software Control (Smart Remote 4 screen): main menu › GROUPS (8 knobs) + FUNCTIONS. null = group exists, not simulated.
+   Knob ids are global per unit (u.v), toggles in u.f. [MAN pp.32-35, 42-61] */
+const K=(id,n,min,max,def,un='%')=>({id,n,min,max,def,un}),F=(id,n,type='toggle',def=false)=>({id,n,type,def});
+const MENUS={
+  MATTE:{'Matte Process':{k:[K('dens','Matte Density',-100,300,0),K('gloss','Black Gloss',0,100,0),K('rd','Red Density',0,100,100),K('bd','Blue Density',0,100,100),K('shl','Shadow Level',100,200,100),K('sht','Shadow Threshold',0,100,100)],
+      f:[F('mreset','Matte Reset','action'),F('matte','Matte','toggle',true),F('scap','Screen Capture','action'),F('scor','Screen Correct')]},
+    'Clean Up':{k:[K('cu','Clean Up Level',0,100,0),K('cud','Dark Recover',0,100,0),K('cul','Light Recover',0,100,0),K('cus','Strength',0,100,100)],f:[F('cureset','Clean Up Reset','action')]},
+    'Veil':{k:[K('vm','Veil Master',0,100,0),K('vr','Veil Red',0,100,0),K('vg','Veil Green',0,100,0),K('vb','Veil Blue',0,100,0)],f:[F('vreset','Veil Reset','action')]},
+    'Screen Sample':null,'Filter':null,'Custom Mon Out':null},
+  FOREGROUND:{'Flare 1':{k:[K('flare','Flare Level',0,200,100)],f:[F('hmflare','Holdout Matte Flare','toggle',true)]},'Flare 2':null,
+    'Ambiance 1':{k:[K('amb','Ambiance Level',0,100,0)],f:[]},'Ambiance 2':null,
+    'Color':{k:[K('fwl','White Level',0,200,100),K('fbl','Black Level',-100,100,0),K('fcon','Contrast',0,200,100),K('fsat','Saturation',0,200,100)],f:[F('fcreset','Color Reset','action')]}},
+  BACKGROUND:{'Color':{k:[K('bwl','White Level',0,200,100),K('bbl','Black Level',-100,100,0),K('bcon','Contrast',0,200,100),K('bsat','Saturation',0,200,100)],f:[F('bfreeze','Freeze'),F('bcreset','Color Reset','action')]}},
+  LAYER:{'Layer':{k:[],f:[F('layer','Layer Input','na')]},'Lighting':null},
+  'MATTE IN':{'Matte Inputs':{k:[],f:[F('gmin','Garbage Matte In'),F('hmin','Holdout Matte In'),F('bgmin','BG Matte In','na'),F('lymin','Layer Matte In','na')]},
+    'Window':{k:[K('wt','Window Top',0,100,0),K('wb','Window Bottom',0,100,0),K('wl','Window Left',0,100,0),K('wr','Window Right',0,100,0),K('wst','Softness Top',0,100,0),K('wsb','Softness Bottom',0,100,0),K('wsl','Softness Left',0,100,0),K('wsr','Softness Right',0,100,0)],
+      f:[F('win','Window'),F('wskew','Window Skew','na')]}},
+  SETTINGS:{'System':{k:[],f:[F('bk0','Red','radio'),F('bk1','Green','radio'),F('bk2','Blue','radio'),F('cascade','Monitor Cascade')]},
+    'Inputs':{k:[K('fgdelay','Frame Delay FG',0,14,0,'fr')],f:[]},
+    'Outputs':{k:[K('mol','Matte Out Level',0,100,100)],f:[F('moinv','Matte Out Invert'),F('flmc','Fill Lin Mix Cor'),F('m2p','Monitor to Program')]},'Media':null,'On Air':null,'GPIO':null}};
+const TABS=Object.keys(MENUS),MONS=['Program','Foreground Input','Background Input','Combined Matte','Internal Matte','Fill Out'];
+const ALLK=Object.values(MENUS).flatMap(m=>Object.values(m).filter(Boolean).flatMap(g=>g.k)),ALLF=Object.values(MENUS).flatMap(m=>Object.values(m).filter(Boolean).flatMap(g=>g.f)).filter(f=>f.type==='toggle');
+const defV=()=>Object.fromEntries(ALLK.map(k=>[k.id,k.def])),defF=()=>Object.fromEntries(ALLF.map(f=>[f.id,f.def]));
+const U=[1,2].map(n=>({n,v:defV(),f:defF(),backing:[40,170,60],ch:1,mon:0,preset:0,quick:{},lock:false,menu:null,
+  out:mk(),monCv:mk(),fillCv:mk(),matteCv:mk(),fg:mk(),bg:mk(),gm:mk(),hm:mk(),mi:mk(),loop:mk(),plate:null,dly:[],online:true}));
+const R={unit:0,tab:'MATTE',grp:Object.fromEntries(TABS.map(t=>[t,Object.keys(MENUS[t])[0]])),alt:false,msg:'',mt:0};
+const knobsOf=()=>{const g=MENUS[R.tab][R.grp[R.tab]];return g?g.k:[];};
 /* ---------- the test chroma camera: presenter on a green cyc (wrinkles, floor shadow, a bit of spill) ---------- */
 const gsC=mk(480,270);
 const CV={v:null,name:''};
@@ -31,28 +50,46 @@ window.VH_SOURCES=window.VH_SOURCES||{};VH_SOURCES.gscam=(c,w,h)=>{c.drawImage(c
 const hubOutFor=k=>window.VH?VH.state().cabOut.indexOf(k):-1;
 let depth=0;
 function grab(dest,c){const o=hubOutFor(dest);if(o<0||!window.VH)return false;const g=c.getContext('2d',{willReadFrequently:true});g.fillStyle='#000';g.fillRect(0,0,CW,CH);return VH.frame(o,g,CW,CH)!==false;}
-function process(u){const now=performance.now();if(depth||now-(u.t||0)<35)return;u.t=now;depth++;try{   /* once per frame even if several outputs read it */
-  const okF=grab('u'+u.n+'fg',u.fg),okB=grab('u'+u.n+'bg',u.bg);u.okF=okF;u.okB=okB;const og=u.out.getContext('2d'),mg=u.monCv.getContext('2d');
-  if(!okF){og.fillStyle='#000';og.fillRect(0,0,CW,CH);if(okB)og.drawImage(u.bg,0,0);mg.drawImage(u.out,0,0);return;}
-  const F=u.fg.getContext('2d',{willReadFrequently:true}).getImageData(0,0,CW,CH),B=u.bg.getContext('2d',{willReadFrequently:true}).getImageData(0,0,CW,CH),f=F.data,b=B.data;
-  const O=og.createImageData(CW,CH),o=O.data,M=mg.createImageData(CW,CH),mo=M.data;const ch=u.ch||1,oth=[[1,2],[0,2],[0,1]][ch];   // backing channel (green by default)
-  const V=p=>val(u,'MATTE',p),Fg=p=>val(u,'FOREGROUND',p),Bg=p=>val(u,'BACKGROUND',p);
-  const bk=u.backing,bDom=Math.max(8,bk[ch]-Math.max(bk[oth[0]],bk[oth[1]])),dens=V(0)/100*.3,gloss=V(1)/100,rd=V(2)/100,bd=V(3)/100,cu=V(4)/100,shL=(V(5)-100)/100,shT=V(6)/100,veil=V(7)/100;
-  const flare=Fg(0)/100,wl=Fg(1)/100,bl=Fg(2)/100*.3,sat=Fg(3)/100,con=Fg(4)/100,bgl=Bg(0)/100,bgs=Bg(1)/100,bLum=(bk[0]+bk[1]+bk[2])/3;
-  for(let i=0;i<f.length;i+=4){let c=[f[i],f[i+1],f[i+2]];const d=c[ch]-Math.max(rd*c[oth[0]],bd*c[oth[1]]);let m=Math.min(1,Math.max(0,d/bDom));
-    m=Math.min(1,Math.max(0,(m-dens)/(1-Math.min(.95,dens))));const lum=(c[0]+c[1]+c[2])/765;m*=1-gloss*Math.max(0,.5-lum)*2;m=Math.min(1,m/(1-cu*.45));
-    const sp=c[ch]-Math.max(c[oth[0]],c[oth[1]]);if(sp>0)c[ch]-=sp*Math.min(1,flare);   // flare: spill suppression
-    for(let k=0;k<3;k++){let v=c[k]/255;v=(v-.5)*con+.5;v=v*wl+bl-veil*.1;c[k]=v*255;}const y=(c[0]+c[1]+c[2])/3;for(let k=0;k<3;k++)c[k]=y+(c[k]-y)*sat;
-    const sf=1-Math.max(0,1-(f[i]+f[i+1]+f[i+2])/3/Math.max(1,bLum))*shL*shT;let bc=[b[i]*bgl,b[i+1]*bgl,b[i+2]*bgl];const by=(bc[0]+bc[1]+bc[2])/3;bc=bc.map(v=>(by+(v-by)*bgs)*Math.max(0,sf));
-    for(let k=0;k<3;k++)o[i+k]=c[k]*(1-m)+bc[k]*m;o[i+3]=255;
-    const mode=u.mon;let r,g2,b2;if(mode===0){r=o[i];g2=o[i+1];b2=o[i+2];}else if(mode===1){r=f[i];g2=f[i+1];b2=f[i+2];}else if(mode===2){r=b[i];g2=b[i+1];b2=b[i+2];}
-    else if(mode===3||mode===4){r=g2=b2=m*255;}else{r=c[0]*(1-m);g2=c[1]*(1-m);b2=c[2]*(1-m);}mo[i]=r;mo[i+1]=g2;mo[i+2]=b2;mo[i+3]=255;}
-  og.putImageData(O,0,0);mg.putImageData(M,0,0);}finally{depth--;}}
-function autoKey(u){if(!u.okF){grab('u'+u.n+'fg',u.fg);}const d=u.fg.getContext('2d',{willReadFrequently:true}).getImageData(0,0,CW,CH).data,ch=u.ch||1,oth=[[1,2],[0,2],[0,1]][ch],c=[];
+const px=c=>c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,CW,CH);
+/* one pass per frame: internal matte (+ garbage / window / holdout = combined matte), spill, colour, composite;
+   outputs PGM OUT, PGM FILL, PGM MATTE, MON OUT (+ cascade), CAMERA FG LOOP */
+function process(u){const now=performance.now();if(depth||now-(u.t||0)<35)return;u.t=now;depth++;try{
+  const v=u.v,f_=u.f,n=u.n;u.okF=grab('u'+n+'fg',u.fg);if(!f_.bfreeze||!u.okB)u.okB=grab('u'+n+'bg',u.bg);
+  u.okG=f_.gmin&&grab('u'+n+'gm',u.gm);u.okH=f_.hmin&&grab('u'+n+'hm',u.hm);
+  const lg=u.loop.getContext('2d');lg.clearRect(0,0,CW,CH);lg.drawImage(u.fg,0,0);   // CAMERA FG LOOP = the camera, untouched
+  const og=u.out.getContext('2d'),mg=u.monCv.getContext('2d'),fgc=u.fillCv.getContext('2d'),mtc=u.matteCv.getContext('2d');
+  if(!u.okF){og.fillStyle='#000';og.fillRect(0,0,CW,CH);if(u.okB)og.drawImage(u.bg,0,0);mg.drawImage(u.out,0,0);fgc.fillStyle='#000';fgc.fillRect(0,0,CW,CH);mtc.fillStyle=f_.moinv?'#000':'#fff';mtc.fillRect(0,0,CW,CH);return;}
+  let F=px(u.fg);if(v.fgdelay>0){u.dly.push(F);while(u.dly.length>v.fgdelay+1)u.dly.shift();F=u.dly[0];}else u.dly=[];   // Settings › Inputs › Frame Delay FG
+  const B=px(u.bg),f=F.data,b=B.data,G=u.okG?px(u.gm).data:null,Hm=u.okH?px(u.hm).data:null,PL=f_.scor&&u.plate?u.plate.data:null;
+  const O=og.createImageData(CW,CH),o=O.data,M=mg.createImageData(CW,CH),mo=M.data,FI=fgc.createImageData(CW,CH),fi=FI.data,MT=mtc.createImageData(CW,CH),mt=MT.data;
+  const ch=u.ch,oth=[[1,2],[0,2],[0,1]][ch],bk=u.backing,bDom=Math.max(8,bk[ch]-Math.max(bk[oth[0]],bk[oth[1]]));
+  const dens=v.dens/100*.3,gloss=v.gloss/100,rd=v.rd/100,bd=v.bd/100,shL=(v.shl-100)/100,shT=v.sht/100,cu=v.cu/100*v.cus/100,cud=v.cud/100,cul=v.cul/100;
+  const veil=[v.vr,v.vg,v.vb].map(x=>(v.vm+x)/100*.1),flare=v.flare/100,wl=v.fwl/100,bl=v.fbl/100*.3,sat=v.fsat/100,con=v.fcon/100,amb=v.amb/100*.35;
+  const bwl=v.bwl/100,bbl=v.bbl/100*.3*255,bcon=v.bcon/100,bsat=v.bsat/100,bLum=(bk[0]+bk[1]+bk[2])/3,mol=v.mol/100;
+  let av=[0,0,0];if(amb>0){for(let i=0;i<b.length;i+=64){av[0]+=b[i];av[1]+=b[i+1];av[2]+=b[i+2];}av=av.map(x=>x/(b.length/64));}   // ambiance: the average colour of the background
+  const W=f_.win?{t:v.wt/100,b:1-v.wb/100,l:v.wl/100,r:1-v.wr/100,st:v.wst/100,sb:v.wsb/100,sl:v.wsl/100,sr:v.wsr/100}:null,ss=(e0,e1,x)=>e1<=e0?(x>=e0?1:0):Math.min(1,Math.max(0,(x-e0)/(e1-e0)));
+  const cas=f_.cascade&&R.unit!==u.idx&&grab('u'+n+'mi',u.mi),MI=cas?px(u.mi).data:null;   // monitor cascade: MON OUT passes the MON IN of the chain
+  for(let y=0,i=0;y<CH;y++)for(let x=0;x<CW;x++,i+=4){let c=[f[i],f[i+1],f[i+2]];
+    let dom=bDom;if(PL){dom=Math.max(8,PL[i+ch]-Math.max(rd*PL[i+oth[0]],bd*PL[i+oth[1]]));}   // screen correct: compare with the captured empty screen
+    const d=c[ch]-Math.max(rd*c[oth[0]],bd*c[oth[1]]);let m=Math.min(1,Math.max(0,d/dom));
+    m=Math.min(1,Math.max(0,(m-dens)/(1-Math.min(.95,dens))));const lum=(c[0]+c[1]+c[2])/765;m*=1-gloss*Math.max(0,.5-lum)*2;
+    const cuE=cu*(1-cud*(1-lum))*(1-cul*lum);m=Math.min(1,m/(1-cuE*.45));if(!f_.matte)m=0;const mi=m;
+    let gar=G?(G[i]*.2126+G[i+1]*.7152+G[i+2]*.0722)/255:0;   // garbage matte in: white = keep it out of the picture
+    if(W){const yy=y/CH,xx=x/CW,ins=ss(W.t-W.st,W.t,yy)*(1-ss(W.b,W.b+W.sb,yy))*ss(W.l-W.sl,W.l,xx)*(1-ss(W.r,W.r+W.sr,xx));gar=Math.max(gar,1-ins);}
+    m=Math.max(m,gar);const h=Hm?(Hm[i]*.2126+Hm[i+1]*.7152+Hm[i+2]*.0722)/255:0;m*=1-h;   // holdout matte in: white = never keyed
+    const sp=c[ch]-Math.max(c[oth[0]],c[oth[1]]);if(sp>0)c[ch]-=sp*Math.min(1,flare)*(f_.hmflare?1:1-h);   // flare = spill suppression
+    for(let k=0;k<3;k++){let q=c[k]/255;q=(q-.5)*con+.5;q=q*wl+bl-veil[k];c[k]=q*255+av[k]*amb;}const yv=(c[0]+c[1]+c[2])/3;for(let k=0;k<3;k++)c[k]=Math.max(0,Math.min(255,yv+(c[k]-yv)*sat));
+    const sf=1-Math.max(0,1-(f[i]+f[i+1]+f[i+2])/3/Math.max(1,bLum))*shL*shT;let bc=[0,1,2].map(k=>((b[i+k]/255-.5)*bcon+.5)*255*bwl+bbl);const by=(bc[0]+bc[1]+bc[2])/3;bc=bc.map(q=>Math.max(0,by+(q-by)*bsat)*Math.max(0,sf));
+    for(let k=0;k<3;k++){o[i+k]=c[k]*(1-m)+bc[k]*m;fi[i+k]=f_.flmc?(m<.996?c[k]:0):c[k]*(1-m);}o[i+3]=fi[i+3]=255;
+    let mm=m*mol;if(f_.moinv)mm=1-mm;mt[i]=mt[i+1]=mt[i+2]=mm*255;mt[i+3]=255;   // PGM MATTE: 0 % black = opaque foreground, 100 % white = backing
+    const md=u.mon;let r,g2,b2;if(MI){r=MI[i];g2=MI[i+1];b2=MI[i+2];}else if(md===0){r=o[i];g2=o[i+1];b2=o[i+2];}else if(md===1){r=f[i];g2=f[i+1];b2=f[i+2];}else if(md===2){r=b[i];g2=b[i+1];b2=b[i+2];}
+    else if(md===3){r=g2=b2=m*255;}else if(md===4){r=g2=b2=mi*255;}else{r=fi[i];g2=fi[i+1];b2=fi[i+2];}mo[i]=r;mo[i+1]=g2;mo[i+2]=b2;mo[i+3]=255;}
+  og.putImageData(f_.m2p?M:O,0,0);mg.putImageData(M,0,0);fgc.putImageData(FI,0,0);mtc.putImageData(MT,0,0);}finally{depth--;}}
+function autoKey(u){if(!u.okF){grab('u'+u.n+'fg',u.fg);}const d=px(u.fg).data,ch=u.ch,oth=[[1,2],[0,2],[0,1]][ch],c=[];
   for(let i=0;i<d.length;i+=16){const dom=d[i+ch]-Math.max(d[i+oth[0]],d[i+oth[1]]);c.push([dom,d[i],d[i+1],d[i+2]]);}c.sort((a,b)=>b[0]-a[0]);const top=c.slice(0,Math.max(1,c.length/20|0));
   u.backing=[1,2,3].map(k=>top.reduce((s,x)=>s+x[k],0)/top.length);flash('Auto Key: backing colour sampled');}
-window.VH_SOURCES.ult1=(c,w,h)=>{const u=U[0];if(!depth)process(u);if(!u.okF&&!u.okB)return false;c.drawImage(u.out,0,0,w,h);};
-window.VH_SOURCES.ult2=(c,w,h)=>{const u=U[1];if(!depth)process(u);if(!u.okF&&!u.okB)return false;c.drawImage(u.out,0,0,w,h);};
+U.forEach((u,i)=>{u.idx=i;const out=(name,cv,need)=>{VH_SOURCES[name]=(c,w,h)=>{if(!depth)process(u);if(need&&!need())return false;c.drawImage(cv(),0,0,w,h);};};
+  out('ult'+u.n,()=>u.out,()=>u.okF||u.okB);out('ult'+u.n+'f',()=>u.fillCv,()=>u.okF);out('ult'+u.n+'m',()=>u.matteCv,()=>u.okF);out('ult'+u.n+'mo',()=>u.monCv,()=>u.okF||u.okB);out('ult'+u.n+'l',()=>u.loop,()=>u.okF);});
 /* ---------- drawing: 12 HD fronts (half rack) ---------- */
 function hdFront(i){const W=475,H=100,X=f=>f*W,Y=f=>f*H,k=(id,fx,fy,l)=>`<g class="um-k" data-u="${i}" data-k="${id}" data-tip="${{p1:'Quick preset 1',p2:'Quick preset 2',p3:'Quick preset 3',menu:'MENU: setup, network, matte status (backing colour, Auto Key), input status.',set:'SET: select / confirm in the menu.',lock:'LOCK: hold 1 s = lock, 2 s = unlock.'}[id]}"><rect x="${X(fx)-14}" y="${Y(fy)-11}" width="28" height="22" rx="3"/><text x="${X(fx)}" y="${Y(fy)+3}" class="um-kt">${l}</text></g>`;
   return `<svg viewBox="0 0 ${W} ${H}" class="vh-svg um-hd" data-u="${i}"><rect x="1" y="1" width="${W-2}" height="${H-2}" rx="6" class="at-face"/>
@@ -69,11 +106,11 @@ function hdRear(i){const W=475,H=100,X=f=>f*W,Y=f=>f*H,T=(x,y,t)=>`<text x="${X(
     <g data-tip="IEC power inlet (100-240 V)."><rect x="${X(.02)}" y="${Y(.15)}" width="${X(.105)}" height="${Y(.65)}" rx="3" class="vh-iec2"/></g>
     <g data-tip="GPIO (DE-15): tally input from a GPI interface."><rect x="${X(.217)-14}" y="${Y(.27)-6}" width="28" height="12" rx="4" class="vh-rj"/></g>${T(.217,.42,'GPIO')}
     <g class="um-s" data-s="u${i}:eth" data-tip="ETHERNET: to the rack network switch — the Smart Remote 4 (and Ultimatte Software Control) control the unit over the network."><rect x="${X(.207)-10}" y="${Y(.68)-8}" width="20" height="16" rx="2" class="vh-rj"/></g>${T(.207,.92,'ETHERNET')}
-    ${sock('refo',.392,.27,'REF OUT','Reference output.')}${sock('refi',.392,.68,'REF IN','Reference input (same sync as the ATEM).')}
-    ${sock('bg',.5,.68,'BACKGROUND','BACKGROUND: the picture that goes behind the presenter.')}${sock('fgl',.587,.27,'CAMERA FG LOOP','Loop of the camera input.')}${sock('fg',.587,.68,'CAMERA FG','CAMERA FG: the camera on the green screen.')}
-    ${sock('fill',.675,.27,'PGM FILL','PGM FILL: foreground with the green removed (for a linear key in the switcher).')}${sock('gm',.675,.68,'G MATTE','Garbage matte input.')}
-    ${sock('matte',.762,.27,'PGM MATTE','PGM MATTE: the key signal (for a linear key in the switcher).')}${sock('hm',.762,.68,'H MATTE','Holdout matte input.')}
-    ${sock('pgm',.85,.27,'PGM OUT','PGM OUT: the finished composite.')}${sock('mono',.938,.27,'MON OUT','Monitor output (MONITOR OUTPUT selection).')}${sock('moni',.938,.68,'MON IN','Monitor input.')}
+    ${sock('refo',.392,.27,'REF OUT','REF OUT: reference loop (to the next unit).')}${sock('refi',.392,.68,'REF IN','Reference input (same sync as the ATEM).')}
+    ${sock('bg',.5,.68,'BACKGROUND','BACKGROUND: the picture that goes behind the presenter.')}${sock('fgl',.587,.27,'CAMERA FG LOOP','CAMERA FG LOOP: the camera signal, re-clocked and untouched (e.g. to record the clean camera).')}${sock('fg',.587,.68,'CAMERA FG','CAMERA FG: the camera on the green screen.')}
+    ${sock('fill',.675,.27,'PGM FILL','PGM FILL: the presenter with the spill removed and the screen suppressed to black (the fill for a linear key in the ATEM). SETTINGS › Outputs › Fill Lin Mix Cor for a switcher that does a linear mix.')}${sock('gm',.675,.68,'G MATTE','G MATTE IN: garbage matte — white areas are thrown out of the picture (MATTE IN › Garbage Matte In).')}
+    ${sock('matte',.762,.27,'PGM MATTE','PGM MATTE: the combined matte — black = presenter, white = background (SETTINGS › Outputs › Matte Out Invert flips it). The key for a linear key in the ATEM.')}${sock('hm',.762,.68,'H MATTE','H MATTE IN: holdout matte — white areas are never keyed (e.g. a green logo on the desk). MATTE IN › Holdout Matte In.')}
+    ${sock('pgm',.85,.27,'PGM OUT','PGM OUT: the finished composite.')}${sock('mono',.938,.27,'MON OUT','MON OUT: the view chosen in MONITOR OUTPUT (or, with Monitor Cascade, the selected unit of the chain).')}${sock('moni',.938,.68,'MON IN','MON IN: monitor cascade — the MON OUT of the previous unit (SETTINGS › System › Monitor Cascade).')}
     <path d="M${X(.55)} ${Y(.05)}v-2H${X(.98)}v2" class="vh-brk"/></svg>`;}
 function switchFront(){const W=1080,H=60,X=f=>f*W;let s=`<svg viewBox="0 0 ${W} ${H}" class="vh-svg"><rect x="1" y="1" width="${W-2}" height="${H-2}" rx="6" class="ob-silver"/><text x="${X(.03)}" y="34" class="ob-sm">Longshine LCS-GS8116 · 16 Port Gigabit Switch</text>`;
   for(let k=0;k<16;k++){const x=X(.42+(k%8)*.065),y=k<8?18:40;s+=`<g class="um-s" data-s="sw:${k}" data-tip="Switch port ${k+1}"><rect x="${x-11}" y="${y-8}" width="22" height="16" rx="2" class="vh-rj"/></g>`;}
@@ -86,12 +123,10 @@ function srRear(){const W=1000,H=56,X=f=>f*W,T=(x,t)=>`<text x="${X(x)}" y="52" 
     <g data-tip="HDMI out: an extra monitor."><rect x="${X(.49)-11}" y="16" width="22" height="9" rx="2" class="vh-rj"/></g>${T(.49,'HDMI OUT')}</svg>`;}
 /* the cables (rope physics shared with the video rack) */
 function cableList(){const L=[{a:'[data-s="u0:eth"]',hang:34,tag:'Network',info:'Ethernet → the rack network switch: the Smart Remote 4 controls this unit through it'},{a:'[data-s="u1:eth"]',hang:34,tag:'Network',info:'Ethernet → the rack network switch'}];
-  const st=window.VH?VH.state():null;if(st){const o=d=>st.cabOut.indexOf(d),i=v=>st.cabIn.indexOf(v);
-    const src=k=>{const r=st.routes[o(k)];return window.VH?VH.inputLabel(r):'';};
-    if(o('u1fg')>=0)L.push({a:'[data-s="u0:fg"]',hang:34,tag:'← Videohub OUT '+(o('u1fg')+1),info:`${src('u1fg')} → Videohub → OUT ${o('u1fg')+1} → Ultimatte 1 CAMERA FG (the camera arrives through the Videohub)`});
-    if(o('u1bg')>=0)L.push({a:'[data-s="u0:bg"]',hang:34,tag:'← Videohub OUT '+(o('u1bg')+1),info:`${src('u1bg')} → Videohub → OUT ${o('u1bg')+1} → Ultimatte 1 BACKGROUND`});
-    if(i('ult1')>=0)L.push({a:'[data-s="u0:pgm"]',hang:-30,tag:'→ Videohub IN '+(i('ult1')+1),info:`Ultimatte 1 PGM OUT → Videohub IN ${i('ult1')+1} (from there to the ATEM)`});
-    if(o('u2fg')>=0)L.push({a:'[data-s="u1:fg"]',hang:34,tag:'← Videohub OUT '+(o('u2fg')+1),info:'Videohub → Ultimatte 2 CAMERA FG'});if(i('ult2')>=0)L.push({a:'[data-s="u1:pgm"]',hang:-30,tag:'→ Videohub IN '+(i('ult2')+1),info:'Ultimatte 2 PGM OUT → Videohub'});}
+  const st=window.VH?VH.state():null;if(!st)return L;const o=d=>st.cabOut.indexOf(d),i=v=>st.cabIn.indexOf(v),src=k=>VH.inputLabel(st.routes[o(k)]);
+  [0,1].forEach(j=>{const n=j+1,S=id=>`[data-s="u${j}:${id}"]`;
+    [['fg','CAMERA FG'],['bg','BACKGROUND'],['gm','G MATTE IN'],['hm','H MATTE IN'],['mi','MON IN']].forEach(([k,lab])=>{const q=o('u'+n+k);if(q>=0)L.push({a:S(k==='mi'?'moni':k),hang:34,tag:'Hub OUT '+(q+1),info:`${src('u'+n+k)} → Videohub → OUT ${q+1} → Ultimatte ${n} ${lab}`});});
+    [['','pgm','PGM OUT'],['f','fill','PGM FILL'],['m','matte','PGM MATTE'],['mo','mono','MON OUT'],['l','fgl','CAMERA FG LOOP']].forEach(([k,sock,lab])=>{const q=i('ult'+n+k);if(q>=0)L.push({a:S(sock),hang:63,tag:'Hub IN '+(q+1),info:`Ultimatte ${n} ${lab} → Videohub IN ${q+1}`});});});
   return L;}
 let ropes=null;
 /* ---------- Smart Remote 4 ---------- */
@@ -109,40 +144,62 @@ function sr4(){const W=1000,H=406,X=f=>f*W,Y=f=>f*H,b=(id,fx,fy,l,tip,w=30,h=22)
 /* ---------- screens ---------- */
 function drawHdLcd(i){const u=U[i],c=root.querySelector(`.um-lcd[data-u="${i}"]`);if(!c)return;const g=c.getContext('2d'),w=240,h=180;g.fillStyle='#000';g.fillRect(0,0,w,h);
   if(u.menu){g.fillStyle='#eef1f4';g.fillRect(0,0,w,h);g.fillStyle='#2b6fd6';g.fillRect(0,0,w,26);g.fillStyle='#fff';g.font='700 13px sans-serif';g.fillText(['Matte Status','Input Status','Network'][u.menu.p],8,18);g.fillStyle='#222';g.font='600 12px sans-serif';
-    if(u.menu.p===0){g.fillText('Screen Reference Color: '+['Red','Green','Blue'][u.ch??1],8,52);g.fillText('Auto Key  ⟲  (SET)',8,76);}else if(u.menu.p===1){g.fillText('Foreground: '+(u.okF?'OK':'No Input'),8,52);g.fillText('Background: '+(u.okB?'OK':'No Input'),8,72);g.fillText('Reference: OK',8,92);}
+    if(u.menu.p===0){g.fillText('Screen Reference Color: '+['Red','Green','Blue'][u.ch??1],8,52);g.fillText('Auto Key  ⟲  (SET)',8,76);}else if(u.menu.p===1){[['Reference','OK'],['Foreground',u.okF],['Background',u.okB],['Garbage Matte',hubOutFor('u'+u.n+'gm')>=0],['Holdout Matte',hubOutFor('u'+u.n+'hm')>=0],['Monitor',hubOutFor('u'+u.n+'mi')>=0]].forEach(([k,ok],j)=>g.fillText(k+': '+(ok?'OK':'No Input'),8,48+j*17));}
     else{g.fillText('IP Address: 192.168.11.'+(60+i),8,52);g.fillText('Default: 192.168.10.220',8,72);}g.fillStyle='#666';g.font='600 10px sans-serif';g.fillText('Knob = page · SET = action · MENU = exit',8,h-10);return;}
   g.drawImage(u.out,0,0,w,135);g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,0,w,20);g.fillStyle='#fff';g.font='600 11px sans-serif';g.fillText('Ultimatte 12 HD '+(i+1),6,14);g.textAlign='right';g.fillText('1080i50',w-6,14);g.textAlign='left';
   g.fillStyle='#000';g.fillRect(0,135,w,45);g.fillStyle=u.okF?'#fff':'#ffb02e';g.font='800 20px sans-serif';g.fillText(u.okF?'STANDBY':'No Cam',8,166);g.font='600 10px sans-serif';g.fillStyle='#8b949e';g.fillText(R.msg&&R.unit===i?R.msg:'',110,166);
   root.querySelectorAll(`.um-k[data-u="${i}"]`).forEach(k=>{const id=k.dataset.k;k.classList.toggle('green',/^p\d$/.test(id)&&!!u.quick[+id[1]]&&u.preset!==+id[1]);k.classList.toggle('blue',/^p\d$/.test(id)&&u.preset===+id[1]);k.classList.toggle('red',id==='lock'&&u.lock);});}
+/* touch screen layout (800 × 500): tabs · title · GROUPS · FUNCTIONS · MONITOR OUTPUT · status bar; knobs 1-4 left, 5-8 right */
+const TL={grp:{x:150,y:86,w:122,h:28,dx:126,dy:32,per:4},fn:{x:150,y:182,w:98,h:28,dx:101,dy:32,per:5},mon:{x:150,y:300,w:162,h:34,dx:170,dy:40,per:3}};
+const cell=(L,j)=>({x:L.x+(j%L.per)*L.dx,y:L.y+Math.floor(j/L.per)*L.dy,w:L.w,h:L.h});
+const hit=(L,n,x,y)=>{for(let j=0;j<n;j++){const c=cell(L,j);if(x>=c.x&&x<=c.x+c.w&&y>=c.y&&y<=c.y+c.h)return j;}return -1;};
+function fnOn(u,F){if(F.type==='radio')return u.ch===+F.id.slice(2);if(F.type==='toggle')return !!u.f[F.id];return false;}
 function drawTouch(){const c=document.getElementById('um-touch');if(!c)return;const g=c.getContext('2d'),w=800,h=500,u=U[R.unit];g.fillStyle='#14181d';g.fillRect(0,0,w,h);g.textBaseline='middle';
-  const P=PAGES[R.tab];TABS.forEach((t,i)=>{const x=150+i*84;g.fillStyle=t===R.tab?'#1f8a85':'#262c33';g.fillRect(x,8,80,30);g.fillStyle='#fff';g.font='700 11px sans-serif';g.textAlign='center';g.fillText(t,x+40,23);});
-  g.textAlign='left';g.fillStyle='#fff';g.font='700 18px sans-serif';g.fillText(R.tab,150,64);g.fillStyle='#ffcf5a';g.font='600 13px sans-serif';g.fillText('⟲ auto key',300,64);
-  [0,1,2,3,4,5,6,7].forEach(n=>{const left=n<4,x=left?10:w-130,y=60+(n%4)*105;g.fillStyle='#1d2228';g.fillRect(x,y,120,95);const p=P&&P[n];
-    if(p&&p[0]){const v=val(u,R.tab,n),f=(v-p[1])/(p[2]-p[1]);g.fillStyle='#c9d1d9';g.font='600 11px sans-serif';g.textAlign='center';g.fillText(p[0],x+60,y+14);g.strokeStyle='#33404c';g.lineWidth=6;g.beginPath();g.arc(x+60,y+52,24,Math.PI*.75,Math.PI*2.25);g.stroke();
-      g.strokeStyle='#1fb5ad';g.beginPath();g.arc(x+60,y+52,24,Math.PI*.75,Math.PI*(.75+1.5*f));g.stroke();g.fillStyle='#fff';g.font='700 13px sans-serif';g.fillText(Math.round(v)+' %',x+60,y+84);}});
-  g.textAlign='left';
-  if(!P){g.fillStyle='#8b949e';g.font='600 14px sans-serif';g.fillText(R.tab==='SETTINGS'?'Backing colour:':R.tab+': not used in this room (no layer / matte inputs cabled).',150,110);
-    if(R.tab==='SETTINGS')['Red','Green','Blue'].forEach((t,i)=>{const x=150+i*90;g.fillStyle=(u.ch??1)===i?['#c0392b','#1e8449','#2e6fd6'][i]:'#262c33';g.fillRect(x,130,80,34);g.fillStyle='#fff';g.font='700 12px sans-serif';g.fillText(t,x+22,147);});}
-  else{g.fillStyle='#8b949e';g.font='600 12px sans-serif';g.fillText(R.tab==='MATTE'?'1. FILE CLEAR / ⟲ = Auto Key   2. Matte Density (look at Combined Matte)   3. Clean Up · Shadow':R.tab==='FOREGROUND'?'Flare = how much green spill is removed from the presenter':'Level and saturation of the background',150,100,500);}
-  g.fillStyle='#fff';g.font='700 12px sans-serif';g.fillText('MONITOR OUTPUT',150,300);MONS.forEach((m,i)=>{const x=150+(i%3)*170,y=315+Math.floor(i/3)*44;g.fillStyle=u.mon===i?'#1f8a85':'#262c33';g.fillRect(x,y,162,36);g.fillStyle='#fff';g.font='600 12px sans-serif';g.fillText(m,x+10,y+18);});
+  TABS.forEach((t,i)=>{const x=150+i*84;g.fillStyle=t===R.tab?'#1f8a85':'#262c33';g.fillRect(x,8,80,30);g.fillStyle='#fff';g.font='700 11px sans-serif';g.textAlign='center';g.fillText(t,x+40,23);});
+  g.textAlign='left';g.fillStyle='#fff';g.font='700 18px sans-serif';g.fillText(R.tab,150,58);g.fillStyle='#ffcf5a';g.font='600 13px sans-serif';g.fillText('⟲ auto key',380,58);
+  const G=MENUS[R.tab],gn=Object.keys(G),grp=G[R.grp[R.tab]];
+  g.fillStyle='#8b949e';g.font='700 10px sans-serif';g.fillText('GROUPS',150,77);
+  gn.forEach((n,j)=>{const b=cell(TL.grp,j);g.fillStyle=n===R.grp[R.tab]?'#1f8a85':G[n]?'#262c33':'#1b1f24';g.fillRect(b.x,b.y,b.w,b.h);g.fillStyle=G[n]?'#fff':'#4d5560';g.font='600 11px sans-serif';g.textAlign='center';g.fillText(n,b.x+b.w/2,b.y+b.h/2);g.textAlign='left';});
+  g.fillStyle='#8b949e';g.font='700 10px sans-serif';g.fillText('FUNCTIONS',150,173);
+  (grp?grp.f:[]).forEach((F,j)=>{const b=cell(TL.fn,j),on=fnOn(u,F);g.fillStyle=F.type==='na'?'#1b1f24':on?(F.type==='radio'?['#c0392b','#1e8449','#2e6fd6'][+F.id.slice(2)]:'#2fa84f'):'#262c33';g.fillRect(b.x,b.y,b.w,b.h);
+    g.fillStyle=F.type==='na'?'#4d5560':'#fff';g.font='600 10px sans-serif';g.textAlign='center';g.fillText(F.n,b.x+b.w/2,b.y+b.h/2);g.textAlign='left';});
+  if(!grp){g.fillStyle='#8b949e';g.font='600 12px sans-serif';g.fillText(R.grp[R.tab]+': not simulated.',150,196);}
+  const K=knobsOf();for(let n=0;n<8;n++){const left=n<4,x=left?10:w-130,y=60+(n%4)*105;g.fillStyle='#1d2228';g.fillRect(x,y,120,95);const p=K[n];
+    if(p){const v=u.v[p.id],f=(v-p.min)/(p.max-p.min);g.fillStyle='#c9d1d9';g.font='600 11px sans-serif';g.textAlign='center';g.fillText(p.n,x+60,y+14);g.strokeStyle='#33404c';g.lineWidth=6;g.beginPath();g.arc(x+60,y+52,24,Math.PI*.75,Math.PI*2.25);g.stroke();
+      g.strokeStyle='#1fb5ad';g.beginPath();g.arc(x+60,y+52,24,Math.PI*.75,Math.PI*(.75+1.5*f));g.stroke();g.fillStyle='#fff';g.font='700 13px sans-serif';g.fillText(Math.round(v)+(p.un==='fr'?' fr':' %'),x+60,y+84);}}
+  g.textAlign='left';g.fillStyle='#8b949e';g.font='600 11px sans-serif';
+  const HINT={'Matte Process':'Matte Density: look at Combined Matte · Screen Capture (empty set) → Screen Correct','Clean Up':'Clean Up removes wrinkles and marks of the screen — use little',Veil:'Veil removes the white haze (look at Fill Out / Program)',
+    'Flare 1':'Flare Level = how much green spill is removed from the presenter','Ambiance 1':'Adds the colour of the background to the presenter',Color:'Brightness, contrast and saturation of this layer',Layer:'On the 12 HD the layer comes from the media pool (not simulated)',
+    'Matte Inputs':'G MATTE / H MATTE connectors on the rear (cable them on the Videohub)',Window:'Turn Window on, then dial the edges in (a rough garbage matte)',System:'Backing colour · Monitor Cascade (MON OUT → MON IN of the next unit)',Inputs:'Delays the camera to match a late background',Outputs:'PGM FILL / PGM MATTE for a linear key in the ATEM: Fill Lin Mix Cor on'};
+  g.fillText(HINT[R.grp[R.tab]]||'',150,232);if(R.msg){g.fillStyle='#ffcf5a';g.font='700 13px sans-serif';g.fillText(R.msg,150,262);}
+  g.fillStyle='#fff';g.font='700 12px sans-serif';g.fillText('MONITOR OUTPUT',150,288);MONS.forEach((m,i)=>{const b=cell(TL.mon,i);g.fillStyle=u.mon===i?'#1f8a85':'#262c33';g.fillRect(b.x,b.y,b.w,b.h);g.fillStyle='#fff';g.font='600 12px sans-serif';g.fillText(m,b.x+10,b.y+b.h/2);});
   for(let k=0;k<8;k++){const x=150+k*62,y=h-34;g.fillStyle=k===R.unit?'#2e6fd6':k<2?'#1e8449':'#2a2f35';g.fillRect(x,y,56,24);g.fillStyle='#fff';g.font='700 11px sans-serif';g.fillText(String(k+1),x+24,y+12);}
-  g.fillStyle='#c9d1d9';g.font='600 11px sans-serif';g.fillText('Preset: '+(u.preset?'Quick '+u.preset:'Ultimatte Defaults')+'   ·   Ultimatte 12 HD   ·   Backing: ',150,h-50);g.fillStyle=`rgb(${u.backing.map(Math.round)})`;g.fillRect(560,h-58,16,16);
-  if(R.msg){g.fillStyle='#ffcf5a';g.font='700 13px sans-serif';g.fillText(R.msg,150,270);}
+  g.fillStyle='#c9d1d9';g.font='600 11px sans-serif';g.fillText('Preset: '+(u.preset?'Quick '+u.preset+(u.dirty?' *':''):'Ultimatte Defaults')+'   ·   Ultimatte 12 HD '+(R.unit+1)+'   ·   Backing: ',150,h-50);g.fillStyle=`rgb(${u.backing.map(Math.round)})`;g.fillRect(575,h-58,16,16);
   root.querySelectorAll('.um-sr').forEach(e=>{const k=e.dataset.k;e.classList.toggle('blue',k==='unit'+R.unit);e.classList.toggle('amber',k==='alt'&&R.alt);});
   root.querySelectorAll('.um-un').forEach(e=>{const i=+e.dataset.un;e.setAttribute('fill',i<2?'#36d36e':'#555');});}
 function drawMon(){const c=document.getElementById('um-mon');if(!c)return;const u=U[R.unit];c.getContext('2d').drawImage(u.monCv,0,0,c.width,c.height);const l=document.getElementById('um-monl');if(l)l.textContent=`Ultimatte ${R.unit+1} · MON OUT: ${MONS[u.mon]}`;}
 function flash(t){R.msg=t;clearTimeout(R.mt);R.mt=setTimeout(()=>{R.msg='';},2500);}
 /* ---------- interaction ---------- */
-function setVal(n,d,reset){const u=U[R.unit],P=PAGES[R.tab];if(!P||!P[n]||!P[n][0])return;const p=P[n];u.vals[R.tab][n]=reset?p[3]:Math.max(p[1],Math.min(p[2],u.vals[R.tab][n]+d*(p[2]-p[1])/100));u.preset=0;}
+function setVal(n,d,reset){const u=U[R.unit],p=knobsOf()[n];if(!p)return;u.v[p.id]=reset?p.def:Math.max(p.min,Math.min(p.max,u.v[p.id]+d*(p.max-p.min)/(p.un==='fr'?14:100)));if(p.un==='fr')u.v[p.id]=Math.round(u.v[p.id]);u.dirty=true;}
+const snap=u=>JSON.parse(JSON.stringify({v:u.v,f:u.f,backing:u.backing,ch:u.ch}));
+function loadQuick(u,n){Object.assign(u,JSON.parse(JSON.stringify(u.quick[n])));u.preset=n;u.dirty=false;}
 function srPress(k){const u=U[R.unit];
   if(k.startsWith('unit')){const i=+k.slice(4);if(i<2)R.unit=i;else flash('Unit '+(i+1)+': no Ultimatte here');return;}
-  if(k==='alt'){R.alt=!R.alt;return;}if(k==='fileclear'){autoKey(u);if(R.alt){u.vals=defVals();R.alt=false;}return;}
-  const m=/^ql(\d)$/.exec(k);if(m){const n=+m[1];if(R.alt){u.quick[n]=JSON.parse(JSON.stringify({vals:u.vals,backing:u.backing}));R.alt=false;flash('Quick preset '+n+' saved');}else if(u.quick[n]){Object.assign(u,JSON.parse(JSON.stringify(u.quick[n])));u.preset=n;flash('Quick preset '+n+' loaded');}else flash('Quick preset '+n+' is empty (ALT + QUICK LOAD saves it)');}}
-function touch(x,y){const u=U[R.unit];if(y<40){const i=Math.floor((x-150)/84);if(i>=0&&i<TABS.length)R.tab=TABS[i];return;}if(y>=56&&y<=72&&x>=300&&x<=380){autoKey(u);return;}
-  if(y>=315&&y<=395){const i=Math.floor((x-150)/170)+(y>355?3:0);if(x>=150&&i<6)u.mon=i;return;}if(y>=466){const k=Math.floor((x-150)/62);if(k>=0&&k<2)R.unit=k;return;}
-  if(R.tab==='SETTINGS'&&y>=130&&y<=164){const i=Math.floor((x-150)/90);if(i>=0&&i<3){u.ch=i;autoKey(u);}}}
+  if(k==='alt'){R.alt=!R.alt;return;}if(k==='fileclear'){autoKey(u);if(R.alt){u.v=defV();u.f=defF();R.alt=false;}return;}
+  const m=/^ql(\d)$/.exec(k);if(m){const n=+m[1];if(R.alt){u.quick[n]=snap(u);R.alt=false;u.preset=n;u.dirty=false;flash('Quick preset '+n+' saved');}else if(u.quick[n]){loadQuick(u,n);flash('Quick preset '+n+' loaded');}else flash('Quick preset '+n+' is empty (ALT + QUICK LOAD saves it)');}}
+function fnPress(u,F){const reset=ids=>ids.forEach(id=>u.v[id]=ALLK.find(k=>k.id===id).def);u.dirty=true;
+  if(F.type==='na')return flash(F.n+': not simulated');
+  if(F.type==='radio'){u.ch=+F.id.slice(2);autoKey(u);return;}
+  if(F.type==='toggle'){if(F.id==='scor'&&!u.plate){flash('Screen Capture first (with the set empty)');return;}if(F.id==='gmin'&&hubOutFor('u'+u.n+'gm')<0)flash('G MATTE IN has nothing cabled (patch it on the Videohub)');if(F.id==='hmin'&&hubOutFor('u'+u.n+'hm')<0)flash('H MATTE IN has nothing cabled (patch it on the Videohub)');
+    u.f[F.id]=!u.f[F.id];return;}
+  ({mreset:()=>reset(['dens','gloss','rd','bd','shl','sht']),cureset:()=>reset(['cu','cud','cul','cus']),vreset:()=>reset(['vm','vr','vg','vb']),fcreset:()=>reset(['fwl','fbl','fcon','fsat']),bcreset:()=>reset(['bwl','bbl','bcon','bsat']),
+    scap:()=>{if(!u.okF)return flash('No camera on CAMERA FG');u.plate=px(u.fg);flash('Screen captured — now bring the presenter back and press Screen Correct');}})[F.id]?.();}
+function touch(x,y){const u=U[R.unit];if(y<40){const i=Math.floor((x-150)/84);if(i>=0&&i<TABS.length)R.tab=TABS[i];return;}if(y>=48&&y<=68&&x>=375&&x<=460){autoKey(u);return;}
+  const G=MENUS[R.tab],gn=Object.keys(G);let j=hit(TL.grp,gn.length,x,y);if(j>=0){if(G[gn[j]])R.grp[R.tab]=gn[j];else{R.grp[R.tab]=gn[j];flash(gn[j]+': not simulated');}return;}
+  const grp=G[R.grp[R.tab]];j=grp?hit(TL.fn,grp.f.length,x,y):-1;if(j>=0){fnPress(u,grp.f[j]);return;}
+  j=hit(TL.mon,6,x,y);if(j>=0){u.mon=j;return;}if(y>=466){const k=Math.floor((x-150)/62);if(k>=0&&k<2)R.unit=k;}}
 function hdPress(i,k){const u=U[i];if(u.lock&&k!=='lock')return;
-  if(/^p\d$/.test(k)){const n=+k[1];if(u.quick[n]){Object.assign(u,JSON.parse(JSON.stringify(u.quick[n])));u.preset=n;}else{R.unit=i;flash('Preset '+n+' empty (save it from the Smart Remote: ALT + QUICK LOAD)');}return;}
+  if(/^p\d$/.test(k)){const n=+k[1];if(u.quick[n])loadQuick(u,n);else{R.unit=i;flash('Preset '+n+' empty (save it from the Smart Remote: ALT + QUICK LOAD)');}return;}
   if(k==='menu'){u.menu=u.menu?null:{p:0};return;}if(k==='set'&&u.menu){if(u.menu.p===0)autoKey(u);return;}}
 function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.innerHTML=`<div class="pwr-hd"><div><h2>Chroma keying — Ultimatte</h2><div class="kind">2 × Ultimatte 12 HD · Ultimatte Smart Remote 4 (video rack)</div>
@@ -152,7 +209,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     <div class="um-body" id="um-wrap"><div class="um-row"><div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 1 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(0)}</div>${hdRear(0)}</div>
         <div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 2 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(1)}</div>${hdRear(1)}</div></div>
       <div class="um-row2"><div class="um-srw"><div class="vh-lab">SMART REMOTE 4 <span>— controls the Ultimattes over Ethernet (rack network switch) · its HDMI OUT copies the touch screen to a monitor</span></div><div class="um-srf">${sr4()}</div></div><div class="um-monw"><div class="vh-lab" id="um-monl"></div><canvas id="um-mon" width="640" height="360"></canvas>
-        <p class="um-note">Signal path: <b>chroma camera → Videohub IN 11 → OUT 15 → CAMERA FG</b> · <b>CAM 3 → Videohub OUT 16 → BACKGROUND</b> · <b>PGM OUT → Videohub IN 12</b> → (route it on the Videohub front panel) → ATEM. Unit 2 has nothing cabled. Hover a cable to see what it carries.</p></div></div><svg class="vh-cables" id="um-cables"></svg></div>
+        <p class="um-note">Unit 1: <b>chroma camera → Videohub IN 11 → OUT 15 → CAMERA FG</b> · <b>CAM 3 → OUT 16 → BACKGROUND</b> · <b>PGM OUT → IN 12</b> · <b>PGM FILL → IN 13</b> and <b>PGM MATTE → IN 14</b> → ATEM IN 13 / 14 (KEY 2, luma). Unit 2 (assumed): FG = IN 11, BG = CAM 4, PGM → IN 15. Hover a cable.</p></div></div><svg class="vh-cables" id="um-cables"></svg></div>
     <div class="mx-src mx-guide" id="um-guide"><div class="mx-srchd"><b>How to key with the Ultimatte</b> <button id="um-guideclose" aria-label="Close">✕</button></div><ol class="mx-steps">
       <li>Your own footage: <b>Load a chroma video…</b> (a clip shot on green or blue). It replaces the test chroma camera on Videohub IN 11, so it goes Videohub → Ultimatte like a real camera. For a blue screen: SETTINGS › Blue, then Auto Key.</li>
       <li><b>FILE CLEAR</b> (or ⟲ auto key on the screen): the Ultimatte samples the green and makes the key.</li>
@@ -160,7 +217,12 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       <li><b>Clean Up</b> removes the wrinkles of the cyc (little by little), <b>Shadow Level</b> keeps the floor shadow on the background, <b>Black Gloss</b> removes green reflections in dark areas.</li>
       <li><b>FOREGROUND › Flare Level</b>: how much green spill is removed from the edges of the presenter.</li>
       <li><b>ALT + QUICK LOAD n</b> saves the look; <b>QUICK LOAD n</b> (or 1 / 2 / 3 on the unit) recalls it. Shift+click a knob = its default.</li>
-      <li>On air: router front panel, DEST = an ATEM input, SRC = IN 12 (Ultimatte 1), TAKE — then cut to it on the ATEM.</li></ol></div>
+      <li><b>UNITS 1 / 2</b> on the remote choose which Ultimatte you are adjusting: each one keeps its own settings.</li>
+      <li>On the screen: a <b>main menu</b> tab, then a <b>GROUP</b> (the 8 knobs change), then the <b>FUNCTIONS</b> (on / off and actions). Grey = not simulated.</li>
+      <li>Wrinkled screen and a fixed camera: MATTE › Matte Process › <b>Screen Capture</b> with the set empty, presenter back, <b>Screen Correct</b>.</li>
+      <li>Something outside the green (lights, the edge of the cyc): MATTE IN › Window › <b>Window</b> on and dial the edges in.</li>
+      <li>On air, option 1: <b>PGM OUT</b> (IN 12) — route it to an ATEM input on the Videohub and cut to it.</li>
+      <li>On air, option 2 (background chosen in the ATEM): <b>PGM FILL</b> (IN 13) + <b>PGM MATTE</b> (IN 14) → ATEM <b>KEY 2</b>, luma, fill IN 13, key IN 14, <b>Pre Mult ON</b>, <b>Invert ON</b> (the matte is black on the presenter). Choose the background on the ATEM, select KEY 2 and AUTO / ON. If the switcher does a linear mix (Pre Mult OFF): SETTINGS › Outputs › <b>Fill Lin Mix Cor</b>.</li></ol></div>
     <div class="pwr-tip" id="um-tip"></div>`;
   document.getElementById('um-close').onclick=()=>window.closeUltimatte();
   const fi=document.getElementById('um-file');document.getElementById('um-load').onclick=()=>fi.click();

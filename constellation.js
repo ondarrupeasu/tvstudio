@@ -7,9 +7,11 @@ const PW=1080,PH=100,X=f=>f*PW,Y=f=>f*PH,CW=480,CH=270;
 const ST_KEY='atem-state';
 const SRCN={bars:'Color Bars',black:'Black',mp1:'Media Player 1',mp2:'Media Player 2',col1:'Color 1',col2:'Color 2',pgm:'Program',pvw:'Preview',clean1:'Clean Feed 1',mv1:'Multiview 1'};
 const DEF={outs:['pgm','pvw','pgm','black','black','black','black','black','black','black','black','black'],mode:'pp',rate:25,dskRate:25,ftbRate:25,ip:[192,168,11,50],
-  keys:[{type:'dve',fill:2,key:null,size:.35,x:.58,y:-.55},{type:'luma',fill:9,key:10,size:.35,x:-.58,y:-.55},{type:'chroma',fill:1,key:null,size:1,x:0,y:0},{type:'dve',fill:3,key:null,size:.35,x:-.58,y:.55}]};
+  keys:[{type:'dve',fill:2,key:null,size:.35,x:.58,y:-.55},{type:'luma',fill:13,key:14,size:.35,x:-.58,y:-.55,pm:true,clip:0,gain:0,inv:true},{type:'chroma',fill:1,key:null,size:1,x:0,y:0},{type:'dve',fill:3,key:null,size:.35,x:-.58,y:.55}]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(ST_KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
 if(!st.keys)st.keys=JSON.parse(JSON.stringify(DEF.keys));
+st.keys.forEach((k,i)=>{if(k.clip==null)Object.assign(k,{pm:false,clip:15,gain:50,inv:false});});   // luma key: Pre Multiplied Key, Clip, Gain, Invert Key
+if(st.keys[1].type==='luma'&&st.keys[1].fill===9&&st.keys[1].key===10)Object.assign(st.keys[1],DEF.keys[1]);   // key 2 now = Ultimatte 1 PGM FILL / PGM MATTE (IN 13 / 14)
 /* media pool (stills for the 2 media players), colour generators, DVE key border */
 if(!st.mp)st.mp=[0,1];if(!st.col)st.col=[{h:215,s:.75,l:.35},{h:0,s:0,l:.08}];if(!st.border)st.border={w:3,h:0,s:0,l:1};
 const STILLS=['TV Studio logo','Coming up next','Technical difficulties','Lower-third test','Grey card'];
@@ -48,8 +50,14 @@ const kF=mk(),kK=mk();
 function keyOver(g,K,a){if(a<=0||K.fill==null)return;const fg=kF.getContext('2d',{willReadFrequently:true});if(!src(K.fill,fg,CW,CH))return;
   if(K.type==='dve'){const w=CW*K.size,h=CH*K.size,x=(CW-w)/2+K.x*CW/2,y=(CH-h)/2+K.y*CH/2;const B=st.border,bw=B.w;g.globalAlpha=a;if(bw>0){g.fillStyle=`hsl(${B.h},${B.s*100}%,${B.l*100}%)`;g.fillRect(x-bw,y-bw,w+2*bw,h+2*bw);}g.drawImage(kF,x,y,w,h);g.globalAlpha=1;return;}
   const fd=fg.getImageData(0,0,CW,CH),d=fd.data;let kd=null;if(K.type==='luma'&&K.key!=null){const kg=kK.getContext('2d',{willReadFrequently:true});if(src(K.key,kg,CW,CH))kd=kg.getImageData(0,0,CW,CH).data;}
+  const pm=K.type==='luma'&&K.pm;
   for(let i=0;i<d.length;i+=4){let al;if(K.type==='chroma'){const gEx=d[i+1]-Math.max(d[i],d[i+2]);al=1-Math.min(1,Math.max(0,(gEx-20)/50));if(gEx>0)d[i+1]-=gEx*(1-al);}
-    else{const L=kd?kd[i]*.2126+kd[i+1]*.7152+kd[i+2]*.0722:d[i]*.2126+d[i+1]*.7152+d[i+2]*.0722;al=Math.min(1,Math.max(0,(L-40)/150));}d[i+3]=al*255*a;}
+    else{let L=(kd?kd[i]*.2126+kd[i+1]*.7152+kd[i+2]*.0722:d[i]*.2126+d[i+1]*.7152+d[i+2]*.0722)/255;if(K.inv)L=1-L;
+      al=pm?L:Math.min(1,Math.max(0,(L-K.clip/100)/Math.max(.01,(1-K.gain/100)*(1-K.clip/100))));}   // Pre Multiplied Key: the key is the alpha; otherwise Clip (threshold) + Gain (softness)
+    d[i+3]=al*255*a;}
+  if(pm){/* pre-multiplied fill: programme × (1 − key) + fill (the fill is already black outside the key) */
+    const md=new ImageData(CW,CH);for(let i=0;i<d.length;i+=4){md.data[i+3]=d[i+3];d[i]*=a;d[i+1]*=a;d[i+2]*=a;d[i+3]=255;}
+    const mc=kK.getContext('2d');mc.putImageData(md,0,0);fg.putImageData(fd,0,0);g.globalCompositeOperation='destination-out';g.drawImage(kK,0,0);g.globalCompositeOperation='lighter';g.drawImage(kF,0,0);g.globalCompositeOperation='source-over';return;}
   fg.putImageData(fd,0,0);g.drawImage(kF,0,0);}
 function render(){const g=pgmCv.getContext('2d'),T=S.T;
   src(S.pgm,g,CW,CH);
