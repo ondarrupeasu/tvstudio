@@ -208,6 +208,9 @@ function act(a,b,e){
   if(a==='ext'){V.ext=!V.ext;if(V.ext)openExtWin();else if(V.extWin&&!V.extWin.closed)V.extWin.close();return draw();}if(a==='extset')return extDialog();
   if(a==='multiview')return openMvWin('MultiView');if(a==='fullscreen')return fullscreenMenu(b);if(a==='snap')return snapshot();
   if(a==='overlay')return overlayDialog();
+  if(a==='save')return savePreset(false);if(a==='saveas')return savePreset(true);if(a==='open')return openPreset();
+  if(a==='last'){let d=null;try{d=JSON.parse(localStorage.getItem('vx-last'));}catch(_){}return d?loadPreset(d):alertBox('Last','No preset saved yet on this computer.');}
+  if(a==='new')return confirmBox('New preset','Close every input and start an empty production?',()=>{clearAll();V.preset=null;draw();});
   if(a==='multicorder'||a==='mcset')return alertBox('MultiCorder','MultiCorder is not available in the HD edition (4K / Pro / Max only).');
   notYet(b.textContent.trim()||a);}
 function notYet(name){alertBox(name,'This part is not simulated yet. It will come in the next versions of the simulator.');}
@@ -321,7 +324,9 @@ function inputSettings(inp){const k=inp.key,p=inp.pos,hex=c=>'#'+c.map(v=>Math.r
   const sl=(lbl,val,min,max,step,fn,cls='')=>{const id='s'+Math.random().toString(36).slice(2);setTimeout(()=>{const r=$('#'+id,m);if(r)r.oninput=()=>{fn(+r.value);};},0);return `<label class="vx-sl ${cls}">${lbl}<input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}"></label>`;};
   const show=i=>{$$('[data-tab]',m).forEach(b=>b.classList.toggle('on',+b.dataset.tab===i));$('.vx-pick',m).textContent='';
     if(i===0){ph.innerHTML=`<label>Name <input class="vx-name" value="${inp.name}"></label><label>Category <select class="vx-catsel">${CAT.map((c,j)=>`<option value="${j}" ${inp.cat===j?'selected':''}>${j?(V.catLabels?.[j]||c.n):'None'}</option>`).join('')}</select></label>
-        <label>GO Action <select disabled><option>QuickPlay</option></select></label><label><input type="checkbox" class="vx-afvc" ${inp.afv?'checked':''}> Automatically mix audio</label>`;
+        <label>GO Action <select disabled><option>QuickPlay</option></select></label><label><input type="checkbox" class="vx-afvc" ${inp.afv?'checked':''}> Automatically mix audio</label>
+        ${['video','image','missing'].includes(inp.type)?`<label>Source <span>${inp.file||'—'}</span> <button class="vx-chg">Change…</button></label>`:''}`;
+      $('.vx-chg',ph)?.addEventListener('click',()=>changeSource(inp,()=>show(0)));
       $('.vx-name',ph).oninput=e=>{inp.name=e.target.value;draw();};$('.vx-catsel',ph).onchange=e=>{inp.cat=+e.target.value;draw();};$('.vx-afvc',ph).onchange=e=>{inp.afv=e.target.checked;applyAudio();};}
     else if(i===2){ph.innerHTML=`<div class="vx-kr"><label><input type="checkbox" class="vx-kon" ${k.on?'checked':''}> Colour Key</label><span class="vx-kc" style="background:${hex(k.col)}"></span><button class="vx-pk" data-tip="Auto Colour Key: then click on the image below to pick the key colour">💧</button><label class="vx-kcp">▦<input type="color" value="${hex(k.col)}"></label></div>
         <div class="vx-kbox"><div>${sl('Chroma Key',k.chroma,0,1,.01,v=>k.chroma=v)}<label><input type="checkbox" class="vx-kf" ${k.filter?'checked':''}> Chroma Key Filter</label>${sl('',k.filt,0,1,.01,v=>k.filt=v)}
@@ -438,6 +443,29 @@ function fullscreenMenu(b){const p=pop(['Output','Preview','MultiView'].map(s=>`
 function snapshot(){const a=document.createElement('a');a.href=outCv.toDataURL('image/png');a.download='snapshot.png';a.click();}
 
 /* ---------- open / close ---------- */
+/* ---------- Presets: New · Open · Save · Save As · Last (a whole production in one file) ---------- */
+const KEEP=['type','name','cat','key','pos','ca','cc','layers','hex','tpl','fields','loop','vol','mute','afv','bus','file','pack','id'];
+function presetData(){return {app:'tvstudio-vmix',v:1,name:V.preset||'Preset',inputs:V.inputs.map(x=>{const o={};KEEP.forEach(k=>{if(x[k]!==undefined)o[k]=JSON.parse(JSON.stringify(x[k]));});if(x.type==='colour'&&!x.hex)o.bars=true;if(x.type==='camera')o.label=x.name;return o;}),
+  pv:V.pv?.id,pgm:V.pgm?.id,trans:V.trans,ovset:V.ovset,ov:V.ov.map(o=>({id:o.inp?.id||null,on:o.target>0})),catLabels:V.catLabels||null};}
+function clearAll(){[...V.inputs].forEach(x=>{V.lock=false;removeInput(x);});V.ov.forEach(o=>{o.inp=null;o.a=o.target=0;o.pend=null;});V.pv=V.pgm=null;}
+/* video / image / camera can't be stored in a file: they come back as a placeholder — Input Settings > General > Change… */
+/* General › Change…: another file for the same input, keeping all its settings */
+function changeSource(inp,done){const i=document.createElement('input');i.type='file';i.accept='video/*,image/*';i.onchange=()=>{const f=i.files[0];if(!f)return;
+  if(inp.type==='video')inp.el.pause();if(f.type.startsWith('video')){const v=document.createElement('video');v.src=URL.createObjectURL(f);v.loop=inp.loop;v.playsInline=true;v.preload='auto';inp.el=v;inp.type='video';inp.audio=true;
+    v.addEventListener('loadeddata',()=>{inp.dirty=true;draw();},{once:true});if(inp.g){try{inp.g.disconnect();}catch(_){}inp.g=null;}attachAudio(inp);}else{const im=new Image();im.onload=()=>{inp.dirty=true;draw();};im.src=URL.createObjectURL(f);inp.el=im;inp.type='image';}
+  inp.file=f.name;inp.ready=false;inp.dirty=true;draw();done&&done();};i.click();}
+function missingInput(o){const c=mkCanvas(),g=c.getContext('2d');g.fillStyle='#202428';g.fillRect(0,0,W,H);g.fillStyle='#ffb02e';g.font='bold 34px Segoe UI, sans-serif';g.textAlign='center';
+  g.fillText(o.type==='camera'?'Camera not connected':'Missing file',W/2,H/2-20);g.fillStyle='#ccc';g.font='22px Segoe UI, sans-serif';g.fillText(o.file||o.label||o.name,W/2,H/2+22);g.fillText('Input Settings › General › Change…',W/2,H/2+60);
+  return addInput({type:'missing',was:o.type,name:o.name,el:c,file:o.file});}
+function loadPreset(d){if(!d||d.app!=='tvstudio-vmix')return alertBox('Open','That file is not a preset of this simulator.');clearAll();const map={};
+  d.inputs.forEach(o=>{let x;if(o.type==='title')x=titleInput(o.tpl,TITLES[o.tpl].f.map(k=>o.fields?.[k]));else if(o.type==='colour')x=o.bars?barsInput():colourInput(o.name,o.hex||'#000');else x=missingInput(o);
+    ['name','cat','key','pos','ca','cc','layers','loop','vol','mute','afv','bus'].forEach(k=>{if(o[k]!==undefined)x[k]=o[k];});if(x.type==='title')drawTitle(x);map[o.id]=x;});
+  V.inputs.forEach(x=>(x.layers||[]).forEach(L=>{L.id=L.id&&map[L.id]?map[L.id].id:null;}));
+  V.pgm=map[d.pgm]||V.inputs[0]||null;V.pv=map[d.pv]||null;if(d.trans)V.trans=d.trans;if(d.ovset)V.ovset=d.ovset;if(d.catLabels)V.catLabels=d.catLabels;
+  (d.ov||[]).forEach((o,n)=>{if(o.on&&map[o.id]){V.ov[n].inp=map[o.id];V.ov[n].target=V.ov[n].a=1;}});V.preset=d.name;applyAudio();draw();}
+function savePreset(as){let name=V.preset||'Preset';if(as||!V.preset){const n=prompt('Save preset as:',name);if(!n)return;name=n.trim()||name;}V.preset=name;const d=presetData();
+  try{localStorage.setItem('vx-last',JSON.stringify(d));}catch(_){}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,1)],{type:'application/json'}));a.download=name.replace(/[^\w\- ]+/g,'_')+'.vmixsim.json';a.click();draw();}
+function openPreset(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=async()=>{try{loadPreset(JSON.parse(await i.files[0].text()));}catch(_){alertBox('Open','Could not read that file.');}};i.click();}
 function seed(){if(V.inputs.length)return;barsInput();colourInput('Colour','#0b3d91');titleInput('classic');titleInput('news');V.pgm=V.inputs[0];V.pv=V.inputs[1];}
 window.openVmix=()=>{build();ensureAudio();seed();root.classList.add('on');draw();};
 window.closeVmix=()=>{root.classList.remove('on');closeModal();$('#vx-pop')?.classList.remove('on');};
