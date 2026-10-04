@@ -88,7 +88,8 @@ P.tbv=0;
 function mount(el){el.innerHTML=`<div class="cr-wrap ap-wrap">${svg()}</div>`;const s=el.querySelector('#ap-svg');
   s.addEventListener('pointerdown',e=>{const k=e.target.closest('.ap-k');if(k){e.preventDefault();k.classList.add('down');const up=()=>{k.classList.remove('down');removeEventListener('pointerup',up);};addEventListener('pointerup',up);press(k.dataset.k);draw();return;}
     const kn=e.target.closest('.ap-knob'),tb=e.target.closest('#ap-tbar');if(!kn&&!tb)return;e.preventDefault();
-    if(kn&&e.shiftKey){const a=A(),i=+kn.dataset.k.slice(4);if(a&&P.menu==='home')a.setRate(['rate','dskRate','dskRate','ftbRate'][i],25);else if(a&&i===0&&['mix','dip','wipe','dve'].includes(P.menu))a.setRate('rate',25);else if(a&&i===0&&P.menu==='ftb')a.setRate('ftbRate',25);msg('Reset to 1:00');draw();return;}   // simulator shortcutlet y0=e.clientY,acc=0;const r=s.getBoundingClientRect(),scale=VH/r.height;
+    if(kn&&e.shiftKey){const a=A(),i=+kn.dataset.k.slice(4);if(a&&P.menu==='home')a.setRate(['rate','dskRate','dskRate','ftbRate'][i],25);else if(a&&i===0&&['mix','dip','wipe','dve'].includes(P.menu))a.setRate('rate',25);else if(a&&i===0&&P.menu==='ftb')a.setRate('ftbRate',25);msg('Reset to 1:00');draw();return;}   /* simulator shortcut */
+    let y0=e.clientY,acc=0;const r=s.getBoundingClientRect(),scale=VB[3]/r.height;
     const mv=ev=>{if(tb){P.tbv=Math.max(0,Math.min(1,P.tbv+(ev.clientY-y0)*scale/Y(.145)));y0=ev.clientY;A()&&A().tbar(P.tbv);draw();return;}acc+=y0-ev.clientY;y0=ev.clientY;while(Math.abs(acc)>=6){const d=Math.sign(acc);acc-=d*6;knob(+kn.dataset.k.slice(4),d);}draw();};
     const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);};addEventListener('pointermove',mv);addEventListener('pointerup',up);});
   s.addEventListener('wheel',e=>{const kn=e.target.closest('.ap-knob');if(!kn)return;e.preventDefault();knob(+kn.dataset.k.slice(4),e.deltaY<0?1:-1);draw();},{passive:false});
