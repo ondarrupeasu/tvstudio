@@ -255,14 +255,23 @@ const SOURCES={pres:{l:'Presenter (sample)',name:'PRESENTER',mic:'Lavalier (cond
   file:{l:'Audio or video file…',name:'FILE',mic:'File player (line)',color:'magenta'},
   tab:{l:'Browser tab audio (YouTube…)',name:'TAB AUDIO',mic:'Shared browser tab (line)',color:'magenta'}};
 const SRC={in1:'pres',in2:'guest',in3:'music',in4:'amb',in5:'tone'};for(let i=6;i<=16;i++)SRC['in'+i]='none';SRC.talk='tb';
-const SRCX={};   // extra per channel: deviceId, file name
+const SRCX={};
+const PACK={};          // name → File, from the multicam pack folder chosen by the user
+const PACKLEN=211;      // every file in the pack lasts 211 s and starts at the same instant
+function registerPack(files){let n=0;[...files].forEach(f=>{const m=f.name.match(/^(STEM_\w+|MIX_synced|CAM\d)\.(m4a|mp4|wav|mp3)$/i);if(!m)return;const key=m[1];PACK[key]=f;n++;
+  const nice=key.replace(/^STEM_/,'').replace('MIX_synced','MIX').toUpperCase();
+  SOURCES['pk:'+key]={l:'Pack · '+(key.startsWith('CAM')?key+' (camera audio)':key.startsWith('STEM_')?nice.toLowerCase()+' stem':'full mix (mono)'),name:nice,mic:'Multitrack playback (line)',color:key.startsWith('STEM_')?'magenta':'cyan'};});return n;}   // extra per channel: deviceId, file name
 function stopSource(id){const n=A&&(id==='talk'?A.talk:A.ch[id]);if(!n)return;(n.srcNodes||[]).forEach(x=>{try{x.stop&&x.stop();}catch(_){}try{x.disconnect();}catch(_){}});
   (n.streams||[]).forEach(st=>st.getTracks().forEach(t=>t.stop()));if(n.media){n.media.pause();n.media.src='';n.media=null;}n.srcNodes=[];n.streams=[];}
 async function setSource(id,kind,opt={}){SRC[id]=kind;const meta=SOURCES[kind];if(S[id])Object.assign(S[id],{name:kind==='file'&&opt.fileName?opt.fileName.replace(/\.[^.]+$/,'').slice(0,10).toUpperCase():meta.name,mic:meta.mic,cond:!!meta.cond,color:meta.color});
   if(!A){draw();return;}const ctx=A.ctx,n=id==='talk'?A.talk:A.ch[id];stopSource(id);
   const lv=ctx.createGain();lv.connect(n.in);n.srcNodes=[lv];const loop=b=>{const x=ctx.createBufferSource();x.buffer=b;x.loop=true;x.connect(lv);x.start();n.srcNodes.push(x);};
   try{
-    if(kind==='tb'){lv.gain.value=db2g(-20);A.bufs=A.bufs||{};const u='audio/talk.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
+    if(kind.startsWith('pk:')){lv.gain.value=db2g(-20);const key=kind.slice(3),f=PACK[key];if(!f)throw new Error('Load the pack folder first');
+      A.pbufs=A.pbufs||{};if(!A.pbufs[key])A.pbufs[key]=await ctx.decodeAudioData(await f.arrayBuffer());
+      if(A.packT0==null)A.packT0=ctx.currentTime;const x=ctx.createBufferSource();x.buffer=A.pbufs[key];x.loop=true;x.loopEnd=Math.min(PACKLEN,x.buffer.duration);x.connect(lv);
+      x.start(0,((ctx.currentTime-A.packT0)%PACKLEN+PACKLEN)%PACKLEN);n.srcNodes.push(x);}   // same position as the other pack files: they play together
+    else if(kind==='tb'){lv.gain.value=db2g(-20);A.bufs=A.bufs||{};const u='audio/talk.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
     else if(kind==='pres'||kind==='guest'){lv.gain.value=db2g(-40);A.bufs=A.bufs||{};const u='audio/'+kind+'.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
     else if(kind==='music'){lv.gain.value=db2g(-14);A.music=A.music||musicBuffer(ctx);loop(A.music);}
     else if(kind==='amb'){lv.gain.value=db2g(-46);A.noise=A.noise||noiseBuffer(ctx);loop(A.noise);}
@@ -283,11 +292,15 @@ async function plugMenu(n,ev){const menu=document.getElementById('mx-plugmenu'),
   menu.innerHTML=(tk?`<div class="mx-pmh"><b>TALKBACK MIC</b> · plug a microphone…</div>`+item('tb',SOURCES.tb.l,cur==='tb'):`<div class="mx-pmh"><b>IN ${n}</b> → Ch${String(n).padStart(2,'0')} · plug a cable from…</div>`+
     ['pres','guest','music','amb','tone'].map(k=>item(k,SOURCES[k].l,cur===k)).join(''))+
     `<div class="mx-pmg">This computer</div>`+(devs.length&&devs[0].label?devs.map(d=>item('dev:'+d.deviceId,d.label,cur==='dev'&&(SRCX[id]||{}).deviceId===d.deviceId)).join(''):item('dev:','Microphone / audio input',cur==='dev'))+
-    (tk?'':item('file','Audio or video file…',cur==='file')+item('tab','Browser tab audio (YouTube… · Chrome/Edge)',cur==='tab'))+
+    (tk?'':item('file','Audio or video file…',cur==='file')+item('tab','Browser tab audio (YouTube… · Chrome/Edge)',cur==='tab')+
+      `<div class="mx-pmg">Multicam pack (from your disk)</div>`+(Object.keys(PACK).length?Object.keys(PACK).filter(k=>!k.startsWith('CAM')||true).sort().map(k=>item('pk:'+k,SOURCES['pk:'+k].l,cur==='pk:'+k)).join('')+item('packband','▶ Plug the band: IN 9 vocals · 10 drums · 11 bass · 12 guitar',false):'')+
+      item('packload',Object.keys(PACK).length?'Load another pack folder…':'Load the pack folder (unzipped)…',false)+`<div class="mx-pmnote">Pack: apps.cinemafilmak.com/tvstudio — <a href="https://apps.cinemafilmak.com/tvstudio/tvstudio-multicam-pack.zip">download</a>, unzip, then load the folder here.</div>`)+
     `<div class="mx-pmg"></div>`+item('none',cur==='none'?'(nothing plugged in)':'Unplug the cable',false)+((SRCX[id]||{}).err?`<div class="mx-perr">${SRCX[id].err}</div>`:'');
   const r=root.getBoundingClientRect();menu.style.left=Math.min(ev.clientX-r.left+8,r.width-300)+'px';menu.style.top=(ev.clientY-r.top+8)+'px';menu.classList.add('on');
   menu.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const v=b.dataset.v;menu.classList.remove('on');
     if(v==='file'){const inp=document.getElementById('mx-file');inp.onchange=()=>{if(inp.files[0])setSource(id,'file',{file:inp.files[0],fileName:inp.files[0].name});inp.value='';};inp.click();return;}
+    if(v==='packload'){const inp=document.getElementById('mx-packdir');inp.onchange=()=>{const k=registerPack(inp.files);inp.value='';G.msg=k+' pack files loaded';draw();plugMenu(n,ev);};inp.click();return;}
+    if(v==='packband'){[['in9','STEM_vocals'],['in10','STEM_drums'],['in11','STEM_bass'],['in12','STEM_guitar']].forEach(([i,k])=>PACK[k]&&setSource(i,'pk:'+k));G.inL='i2';draw();return;}
     if(v.startsWith('dev:'))return setSource(id,'dev',{deviceId:v.slice(4)||undefined});setSource(id,v);}));}
 
 /* ---------- meters ---------- */

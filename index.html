@@ -243,7 +243,7 @@
   .mx-plugmenu{position:absolute;z-index:6;width:290px;background:#16171c;border:1px solid var(--ce-line);border-radius:10px;padding:6px;box-shadow:0 18px 40px rgba(0,0,0,.6);display:none}
   .mx-plugmenu.on{display:block}.mx-pmh{font-size:12px;color:var(--ce-muted);padding:4px 6px 6px}.mx-pmh b{color:#fff}.mx-pmg{font-size:10.5px;color:var(--ce-muted2);padding:6px 6px 2px;border-top:1px solid #23252c;margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
   .mx-plugmenu button{display:block;width:100%;text-align:left;background:none;border:0;color:#e6e7ea;font:inherit;font-size:12.5px;padding:5px 8px;border-radius:6px;cursor:pointer}
-  .mx-plugmenu button:hover{background:#23252c}.mx-plugmenu button.on{color:var(--ce-accent);font-weight:700}.mx-perr{font-size:11px;color:#ff8a80;padding:4px 8px}
+  .mx-plugmenu button:hover{background:#23252c}.mx-plugmenu button.on{color:var(--ce-accent);font-weight:700}.mx-pmnote{font-size:10.5px;color:var(--ce-muted2);padding:4px 8px 2px;line-height:1.35}.mx-pmnote a{color:var(--ce-accent)}.mx-perr{font-size:11px;color:#ff8a80;padding:4px 8px}
   .mx-sock{cursor:pointer}.mx-sock .mx-plug{display:none}.mx-sock.plugged .mx-plug{display:inline}.mx-sock:hover circle:first-child{stroke:var(--ce-accent);stroke-width:2}
   .mx-steps{margin:4px 0 0;padding-left:20px;font-size:12.5px;color:#d9dbe0;line-height:1.45}.mx-steps li{margin:3px 0}.mx-steps b{color:#fff}
   .mx-snote{font-size:11.5px;color:var(--ce-muted);margin:8px 0 0;line-height:1.4}
@@ -507,6 +507,7 @@
       <li><b>Monitor mix (bus):</b> layer <b>BUS 1-8</b> on the right, <b>SEL</b> a bus, press <b>FADER FLIP</b> (it blinks): the input faders are now the sends to that bus. <b>SOLO</b> the bus to hear it. FLIP again to exit.</li>
       <li><b>DCA:</b> layer <b>GROUP DCA 1-8</b>, <b>SEL</b> a DCA, then <b>Shift+click</b> the SEL of the channels to add (on the real desk: hold the DCA SEL). The DCA fader moves them all.</li>
       <li><b>Mute groups:</b> <b>MUTE GRP</b> (screen). Push an encoder = mute/unmute that group. Assign: Shift+click the encoder, then Shift+click channel SELs.</li>
+      <li><b>Band multitrack:</b> download the <a href="https://apps.cinemafilmak.com/tvstudio/tvstudio-multicam-pack.zip" style="color:var(--ce-accent)">multicam pack</a>, unzip it, click a rear IN socket → <i>Load the pack folder</i> → <i>Plug the band</i>: vocals, drums, bass and guitar on IN 9-12 (layer INPUTS 9-16). The files already start together, so they play in sync.</li>
       <li><b>Reverb / effects:</b> FX1-4 are fed by mix buses 13-16 (FX1 Hall reverb ← Mix 13). Send a channel to Mix 13 (FADER FLIP on BUS 9-16), raise Mix 13 and the <b>FX RET 1L/1R</b> faders (layer FX RET). <b>EFFECTS</b> (screen) edits decay, time…</li>
       <li><b>Talkback:</b> the TALKBACK MIC on the rear carries the director's voice. <b>TALK A</b> → studio monitors (mix 1-6), <b>TALK B</b> → main. Monitors dim while talking.</li>
       <li><b>Mono bus / matrices:</b> MONO CENTRE + M/C LEVEL send a channel to Main C (layer MATRIX MAIN C); matrices are copies of the main mix.</li>
@@ -514,6 +515,7 @@
     </ol>
     <p class="mx-snote">The row at the bottom tells you what is still missing for the selected channel to be heard. Hover any control to see what it does — and, on a channel, what is plugged into it.</p></div>
   <input type="file" id="mx-file" accept="audio/*,video/*" hidden>
+  <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
 <script src="m32r.js"></script>
