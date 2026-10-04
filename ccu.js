@@ -56,19 +56,27 @@ function strip(s){let h=`<rect x="${sx(s,0)}" y="${sy(0)}" width="${SW*VW}" heig
   h+=btn(s,'lock',.09,.955,'PANEL ACTIVE',40,12,'PANEL ACTIVE: locks the whole strip.')+btn(s,'pvw',.43,.955,'PREVIEW',30,12,'PREVIEW: sends this camera to the preview aux output (ATEM SDI OUT 2) to check it on a monitor.');
   ['NETWORK','ALARM','CABLE'].forEach((t,i)=>h+=`<circle cx="${sx(s,.22)}" cy="${sy(.93+i*.03)}" r="2" class="cc-led ${i===0?'g':''}"/>`+`<text x="${sx(s,.25)}" y="${sy(.933+i*.03)}" class="cc-l cc-ls" text-anchor="start">${t}</text>`);
   return h;}
-function panel(){let h=`<svg viewBox="0 0 ${VW} ${VH_}" class="cr-svg" id="cc-svg"><rect x="2" y="2" width="${VW-4}" height="${VH_-4}" rx="22" class="cr-chassis"/><rect x="2" y="2" width="${VW-4}" height="${.288*VH_}" rx="22" class="cr-top"/>`;
+/* cropped to the controls (no empty top / palm rest / logo) so the strips can be drawn bigger */
+const VB=[.035*VW,.072*VH_,.93*VW,.758*VH_],pc=(v,o,l)=>((v-o)/l*100).toFixed(2)+'%';
+function panel(){let h=`<svg viewBox="${VB.join(' ')}" class="cr-svg" id="cc-svg"><rect x="${VB[0]}" y="${VB[1]}" width="${VB[2]}" height="${VB[3]}" rx="16" class="cr-chassis"/><rect x="${VB[0]}" y="${VB[1]}" width="${VB[2]}" height="${.288*VH_-VB[1]}" rx="16" class="cr-top"/>`;
   [0,1,2,3].forEach(s=>{const x0=[.057,.291,.526,.761][s]*VW;h+=`<rect x="${x0}" y="${.105*VH_}" width="${.182*VW}" height="${.112*VH_}" rx="4" class="cr-lcdb"/>`;
     [0,1,2,3].forEach(i=>{h+=`<rect x="${(.083+i*.043+s*.2347)*VW-10}" y="${.081*VH_}" width="20" height="${.013*VH_}" rx="5" class="cr-soft" data-s="${s}" data-k="soft${i}"/>`;
       h+=`<g class="cc-w" data-s="${s}" data-k="lk${i}" data-tip="${i===0?'Knob under CAMERA: chooses which camera this strip controls.':'Soft knob (camera settings in the LCD menus — not simulated).'}"><circle cx="${(.070+i*.052+s*.2347)*VW}" cy="${.247*VH_}" r="11" class="cc-wk"/><line class="cc-wp" x1="${(.070+i*.052+s*.2347)*VW}" y1="${.247*VH_-10}" x2="${(.070+i*.052+s*.2347)*VW}" y2="${.247*VH_-5}"/></g>`;});
     h+=strip(s);});
   [.265,.5,.735].forEach(x=>h+=`<rect x="${x*VW-1.5}" y="${.09*VH_}" width="3" height="${.13*VH_}" rx="1.5" class="cr-pipe"/>`);
-  h+=`<line x1="10" y1="${.937*VH_}" x2="${VW-10}" y2="${.937*VH_}" class="cc-sep"/><text x="${.915*VW}" y="${.972*VH_}" class="cr-logo">Blackmagic<tspan font-weight="300">design</tspan></text>`;
-  return h+'</svg>'+[0,1,2,3].map(s=>`<canvas class="cc-lcd" data-s="${s}" width="240" height="148" style="left:${[.057,.291,.526,.761][s]*100+.4}%;top:${10.5*100/96.5+.4}%;width:${18.2-.8}%;height:${11.2*100/96.5-.8}%"></canvas>`).join('');}
+  return h+'</svg>'+[0,1,2,3].map(s=>`<canvas class="cc-lcd" data-s="${s}" width="240" height="148" style="left:${pc(([.057,.291,.526,.761][s]+.004)*VW,VB[0],VB[2])};top:${pc(.109*VH_,VB[1],VB[3])};width:${pc(.174*VW,0,VB[2])};height:${pc(.104*VH_,0,VB[3])}"></canvas>`).join('');}
 /* ---------- state → screen ---------- */
 const SH_LIST=[25,30,50,60,100,125,250,500,1000,2000];
 function txt(s,id,v){const e=document.querySelector(`#cc-svg [data-d="${s}:${id}"]`);if(e)e.textContent=v;}
 function led(s,id,on,cls='on'){const e=document.querySelector(`#cc-svg [data-led="${s}:${id}"]`);if(e)e.classList.toggle(cls,!!on);}
+/* the knobs and wheels turn with their value (pointer line), the joystick moves with the iris */
+function rot(s,k,v){const g=document.querySelector(`#cc-svg .cc-w[data-s="${s}"][data-k="${k}"]`);if(!g)return;const c=g.querySelector('circle'),p=g.querySelector('.cc-wp');
+  p.setAttribute('transform',`rotate(${(Math.max(-1,Math.min(1,v))*140).toFixed(1)} ${c.getAttribute('cx')} ${c.getAttribute('cy')})`);}
 function draw(){const now=performance.now();STRIPS.forEach((t,s)=>{const c=CAMS[t.cam];
+  ['R','G','B'].forEach((ch,i)=>{rot(s,'w'+ch,(c.white[i]-1)/1.5);rot(s,'b'+ch,t.flare?c.gamma[i]/2:c.black[i]);});
+  rot(s,'yg',(c.ygain-1)/1.5);rot(s,'sens',c.sens*2-1);rot(s,'coarse',c.coarse*2-1);rot(s,'lk0',(t.cam-1)/3.5-1);
+  const jy=document.querySelector(`#cc-svg .cc-joy[data-s="${s}"]`);if(jy){const ring=jy.querySelector('.cc-ring'),cx=+ring.getAttribute('cx'),cy=+ring.getAttribute('cy');
+    jy.querySelector('.cc-knob').setAttribute('cy',(cy-(c.j-.5)*22).toFixed(1));jy.querySelector('.cc-ringm').setAttribute('transform',`rotate(${(c.mb/5*150).toFixed(1)} ${cx} ${cy})`);}
   txt(s,'nd',c.nd);txt(s,'cc','0');txt(s,'mg',(c.gain>=0?'':'-')+Math.abs(c.gain).toFixed(1));txt(s,'sh',t.wbMode?String(c.wb).padStart(4,'0'):String(c.shutter).padStart(4,'0'));
   const N=fstop(c);txt(s,'iris',N?'F'+(N<10?N.toFixed(1):Math.round(N)):'CLS');txt(s,'mb',c.mb.toFixed(1));
   led(s,'rel',t.rel);led(s,'abs',!t.rel);led(s,'bars',c.bars);led(s,'scene',t.sceneLit>now);

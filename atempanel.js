@@ -7,7 +7,9 @@ const P={shift:false,menu:'home',aux:0,next:{bkgd:true,k1:false,k2:false,k3:fals
 const A=()=>window.ATEMR&&ATEMR.api;
 const SYS=[['HOME','SETTINGS','KEYERS','◁','▷'],['MIX','WIPE','DVE','STINGER','DIP'],['FTB','MEDIA|PLAYERS','BORDER','COLOR',''],['MACRO','SUPER|SOURCE','CAMERA|CONTROL','AUDIO','AUX']];
 const key=(id,cx,cy,w,h,l,cls,tip)=>{const ls=String(l).split('|');return `<g class="ap-k ${cls}" data-k="${id}" data-tip="${tip}"><rect x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" rx="3"/>`+ls.map((t,i)=>`<text x="${cx}" y="${cy+2.6-(ls.length-1)*3.4+i*6.8}" class="ap-kt">${t}</text>`).join('')+'</g>';};
-function svg(){let s=`<svg viewBox="0 0 ${VW} ${VH}" class="cr-svg" id="ap-svg"><rect x="2" y="2" width="${VW-4}" height="${VH-4}" rx="22" class="cr-chassis"/><rect x="2" y="2" width="${VW-4}" height="${Y(.33)}" rx="22" class="cr-top"/>`;
+/* the empty palm rest and logo area are cropped off so the controls can be drawn bigger */
+const VB=[X(.025),Y(.045),X(.94),Y(.68)],pc=(v,o,l)=>((v-o)/l*100).toFixed(2)+'%';
+function svg(){let s=`<svg viewBox="${VB.join(' ')}" class="cr-svg" id="ap-svg"><rect x="${VB[0]}" y="${VB[1]}" width="${VB[2]}" height="${VB[3]}" rx="16" class="cr-chassis"/><rect x="${VB[0]}" y="${VB[1]}" width="${VB[2]}" height="${Y(.33)-VB[1]}" rx="16" class="cr-top"/>`;
   [.400,.466,.532,.599].forEach((x,i)=>s+=`<rect x="${X(x)-16}" y="${Y(.061)}" width="32" height="${Y(.015)}" rx="7" class="cr-soft ap-k" data-k="soft${i}" data-tip="Soft button: acts on the tab / option written above it on the LCD."/>`);
   s+=`<rect x="${X(.366)}" y="${Y(.091)}" width="${X(.267)}" height="${Y(.145)}" rx="5" class="cr-lcdb"/>`;
   [.404,.468,.531,.596].forEach((x,i)=>s+=`<g class="ap-knob" data-k="knob${i}" data-tip="Soft knob: changes the value written above it on the LCD (on HOME: AUTO / DSK 1 / DSK 2 / FTB rate). Drag up/down or scroll."><circle cx="${X(x)}" cy="${Y(.271)}" r="16" class="cc-wk"/><line class="cc-wp" x1="${X(x)}" y1="${Y(.271)-14}" x2="${X(x)}" y2="${Y(.271)-7}"/></g>`);
@@ -31,8 +33,7 @@ function svg(){let s=`<svg viewBox="0 0 ${VW} ${VH}" class="cr-svg" id="ap-svg">
   s+=`<g id="ap-tbar" data-tip="T-bar: drag it to make the transition by hand (all the way = done; the next move starts another one)."><rect x="${X(.663)}" y="0" width="${X(.1)}" height="${Y(.036)}" rx="6" class="ap-tbh"/><rect x="${X(.705)}" y="${Y(.012)}" width="${X(.012)}" height="${Y(.06)}" rx="3" class="ap-tbh2"/></g>`;
   [['tie1','DSK 1|TIE',.812,.546],['tie2','DSK 2|TIE',.851,.546],['dcut1','DSK 1|CUT',.812,.646],['dcut2','DSK 2|CUT',.851,.646],['dauto1','DSK 1|AUTO',.812,.686],['dauto2','DSK 2|AUTO',.851,.686]].forEach(([id,l,x,y])=>s+=key(id,X(x),Y(y),37,38,l,'ap-w',{t:'DSK TIE: the downstream key goes on/off together with the next transition.',c:'DSK CUT: downstream key on / off instantly.',a:'DSK AUTO: downstream key mixes on / off at the DSK RATE.'}[id[1]==='i'?'t':id[1]==='c'?'c':'a']+' DSK 1 = vMix graphics (fill IN 5 + key IN 6).'));
   s+=`<rect x="${X(.903)}" y="${Y(.66)}" width="4" height="${Y(.05)}" class="ap-guard"/><rect x="${X(.955)-4}" y="${Y(.66)}" width="4" height="${Y(.05)}" class="ap-guard"/>`+key('ftb',X(.928),Y(.685),36,38,'FTB','ap-w','FTB: fade the whole programme to black (blinks red); press again to come back.');
-  s+=`<line x1="10" y1="${Y(.936)}" x2="${VW-10}" y2="${Y(.936)}" class="cc-sep"/><text x="${X(.85)}" y="${Y(.973)}" class="cr-logo">Blackmagic<tspan font-weight="300">design</tspan></text>`;
-  return s+'</svg><canvas class="ap-lcd" width="400" height="216" style="left:36.9%;top:9.4%;width:26.1%;height:13.9%"></canvas>';}
+  return s+`</svg><canvas class="ap-lcd" width="400" height="216" style="left:${pc(X(.369),VB[0],VB[2])};top:${pc(Y(.094),VB[1],VB[3])};width:${pc(X(.261),0,VB[2])};height:${pc(Y(.139),0,VB[3])}"></canvas>`;}
 /* ---------- state → panel ---------- */
 const OUTS=12,INT=['pgm','pvw','clean1','bars','black','mp1','mp2'];
 function setK(id,cls,on){const g=document.querySelector(`#ap-svg .ap-k[data-k="${id}"]`);if(g)g.classList.toggle(cls,!!on);}

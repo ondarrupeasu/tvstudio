@@ -7,7 +7,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     <p><b>ATEM panel:</b> PREVIEW row = next shot (green) · CUT / AUTO / T-bar = on air (red) · <b>CCU:</b> joystick = iris, wheels = colour, △▽ = gain, shutter, ND · hover anything.</p></div>
     <div class="pwr-btns"><button id="cr-guidebtn">How to use</button><button id="cr-mvpop">Multiview on a 2nd screen ↗</button><button id="cr-rack">Video rack</button></div></div>
   <button class="close" id="cr-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-  <div class="cr-body"><div class="cr-wall"><canvas id="cr-mv" width="960" height="540"></canvas></div><div class="cr-desk"><div id="cr-atem"></div><div id="cr-ccu"></div></div></div>
+  <div class="cr-body"><div class="cr-top-row"><div class="cr-wall"><canvas id="cr-mv" width="960" height="540"></canvas></div><div class="cr-hd"><div class="vh-lab">HYPERDECK STUDIO HD PRO <span>— records the programme (its input: ATEM SDI OUT 1, assumed)</span></div><div id="hd-front"></div><div id="hd-rear" hidden></div></div></div><div class="cr-desk"><div id="cr-atem"></div><div id="cr-ccu"></div></div></div>
   <div class="mx-src mx-guide" id="cr-guide"><div class="mx-srchd"><b>How to use the vision desk</b> <button id="cr-guideclose" aria-label="Close">✕</button></div><ol class="mx-steps">
     <li>The <b>monitor</b> on top is the ATEM multiview: <b style="color:#36d36e">preview</b> (next shot) and <b style="color:#ff453a">programme</b> (on air) big, and inputs 1-8 below with green / red tally.</li>
     <li><b>ATEM panel</b> (left): press a key on the <b>PREVIEW</b> row to choose the next shot, then <b>CUT</b> (instant), <b>AUTO</b> (transition at the AUTO RATE) or drag the <b>T-bar</b>. The <b>PROGRAM</b> row cuts straight to air. <b>SHIFT</b> = sources 11-20.</li>
@@ -22,7 +22,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('cr-rack').onclick=()=>{window.closeControlRoom();window.openVideohub&&openVideohub();};
   document.getElementById('cr-mvpop').onclick=()=>document.getElementById('vh-mvbtn')?.click();
   window.openVideohub&&!document.getElementById('vh')?.dataset.built&&(openVideohub(),closeVideohub());   // the switcher lives in the rack: make sure it is built
-  window.APANEL&&APANEL.mount(document.getElementById('cr-atem'));window.CCUP&&CCUP.mount(document.getElementById('cr-ccu'));
+  window.HDR&&HDR.mount();window.APANEL&&APANEL.mount(document.getElementById('cr-atem'));window.CCUP&&CCUP.mount(document.getElementById('cr-ccu'));
   const tip=document.getElementById('cr-tip');
   root.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip]');if(!t){tip.classList.remove('on');return;}const k=t.closest('.ap-k,.cc-b');
     const name=k?[...k.querySelectorAll('text')].map(x=>x.textContent).join(' ').trim():'';tip.innerHTML=(name?`<b>${name}</b>`:'')+`<span>${t.dataset.tip}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});

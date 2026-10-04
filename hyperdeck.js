@@ -115,8 +115,9 @@ function mount(){const f=document.getElementById('hd-front'),r=document.getEleme
     tip.innerHTML=`<b>${t[0]}</b><span>${t[1]}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');e.stopPropagation();},true);
   list();draw();}
 let last=0;
-function loop(now){requestAnimationFrame(loop);if(!document.getElementById('vh')?.classList.contains('on')&&H.state!=='rec')return;if(now-last<40)return;last=now;
-  if(document.getElementById('vh')?.classList.contains('on')){drawLcd();if(H.state==='play'||H.state==='rec')setK('ssd1','rec',H.state==='rec');}}
+const shown=()=>document.getElementById('vh')?.classList.contains('on')||document.getElementById('cr')?.classList.contains('on');
+function loop(now){requestAnimationFrame(loop);if(!shown()&&H.state!=='rec')return;if(now-last<40)return;last=now;
+  if(shown()){drawLcd();if(H.state==='play'||H.state==='rec')setK('ssd1','rec',H.state==='rec');}}
 requestAnimationFrame(loop);
 window.HDR={mount};
 })();
