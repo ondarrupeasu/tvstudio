@@ -3,23 +3,14 @@
  * from outside (cameras, vMix PC) or go to other equipment, hanging with a tag. Hover a cable = what it carries. */
 (function(){
 const N=16,G=0.45,DAMP=0.965,ITER=12,SLACK=1.07;
-let ropes=[],raf=0,sig='';
-const wrap=()=>document.getElementById('vh-rearwrap'),svg=()=>document.getElementById('vh-cables');
+const vhWrap=()=>document.getElementById('vh-rearwrap');
+/* generic rope set: cfg = {wrap, svg, list, active, sig} — used by the video rack and the Ultimatte screen */
+function makeRopes(cfg){let ropes=[],raf=0,sig='';const wrap=cfg.wrap,svg=cfg.svg;
 function centre(sel){const w=wrap(),e=w&&w.querySelector(sel);if(!e)return null;const c=e.querySelector('.vh-bnc')||e,r=c.getBoundingClientRect(),R=w.getBoundingClientRect();return {x:r.left+r.width/2-R.left,y:r.top+r.height/2-R.top};}
-/* the cables we know about (working assumption — see the Videohub notes) */
-function list(){const L=[],st=window.VH?VH.state():null;if(!st)return L;
-  st.cabOut.forEach((v,o)=>{const m=/^atem(\d+)$/.exec(v);if(m)L.push({a:`.vh-sock[data-s="o${o}"]`,b:`.at-sock[data-s="i${+m[1]-1}"]`,info:`Videohub SDI OUT ${o+1} → ATEM SDI INPUT ${m[1]}`});});
-  st.cabIn.forEach((v,i)=>{const ao=/^ao(\d+)$/.exec(v)||(v==='atem'?[0,'1']:null);if(ao){L.push({a:`.at-sock[data-s="o${+ao[1]-1}"]`,b:`.vh-sock[data-s="i${i}"]`,info:`ATEM SDI OUTPUT ${ao[1]} → Videohub SDI IN ${i+1}`});return;}
-    if(v==='none')return;const tag=/^cam\d$/.test(v)?'CAM '+v.slice(3):{vfill:'vMix FILL',vkey:'vMix KEY',hdk:'HyperDeck',gscam:'Chroma cam',ult1:'Ultimatte 1',ult2:'Ultimatte 2'}[v]||v;
-    const up=i%2===0;   // top-row BNC (odd numbers) → cable and tag go up; bottom row → down
-    L.push({a:`.vh-sock[data-s="i${i}"]`,hang:up?-35:34,tag,info:`${tag} → Videohub SDI IN ${i+1}`+(v.startsWith('cam')?' (from the studio patch panel, VIDEO '+v.slice(3)+')':v==='gscam'?' (test green-screen camera)':/^ult/.test(v)?' (Ultimatte PGM OUT)':' (DeckLink SDI out of the vMix PC)')});});
-  st.cabOut.forEach((v,o)=>{const u=/^u(\d)(fg|bg)$/.exec(v);if(u)L.push({a:`.vh-sock[data-s="o${o}"]`,hang:o%2?34:-35,tag:'Ult '+u[1]+' '+u[2].toUpperCase(),info:`Videohub SDI OUT ${o+1} → Ultimatte ${u[1]} ${u[2]==='fg'?'CAMERA FG':'BACKGROUND'}`});const m=/^vmix(\d)$/.exec(v);if(m)L.push({a:`.vh-sock[data-s="o${o}"]`,hang:o%2?34:-35,tag:'vMix '+m[1],info:`Videohub SDI OUT ${o+1} → vMix PC (DeckLink SDI ${m[1]} capture)`});});
-  L.push({a:'.at-sock[data-s="m0"]',hang:-26,tag:'MONITOR',info:'ATEM MULTIVIEW 1 → control-room monitor wall'});
-  return L;}
 /* same height for every tag; only a tag that would overlap its neighbour (long name) goes one step further */
 function stagger(L){[-1,1].forEach(dir=>{const row=L.filter(c=>!c.b&&Math.sign(c.hang)===dir).map(c=>({c,x:(centre(c.a)||{x:0}).x,w:c.tag.length*5+7})).sort((a,b)=>a.x-b.x);
     let prevR=-1e9,lvl=0;row.forEach(t=>{lvl=t.x-t.w/2<prevR-1?lvl+1:0;t.c.hang+=dir*lvl*17;prevR=t.x+t.w/2;});});return L;}
-function build(){const s=svg();if(!s)return;const L=stagger(list());ropes=L.map(c=>{const A=centre(c.a),B=c.b?centre(c.b):null;if(!A||(c.b&&!B))return null;
+function build(){const s=svg();if(!s)return;const L=stagger(cfg.list());ropes=L.map(c=>{const A=centre(c.a),B=c.b?centre(c.b):null;if(!A||(c.b&&!B))return null;
     const end=B||{x:A.x-6,y:A.y+c.hang};   // negative hang = the cable leaves upwards (into the space between the rear panels)
     const pts=[];for(let k=0;k<N;k++){const t=k/(N-1);pts.push({x:A.x+(end.x-A.x)*t,y:A.y+(end.y-A.y)*t+Math.sin(Math.PI*t)*20,px:0,py:0});pts[k].px=pts[k].x;pts[k].py=pts[k].y;}
     const g=c.hang<0?-G:G;const len=c.b?Math.hypot(B.x-A.x,B.y-A.y)*SLACK/(N-1):Math.abs(c.hang)*1.25/(N-1);return {...c,pts,len,g};}).filter(Boolean);
@@ -38,8 +29,20 @@ function render(){const s=svg();if(!s)return;const w=wrap();s.setAttribute('view
     s.querySelector(`.vh-cab[data-i="${i}"]`)?.setAttribute('d',d);const c0=s.querySelector(`circle[data-i="${i}"]`);if(c0){c0.setAttribute('cx',P[0].x);c0.setAttribute('cy',P[0].y);}
     const c1=s.querySelector(`circle[data-j="${i}"]`);if(c1){c1.setAttribute('cx',P[N-1].x);c1.setAttribute('cy',P[N-1].y);}
     const g=s.querySelector(`.vh-tg[data-i="${i}"]`);if(g){const t=g.querySelector('text'),e=P[N-1];t.textContent=r.tag;const tw=r.tag.length*5+7;g.querySelector('rect').setAttribute('width',tw);g.setAttribute('transform',`translate(${(e.x-tw/2).toFixed(1)} ${(r.g<0?e.y-13:e.y+1).toFixed(1)})`);t.setAttribute('x',3.5);t.setAttribute('y',9);}});}
-function loop(){raf=requestAnimationFrame(loop);const root=document.getElementById('vh');if(!root||!root.classList.contains('on'))return;
-  const s2=window.VH?JSON.stringify([VH.state().cabIn,VH.state().cabOut,wrap().clientWidth]):'';if(s2!==sig){sig=s2;build();}step();render();}
+function loop(){raf=requestAnimationFrame(loop);if(!cfg.active())return;const s2=cfg.sig()+'|'+(wrap()?wrap().clientWidth:0);if(s2!==sig){sig=s2;build();}step();render();}
+return {start(){sig='';if(!raf)loop();},refresh(){sig='';}};}
+window.ROPES=makeRopes;
+/* the cables we know about (working assumption — see the Videohub notes) */
+function list(){const L=[],st=window.VH?VH.state():null;if(!st)return L;
+  st.cabOut.forEach((v,o)=>{const m=/^atem(\d+)$/.exec(v);if(m)L.push({a:`.vh-sock[data-s="o${o}"]`,b:`.at-sock[data-s="i${+m[1]-1}"]`,info:`Videohub SDI OUT ${o+1} → ATEM SDI INPUT ${m[1]}`});});
+  st.cabIn.forEach((v,i)=>{const ao=/^ao(\d+)$/.exec(v)||(v==='atem'?[0,'1']:null);if(ao){L.push({a:`.at-sock[data-s="o${+ao[1]-1}"]`,b:`.vh-sock[data-s="i${i}"]`,info:`ATEM SDI OUTPUT ${ao[1]} → Videohub SDI IN ${i+1}`});return;}
+    if(v==='none')return;const tag=/^cam\d$/.test(v)?'CAM '+v.slice(3):{vfill:'vMix FILL',vkey:'vMix KEY',hdk:'HyperDeck',gscam:'Chroma cam',ult1:'Ultimatte 1',ult2:'Ultimatte 2'}[v]||v;
+    const up=i%2===0;   // top-row BNC (odd numbers) → cable and tag go up; bottom row → down
+    L.push({a:`.vh-sock[data-s="i${i}"]`,hang:up?-35:34,tag,info:`${tag} → Videohub SDI IN ${i+1}`+(v.startsWith('cam')?' (from the studio patch panel, VIDEO '+v.slice(3)+')':v==='gscam'?' (test green-screen camera)':/^ult/.test(v)?' (Ultimatte PGM OUT)':' (DeckLink SDI out of the vMix PC)')});});
+  st.cabOut.forEach((v,o)=>{const u=/^u(\d)(fg|bg)$/.exec(v);if(u)L.push({a:`.vh-sock[data-s="o${o}"]`,hang:o%2?34:-35,tag:'Ult '+u[1]+' '+u[2].toUpperCase(),info:`Videohub SDI OUT ${o+1} → Ultimatte ${u[1]} ${u[2]==='fg'?'CAMERA FG':'BACKGROUND'}`});const m=/^vmix(\d)$/.exec(v);if(m)L.push({a:`.vh-sock[data-s="o${o}"]`,hang:o%2?34:-35,tag:'vMix '+m[1],info:`Videohub SDI OUT ${o+1} → vMix PC (DeckLink SDI ${m[1]} capture)`});});
+  L.push({a:'.at-sock[data-s="m0"]',hang:-26,tag:'MONITOR',info:'ATEM MULTIVIEW 1 → control-room monitor wall'});
+  return L;}
+const vhRopes=makeRopes({wrap:vhWrap,svg:()=>document.getElementById('vh-cables'),list,active:()=>!!document.getElementById('vh')?.classList.contains('on'),sig:()=>window.VH?JSON.stringify([VH.state().cabIn,VH.state().cabOut]):''});
 /* ---------- PATCH MODE (admin): re-cable the rear and keep it ---------- */
 let sel=null,wired=false;
 function msg(t){const d=document.getElementById('vh-diag');if(d)d.innerHTML=`<span class="pw-chip bad"><i></i>PATCH MODE</span><span class="mx-sel">${t}</span>`;}
@@ -61,7 +64,7 @@ function wire(){if(wired)return;wired=true;const root=document.getElementById('v
     if('ho' in p&&'ai' in p){unplug('ai'+p.ai);st.cabOut[p.ho]='atem'+(p.ai+1);return `Cable: router OUT ${p.ho+1} → ATEM IN ${p.ai+1}.`;}
     if('ao' in p&&'hi' in p){unplug('ao'+p.ao);st.cabIn[p.hi]='ao'+(p.ao+1);return `Cable: ATEM OUT ${p.ao+1} → router IN ${p.hi+1}.`;}
     return null;}
-  wrap().addEventListener('click',e=>{if(!root.classList.contains('patch'))return;const g=e.target.closest('.vh-sock,.at-sock');if(!g)return;e.stopPropagation();
+  vhWrap().addEventListener('click',e=>{if(!root.classList.contains('patch'))return;const g=e.target.closest('.vh-sock,.at-sock');if(!g)return;e.stopPropagation();
     const k=(g.classList.contains('vh-sock')?'h':'a')+g.dataset.s;
     if(k.startsWith('am')){msg('The MULTIVIEW output feeds the control-room monitor (fixed).');return;}
     if(sel){if(sel===k){sel=null;mark();if(k[0]==='h')VH.plugMenu(k.slice(1),e);else msg('Cancelled.');return;}   // same socket again = other sources / destinations
@@ -69,5 +72,5 @@ function wire(){if(wired)return;wired=true;const root=document.getElementById('v
       msg(`${nm(sel)} cannot be cabled to ${nm(k)} (an output must go to an input).`);return;}
     if(plugged(k)){unplug(k);VH.save();msg(nm(k)+' unplugged.');return;}
     sel=k;mark();msg(`${nm(k)} selected: now click where the other end goes${k[0]==='h'?' — or click it again for other sources / destinations':''}.`);},true);}
-window.CABLES={start(){sig='';wire();if(!raf)loop();}};
+window.CABLES={start(){wire();vhRopes.start();}};
 })();

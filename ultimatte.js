@@ -60,6 +60,39 @@ function hdFront(i){const W=475,H=100,X=f=>f*W,Y=f=>f*H,k=(id,fx,fy,l)=>`<g clas
     ${k('p1',.495,.23,'1')}${k('p2',.495,.5,'2')}${k('p3',.495,.77,'3')}${k('menu',.569,.23,'MENU')}${k('set',.569,.5,'SET')}${k('lock',.569,.77,'LOCK')}
     <rect x="${X(.644)}" y="${Y(.09)}" width="${X(.224)}" height="${Y(.81)}" rx="2" class="vh-lcdb"/><text x="${X(.935)}" y="${Y(.17)}" class="at-logo" style="font-size:6px">Blackmagicdesign</text>
     <g class="vh-knob um-knob" data-u="${i}" data-tip="Knob: scrolls the LCD menu."><circle cx="${X(.933)}" cy="${Y(.57)}" r="${X(.045)}" class="vh-kn"/><circle cx="${X(.933)}" cy="${Y(.57)}" r="${X(.038)}" class="vh-kn2"/></g></svg><canvas class="um-lcd" data-u="${i}" width="240" height="180"></canvas>`;}
+/* ---------- 12 HD rear, the 16-port switch, Smart Remote 4 connector edge (cabling) ---------- */
+const bncU=(cx,cy,r=8)=>`<circle cx="${cx}" cy="${cy}" r="${r}" class="vh-bnc"/><circle cx="${cx}" cy="${cy}" r="${r*.62}" class="vh-bnc2"/><circle cx="${cx}" cy="${cy}" r="${r*.18}" class="vh-bnc3"/>`;
+function hdRear(i){const W=475,H=100,X=f=>f*W,Y=f=>f*H,T=(x,y,t)=>`<text x="${X(x)}" y="${Y(y)}" class="um-rt">${t}</text>`;
+  const sock=(id,x,y,lab,tip)=>`<g class="um-s" data-s="u${i}:${id}" data-tip="${tip}">${bncU(X(x),Y(y))}</g>`+T(x,y+(y<.5?.2:.22),lab);
+  return `<svg viewBox="0 0 ${W} ${H}" class="vh-svg"><rect x="1" y="1" width="${W-2}" height="${H-2}" rx="6" class="at-face"/>
+    <g data-tip="IEC power inlet (100-240 V)."><rect x="${X(.02)}" y="${Y(.15)}" width="${X(.105)}" height="${Y(.65)}" rx="3" class="vh-iec2"/></g>
+    <g data-tip="GPIO (DE-15): tally input from a GPI interface."><rect x="${X(.217)-14}" y="${Y(.27)-6}" width="28" height="12" rx="4" class="vh-rj"/></g>${T(.217,.42,'GPIO')}
+    <g class="um-s" data-s="u${i}:eth" data-tip="ETHERNET: control from the Smart Remote 4 / software, through the 16-port switch."><rect x="${X(.207)-10}" y="${Y(.68)-8}" width="20" height="16" rx="2" class="vh-rj"/></g>${T(.207,.92,'ETHERNET')}
+    ${sock('refo',.392,.27,'REF OUT','Reference output.')}${sock('refi',.392,.68,'REF IN','Reference input (same sync as the ATEM).')}
+    ${sock('bg',.5,.68,'BACKGROUND','BACKGROUND: the picture that goes behind the presenter.')}${sock('fgl',.587,.27,'CAMERA FG LOOP','Loop of the camera input.')}${sock('fg',.587,.68,'CAMERA FG','CAMERA FG: the camera on the green screen.')}
+    ${sock('fill',.675,.27,'PGM FILL','PGM FILL: foreground with the green removed (for a linear key in the switcher).')}${sock('gm',.675,.68,'G MATTE','Garbage matte input.')}
+    ${sock('matte',.762,.27,'PGM MATTE','PGM MATTE: the key signal (for a linear key in the switcher).')}${sock('hm',.762,.68,'H MATTE','Holdout matte input.')}
+    ${sock('pgm',.85,.27,'PGM OUT','PGM OUT: the finished composite.')}${sock('mono',.938,.27,'MON OUT','Monitor output (MONITOR OUTPUT selection).')}${sock('moni',.938,.68,'MON IN','Monitor input.')}
+    <path d="M${X(.55)} ${Y(.05)}v-2H${X(.98)}v2" class="vh-brk"/></svg>`;}
+function switchFront(){const W=1080,H=60,X=f=>f*W;let s=`<svg viewBox="0 0 ${W} ${H}" class="vh-svg"><rect x="1" y="1" width="${W-2}" height="${H-2}" rx="6" class="ob-silver"/><text x="${X(.03)}" y="34" class="ob-sm">Longshine LCS-GS8116 · 16 Port Gigabit Switch</text>`;
+  for(let k=0;k<16;k++){const x=X(.42+(k%8)*.065),y=k<8?18:40;s+=`<g class="um-s" data-s="sw:${k}" data-tip="Switch port ${k+1}"><rect x="${x-11}" y="${y-8}" width="22" height="16" rx="2" class="vh-rj"/></g>`;}
+  return s+'</svg>';}
+function srRear(){const W=1000,H=56,X=f=>f*W,T=(x,t)=>`<text x="${X(x)}" y="52" class="um-rt">${t}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" class="vh-svg"><rect x="1" y="1" width="${W-2}" height="${H-12}" rx="8" class="at-face"/><rect x="${X(.27)}" y="8" width="${X(.27)}" height="26" rx="3" class="ob-dark"/>
+    <g data-tip="+12V DC power input (locking)."><circle cx="${X(.29)}" cy="21" r="7" class="vh-rj"/></g>${T(.29,'+12V DC')}
+    <g data-tip="USB-C 3.0"><rect x="${X(.33)-6}" y="18" width="12" height="6" rx="3" class="vh-rj"/><rect x="${X(.36)-6}" y="18" width="12" height="6" rx="3" class="vh-rj"/></g>${T(.345,'USB-C 3.0')}
+    <g class="um-s" data-s="sr:eth1" data-tip="ETHERNET 1: to the network switch (the Ultimattes are on the same network)."><rect x="${X(.405)-10}" y="13" width="20" height="16" rx="2" class="vh-rj"/></g><g class="um-s" data-s="sr:eth2" data-tip="ETHERNET 2"><rect x="${X(.44)-10}" y="13" width="20" height="16" rx="2" class="vh-rj"/></g>${T(.42,'ETHERNET')}
+    <g data-tip="HDMI out: an extra monitor."><rect x="${X(.49)-11}" y="16" width="22" height="9" rx="2" class="vh-rj"/></g>${T(.49,'HDMI OUT')}</svg>`;}
+/* the cables (rope physics shared with the video rack) */
+function cableList(){const L=[{a:'[data-s="u0:eth"]',b:'[data-s="sw:0"]',info:'Ethernet: Ultimatte 1 → switch port 1'},{a:'[data-s="u1:eth"]',b:'[data-s="sw:1"]',info:'Ethernet: Ultimatte 2 → switch port 2'},
+    {a:'[data-s="sr:eth1"]',b:'[data-s="sw:2"]',info:'Ethernet: Smart Remote 4 → switch port 3 (it finds the Ultimattes on the network)'}];
+  const st=window.VH?VH.state():null;if(st){const o=d=>st.cabOut.indexOf(d),i=v=>st.cabIn.indexOf(v);
+    if(o('u1fg')>=0)L.push({a:'[data-s="u0:fg"]',hang:34,tag:'Router OUT '+(o('u1fg')+1),info:`Router OUT ${o('u1fg')+1} → Ultimatte 1 CAMERA FG`});
+    if(o('u1bg')>=0)L.push({a:'[data-s="u0:bg"]',hang:34,tag:'Router OUT '+(o('u1bg')+1),info:`Router OUT ${o('u1bg')+1} → Ultimatte 1 BACKGROUND`});
+    if(i('ult1')>=0)L.push({a:'[data-s="u0:pgm"]',hang:-30,tag:'Router IN '+(i('ult1')+1),info:`Ultimatte 1 PGM OUT → Router IN ${i('ult1')+1}`});
+    if(o('u2fg')>=0)L.push({a:'[data-s="u1:fg"]',hang:34,tag:'Router OUT '+(o('u2fg')+1),info:'Router → Ultimatte 2 CAMERA FG'});if(i('ult2')>=0)L.push({a:'[data-s="u1:pgm"]',hang:-30,tag:'Router IN '+(i('ult2')+1),info:'Ultimatte 2 PGM OUT → router'});}
+  return L;}
+let ropes=null;
 /* ---------- Smart Remote 4 ---------- */
 function sr4(){const W=1000,H=406,X=f=>f*W,Y=f=>f*H,b=(id,fx,fy,l,tip,w=30,h=22)=>`<g class="um-k um-sr" data-k="${id}" data-tip="${tip}"><rect x="${X(fx)-w/2}" y="${Y(fy)-h/2}" width="${w}" height="${h}" rx="3"/>${l?`<text x="${X(fx)}" y="${Y(fy)+4}" class="um-kt">${l}</text>`:''}</g>`;
   let s=`<svg viewBox="0 0 ${W} ${H}" class="vh-svg" id="um-sr"><rect x="2" y="2" width="${W-4}" height="${H-4}" rx="14" class="at-face"/><circle cx="${X(.062)}" cy="${Y(.09)}" r="12" class="vh-bnc2"/><text x="${X(.19)}" y="${Y(.17)}" class="um-logo">ultimatte</text>
@@ -115,9 +148,11 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     <p><b>FILE CLEAR</b> = Auto Key · the 8 knobs = the 8 controls on the screen · tabs MATTE / FOREGROUND / BACKGROUND · <b>MONITOR OUTPUT</b> = what the monitor shows (Combined Matte to judge the key) · hover anything.</p></div>
     <div class="pwr-btns"><button id="um-guidebtn">How to use</button><button id="um-rack">Video rack</button></div></div>
     <button class="close" id="um-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-    <div class="um-body"><div class="um-row"><div class="um-unit">${hdFront(0)}</div><div class="um-unit">${hdFront(1)}</div></div>
-      <div class="um-row2"><div class="um-srw">${sr4()}</div><div class="um-monw"><div class="vh-lab" id="um-monl"></div><canvas id="um-mon" width="640" height="360"></canvas>
-        <p class="um-note">Cabling (router): <b>OUT 15 → CAMERA FG</b> (IN 11, the test chroma camera) · <b>OUT 16 → BACKGROUND</b> (CAM 3) · <b>PGM OUT → IN 12</b>. To put the keyed picture on air, route IN 12 to an ATEM input on the router front panel. Unit 2 has nothing cabled.</p></div></div></div>
+    <div class="um-body" id="um-wrap"><div class="um-row"><div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 1 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(0)}</div>${hdRear(0)}</div>
+        <div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 2 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(1)}</div>${hdRear(1)}</div></div>
+      <div class="um-sw"><div class="vh-lab">16-PORT GIGABIT SWITCH <span>— same case (the remote and both units share the network)</span></div>${switchFront()}</div>
+      <div class="um-row2"><div class="um-srw"><div class="vh-lab">SMART REMOTE 4 <span>— connectors (bottom edge) · front below</span></div>${srRear()}<div class="um-srf">${sr4()}</div></div><div class="um-monw"><div class="vh-lab" id="um-monl"></div><canvas id="um-mon" width="640" height="360"></canvas>
+        <p class="um-note">Hover a cable to see what it carries. Cabling (router): <b>OUT 15 → CAMERA FG</b> (IN 11, the test chroma camera) · <b>OUT 16 → BACKGROUND</b> (CAM 3) · <b>PGM OUT → IN 12</b>. To put the keyed picture on air, route IN 12 to an ATEM input on the router front panel. Unit 2 has nothing cabled.</p></div></div><svg class="vh-cables" id="um-cables"></svg></div>
     <div class="mx-src mx-guide" id="um-guide"><div class="mx-srchd"><b>How to key with the Ultimatte</b> <button id="um-guideclose" aria-label="Close">✕</button></div><ol class="mx-steps">
       <li><b>FILE CLEAR</b> (or ⟲ auto key on the screen): the Ultimatte samples the green and makes the key.</li>
       <li><b>MONITOR OUTPUT › Combined Matte</b>: the presenter must be solid <b>black</b>, the green <b>white</b>. Raise <b>Matte Density</b> until no grey is left inside the presenter.</li>
@@ -136,6 +171,6 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.addEventListener('wheel',e=>{const kn=e.target.closest('.um-srk');if(!kn)return;e.preventDefault();setVal(+kn.dataset.n,e.deltaY<0?1:-1);},{passive:false});
   const tip=document.getElementById('um-tip');root.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip]');if(!t){tip.classList.remove('on');return;}tip.innerHTML=`<span>${t.dataset.tip}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});}
 let last=0,running=false;function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on'))return;if(now-last<60)return;last=now;U.forEach(u=>process(u));drawHdLcd(0);drawHdLcd(1);drawTouch();drawMon();}
-window.openUltimatte=()=>{build();root.classList.add('on');if(window.VH&&!document.getElementById('vh')?.dataset.built){openVideohub();closeVideohub();}if(!running){running=true;requestAnimationFrame(loop);}};
+window.openUltimatte=()=>{build();root.classList.add('on');if(!ropes&&window.ROPES){ropes=ROPES({wrap:()=>document.getElementById('um-wrap'),svg:()=>document.getElementById('um-cables'),list:cableList,active:()=>root.classList.contains('on'),sig:()=>window.VH?JSON.stringify([VH.state().cabIn,VH.state().cabOut]):''});}ropes&&ropes.start();if(window.VH&&!document.getElementById('vh')?.dataset.built){openVideohub();closeVideohub();}if(!running){running=true;requestAnimationFrame(loop);}};
 window.closeUltimatte=()=>{root.classList.remove('on');document.getElementById('um-tip')?.classList.remove('on');};
 })();
