@@ -70,12 +70,12 @@ function rear(){let s=`<svg viewBox="0 0 ${PW} ${PH+14}" class="vh-svg" id="vh-r
   grp(0.202,'i','SD/HD/3G/6G-SDI IN');grp(0.587,'o','SD/HD/3G/6G-SDI OUT');
   return s+'</svg>';}
 function build(){if(root.dataset.built)return;root.dataset.built='1';
-  root.innerHTML=`<div class="pwr-hd"><div><h2>Video rack</h2><div class="kind">Smart Videohub 20×20 (router) · ATEM 2 M/E Constellation HD (switcher)</div>
+  root.innerHTML=`<div class="pwr-hd"><div><h2>Video rack</h2><div class="kind">HyperDeck Studio HD Pro (recorder) · Smart Videohub 20×20 (router) · ATEM 2 M/E Constellation HD (switcher)</div>
     <p><b>Videohub:</b> DEST + number = where · SRC + number = which signal · TAKE confirms · <b>ATEM:</b> a number = preview (green) · CUT / AUTO = on air (red) · hover anything to learn what it does.</p></div>
     <div class="pwr-btns"><button id="vh-guidebtn">How to use</button><button id="vh-pack">Load the pack folder</button><button id="vh-reset">Reset routes</button></div></div>
   <button class="close" id="vh-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-  <div class="vh-body"><div class="vh-lab">FRONT</div><div class="vh-front">${front()}<canvas id="vh-lcd" width="320" height="240"></canvas></div><div id="atem-front"></div>
-    <div class="vh-lab">REAR <span>(as seen from behind)</span></div><div class="vh-rear">${rear()}</div><div id="atem-rear"></div>
+  <div class="vh-body"><div class="vh-lab">FRONT</div><div id="hd-front"></div><div class="vh-front">${front()}<canvas id="vh-lcd" width="320" height="240"></canvas></div><div id="atem-front"></div>
+    <div class="vh-lab">REAR <span>(as seen from behind)</span></div><div id="hd-rear"></div><div class="vh-rear">${rear()}</div><div id="atem-rear"></div>
     <div class="vh-tbl" id="vh-tbl"></div></div>
   <div class="pwr-status" id="vh-diag"></div>
   <div class="mx-plugmenu" id="vh-plugmenu"></div>
@@ -90,6 +90,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       <li><b>MENU</b>: <i>network</i> (IP address, subnet, gateway) and <i>use take</i> (off = the source switches as soon as you pick it). Knob to move, TAKE to select / confirm, MENU to go back.</li>
       <li><b>Rear panel:</b> the cables stay where they are — routing happens <b>inside</b> the router. Hover a BNC to see what is cabled there. Assumed for now: IN 1-4 = studio cameras, IN 5-6 = vMix fill / key, and OUT 1-6 feed ATEM inputs 1-6; the rest is still to be confirmed.</li>
       <li>Cameras show a test image; <b>Load the pack folder</b> (multicam pack, CAM1-8) to see the real footage.</li>
+      <li><b>HyperDeck</b> (top unit): <b>REC</b> records what arrives on its input (assumed for now: the ATEM programme) as a clip on SSD 1; <b>STOP</b>, <b>PLAY</b> (again = loop), <b>SKIP</b>, <b>REW / F FWD</b>; the dial moves through the clip in <b>JOG / STL / SCR</b> mode. The clips can be downloaded from the list under it.</li>
       <li><b>ATEM Constellation</b> (the switcher, under the router): its inputs come from the router outputs (OUT 1-6 → ATEM IN 1-6). Press a source key = <b>preview</b> (green); <b>CUT</b> or <b>AUTO</b> = it goes <b>on air</b> (red). MIX / WIPE / DIP / DVE choose the AUTO transition.</li>
       <li><b>DSK 1 MIX</b> keys the vMix graphics over the programme (fill on IN 5, key on IN 6). In vMix turn on <b>External</b> with Alpha Channel <i>Straight</i> or <i>Premultiplied</i> so the fill and key arrive.</li>
       <li><b>FTB</b> fades everything to black. <b>MENU</b> → Outputs assigns what each of the 12 SDI outputs carries; Transitions = rate; Settings = cut-bus mode. <b>LOCK</b>: hold 2 s to lock the panel, 1 s to unlock.</li>
@@ -97,7 +98,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     </ol></div>
   <input type="file" id="vh-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="vh-tip"></div>`;
-  wire();if(window.ATEMR)ATEMR.mount();}
+  wire();if(window.HDR)HDR.mount();if(window.ATEMR)ATEMR.mount();}
 /* ---------- state → screen ---------- */
 const lcd=()=>document.getElementById('vh-lcd');
 function wrapTxt(c,t,x,y,max){c.fillText(t.length>14?t.slice(0,13)+'…':t,x,y,max);}

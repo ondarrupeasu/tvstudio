@@ -206,6 +206,15 @@
   @media (max-width:900px){.swbtn{top:auto;bottom:14px}}
   /* Midas M32R */
   .rc-sim{border:0;cursor:pointer;font-family:inherit}
+  /* HyperDeck Studio HD Pro */
+  .hd-k{cursor:pointer}.hd-k rect{stroke:#000;stroke-width:.8}.hd-t rect{fill:#c9cdd2}.hd-s rect{fill:#2a2c31}.hd-kt{font-size:7px;font-weight:700;fill:#1a1a1a;text-anchor:middle}.hd-s .hd-kt{fill:#e8e9eb;font-size:4.6px}
+  .hd-lab{font-size:4.4px;font-weight:700;fill:#e5e6e8;text-anchor:middle}.hd-k:hover rect{stroke:var(--ce-accent);stroke-width:1.5}.hd-k.down rect{filter:brightness(1.2)}
+  .hd-k.on rect{fill:#f3efe2}.hd-k[data-k="rec"].on rect{fill:#ff3b30}.hd-k[data-k="stop"].on rect{fill:#3c8bff}.hd-s.on rect{fill:#6b7078}.hd-s.on .hd-kt{fill:#fff}
+  .hd-bez{fill:#121316;stroke:#3a3c41;stroke-width:1.5}.hd-bay.rec .hd-bez{stroke:#ff3b30;stroke-width:2.5}.hd-bay.play .hd-bez{stroke:#36d36e;stroke-width:2.5}.hd-slot{fill:#050506}.hd-disk{fill:#2b2d32}
+  .hd-led{fill:#2a2b2f}.hd-grill{fill:#050506}.hd-ring{fill:#1b1c1f;stroke:#3a3c41}.hd-dimple{fill:#2f3136}
+  #hd-lcd{position:absolute;left:70.8%;top:16%;width:9.3%;height:68%;pointer-events:none;border-radius:2px}
+  .hd-clips{position:absolute;left:0;right:0;top:100%;font-size:11.5px;color:var(--ce-muted);padding:4px 2px;display:flex;flex-wrap:wrap;gap:8px}.hd-clips a{color:var(--ce-accent)}.hd-clips a.on{font-weight:700}
+  #hd-front{margin-bottom:24px}
   /* ATEM 2 M/E Constellation HD (front-panel switching) */
   .at-face{fill:#16171a;stroke:#050506;stroke-width:1.2}.at-frame{fill:#0d0e10;stroke:#2a2c31}
   .at-k{cursor:pointer}.at-k rect{stroke:#000;stroke-width:.8}.at-s rect{fill:#1f2125}.at-st{font-size:4.3px;font-weight:700;fill:#e8e9eb;text-anchor:middle}
@@ -602,6 +611,7 @@
 <div class="vh" id="vh"></div>
 <script src="videohub.js"></script>
 <script src="constellation.js"></script>
+<script src="hyperdeck.js"></script>
 <div class="vx" id="vx"></div>
 <script src="vmix.js"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
@@ -639,7 +649,7 @@ const RACK=[
   {name:"Longshine LCS-GS8116",prod:"img/producto/switch.jpg",link:"https://www.longshine.de/products/networking/16-port-1g-switch-fanless-rackmountable-rackmount/",desc:"16-port unmanaged Gigabit Ethernet switch — the rack's network backbone.",y:4,h:7,x:53,w:39},
   {name:"Ultimatte Smart Remote 4",prod:"img/producto/smart-remote.jpg",link:"https://www.blackmagicdesign.com/products/ultimatte",desc:"Touch remote to set up the Ultimatte units.",y:17,h:13,x:8,w:84},
   {name:"Caymon PSR119GS — power distribution",prod:"img/producto/caymon.png",link:"https://caymon.eu/products/d/psr119gs---19inch-power-distribution-unit---9-x-german-sockets-plus-rear-switch",desc:"The rack's switched power strip (9× sockets).",y:35,h:8.5,x:8,w:84},
-  {name:"HyperDeck Studio HD Pro",prod:"img/producto/hyperdeck.jpg",link:"https://www.blackmagicdesign.com/products/hyperdeckstudio",desc:"Records the programme to cards / SSD.",y:43.7,h:4,x:8,w:84},
+  {name:"HyperDeck Studio HD Pro",prod:"img/producto/hyperdeck.jpg",link:"https://www.blackmagicdesign.com/products/hyperdeckstudio",desc:"Records the programme to cards / SSD.",sim:true,y:43.7,h:4,x:8,w:84},
   {name:"Smart Videohub 20×20",prod:"img/producto/videohub.jpg",link:"https://www.blackmagicdesign.com/es/products/blackmagicvideohub",desc:"SDI matrix: routes any source to any destination. Its front panel has a small screen to check the routed signal.",sim:true,y:47.9,h:3.9,x:8,w:84},
   {name:"ATEM 2 M/E Constellation HD",prod:"img/producto/constellation.jpg",link:"https://www.blackmagicdesign.com/es/products/atemconstellation",desc:"The actual vision mixer (driven by the ATEM panel). Its own front panel can switch too.",sim:true,y:52,h:4.5,x:8,w:84},
   {name:"NewTek TriCaster TCXD450 — unused",prod:"img/producto/tricaster.jpg",link:"https://downloads.newtek.com/LiveProductionSystems/Legacy/850/TCXD.pdf",desc:"All-in-one switcher/streaming unit. Currently not in use. (Link = manual, discontinued.)",y:76,h:7.5,x:8,w:84},
