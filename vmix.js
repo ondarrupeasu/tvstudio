@@ -337,10 +337,14 @@ function renderOut(src){const g=outCv.getContext('2d');g.drawImage(src,0,0,W,H);
 /* External output (DeckLink): SDI 1 = Fill, SDI 2 = Key (only with Alpha Channel Straight / Premultiplied) */
 const EXT={device:'DeckLink Duo 2',port:'SDI',alpha:'None',fmt:'1080p25'};
 function extScene(c,keyOnly){const T=V.T;scene(c,{a:T?T.a:V.pgm,b:T?T.b:null,p:T?T.p||0:0,fx:T?T.fx:null,ovs:V.ov,keyOnly,transparent:!keyOnly});}
-function renderExternal(){const w=V.extWin,d=w.document;const f=d.getElementById('fill'),k=d.getElementById('key');if(!f)return;
-  extScene(f,false);const g=f.getContext('2d');g.globalCompositeOperation='destination-over';g.fillStyle='#000';g.fillRect(0,0,f.width,f.height);g.globalCompositeOperation='source-over';
-  if(ftbA>.002){g.fillStyle=`rgba(0,0,0,${ftbA})`;g.fillRect(0,0,f.width,f.height);}
-  if(EXT.alpha!=='None'){gl.blendFunc(gl.ONE,gl.ONE);extScene(k,true);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);}else{const kg=k.getContext('2d');kg.fillStyle='#000';kg.fillRect(0,0,k.width,k.height);}}
+function drawFill(f){extScene(f,false);const g=f.getContext('2d');g.globalCompositeOperation='destination-over';g.fillStyle='#000';g.fillRect(0,0,f.width,f.height);g.globalCompositeOperation='source-over';
+  if(ftbA>.002){g.fillStyle=`rgba(0,0,0,${ftbA})`;g.fillRect(0,0,f.width,f.height);}}
+function drawKey(k){if(EXT.alpha!=='None'){gl.blendFunc(gl.ONE,gl.ONE);extScene(k,true);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);}else{const kg=k.getContext('2d');kg.fillStyle='#000';kg.fillRect(0,0,k.width,k.height);}}
+function renderExternal(){const w=V.extWin,d=w.document;const f=d.getElementById('fill'),k=d.getElementById('key');if(!f)return;drawFill(f);drawKey(k);}
+/* the DeckLink SDI outputs are cabled to the Videohub (IN 5 = fill, IN 6 = key): only while External is ON */
+const hubF=mkCanvas(W/2,H/2),hubK=mkCanvas(W/2,H/2);window.VH_SOURCES=window.VH_SOURCES||{};
+VH_SOURCES.vfill=(c,w,h)=>{if(!V.ext)return false;drawFill(hubF);c.drawImage(hubF,0,0,w,h);};
+VH_SOURCES.vkey=(c,w,h)=>{if(!V.ext)return false;drawKey(hubK);c.drawImage(hubK,0,0,w,h);};
 function openExtWin(){const w=window.open('','vx_external','width=980,height=330');if(!w)return alertBox('External','Allow pop-up windows for this site to see the external output.');V.extWin=w;
   w.document.title='External Output — '+EXT.device;w.document.body.style.cssText='margin:0;background:#0A0F14;color:#ddd;font:12px Segoe UI,Tahoma,sans-serif';
   w.document.body.innerHTML=`<div style="padding:6px 10px">${EXT.device} · ${EXT.fmt} · Alpha Channel: <b>${EXT.alpha}</b>${EXT.alpha==='None'?' — no key signal (set Straight or Premultiplied in External Output settings)':''}</div>
