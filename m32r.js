@@ -29,7 +29,7 @@ const LAYERS_IN={i1:['in',1],i2:['in',9],i3:['in',17],i4:['in',25],aux:['aux',1]
 const LAYERS_BUS={dca:['dca',1],b1:['bus',1],b2:['bus',9],mtx:null};
 const G={power:false,inL:'i1',busL:'dca',sel:'in1',tab:'home',page:'home',flip:false,rem:false,dim:false,talkA:false,talkB:false,
   assign:[true,true,true,true,false,false,false,false],mon:.6,phones:.5,talk:.5,fxSel:1,
-  dcaM:{},mg:Array.from({length:6},()=>({on:false,m:[]})),holdSel:null,holdEnc:null,scene:0,sigT:{},clip:null};
+  dcaM:{},mg:Array.from({length:6},()=>({on:false,m:[]})),holdSel:null,holdEnc:null,scene:0,sigT:{},libScope:{ha:true,cfg:true,gate:true,dyn:true,eq:true,send:true},libCur:0,libSel:0,libSlot:2,snip:0};
 for(let i=1;i<=8;i++)G.dcaM['dca'+i]=[];
 const busN=id=>+id.slice(3);
 /* effective level of an input channel: own fader + its DCAs; muted by own MUTE, a muted DCA or an active mute group */
@@ -403,12 +403,25 @@ const scr=()=>svg.querySelector('#mx-screen');
 const TABS=['home','config','gate','dyn','eq','sends','main'];
 /* ---------- scenes (SCENES page, saved in the browser) ---------- */
 const SKEY='m32r-scenes';const scenes=()=>{try{return JSON.parse(localStorage.getItem(SKEY))||{};}catch(_){return {};}};
-function snapshot(){return {S:Object.fromEntries(Object.values(S).map(x=>[x.id,{fader:x.fader,mute:x.mute,color:x.color}])),P:JSON.parse(JSON.stringify(P)),dcaM:JSON.parse(JSON.stringify(G.dcaM)),mg:JSON.parse(JSON.stringify(G.mg))};}
+function snapshot(){return {S:Object.fromEntries(Object.values(S).map(x=>[x.id,{fader:x.fader,mute:x.mute,color:x.color,name:x.name}])),P:JSON.parse(JSON.stringify(P)),dcaM:JSON.parse(JSON.stringify(G.dcaM)),mg:JSON.parse(JSON.stringify(G.mg))};}
 function saveScene(){const all=scenes();all[G.scene]={name:'Scene '+String(G.scene).padStart(2,'0'),t:Date.now(),d:snapshot()};try{localStorage.setItem(SKEY,JSON.stringify(all));}catch(_){} G.msg='Saved scene '+G.scene;}
 function loadScene(){const sc=scenes()[G.scene];if(!sc){G.msg='Scene '+G.scene+' is empty';return;}const d=sc.d;
   const from={};Object.entries(d.S).forEach(([id,v])=>{if(S[id]){from[id]=S[id].fader;Object.assign(S[id],v);}});Object.entries(d.P).forEach(([id,v])=>{if(P[id])P[id]=v;});G.dcaM=d.dcaM;G.mg=d.mg;G.msg='Loaded scene '+G.scene;applyAll();
   const to=Object.fromEntries(Object.keys(from).map(id=>[id,S[id].fader])),t0=performance.now(),T=600;   // motorised faders travel to the stored positions
   (function step(now){const k=Math.min(1,(now-t0)/T),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;Object.keys(to).forEach(id=>S[id].fader=from[id]+(to[id]-from[id])*e);applyAll();draw();if(k<1&&!document.hidden)requestAnimationFrame(step);else{Object.keys(to).forEach(id=>S[id].fader=to[id]);applyAll();draw();}})(t0);}
+const CO=['off','red','green','yellow','blue','magenta','cyan','white'];   // scribble-strip colours
+const SNIP=['PRESENTER','GUEST','HOST','VOCAL','BKG VOX','KICK','SNARE','DRUMS','BASS','GUITAR','KEYS','MUSIC','VIDEO','PC','AMBIENT','TALKBACK','CLICK'];   // preset names (snippets)
+function step(k,d){G.acc=G.acc||{};G.acc[k]=(G.acc[k]||0)+d;if(Math.abs(G.acc[k])>=3){const s=Math.sign(G.acc[k]);G.acc[k]=0;return s;}return 0;}   // one detent every few pixels
+/* ---------- LIBRARY › channel: presets of the channel DSP chain (manual 2.5) ---------- */
+const LKEY='m32r-chlib',LIBSC=[['ha','Head Amp'],['cfg','Config'],['gate','Gate'],['dyn','Compressor'],['eq','Equalizer'],['send','Sends']];
+const LIBK={ha:['gain','p48'],cfg:['pol','lc','lcf'],gate:['gate','gthr'],dyn:['comp','cthr','ratio'],eq:['eq','band','b'],send:['sends','pan','st','mono','mcl']};
+function libAll(){let l;try{l=JSON.parse(localStorage.getItem(LKEY));}catch(_){}if(!l){l={1:{name:'CLEAN',d:JSON.parse(JSON.stringify(P0))}};try{localStorage.setItem(LKEY,JSON.stringify(l));}catch(_){}}return l;}
+function libList(){const l=libAll();return Object.keys(l).map(Number).sort((a,b)=>a-b).map(n=>({slot:n,...l[n]}));}
+function libLoad(){const c=libList()[G.libSel],p=P[G.sel];if(!c||!p){G.msg='No preset / no channel';return;}
+  Object.keys(LIBK).forEach(k=>{if(G.libScope[k])LIBK[k].forEach(f=>p[f]=JSON.parse(JSON.stringify(c.d[f])));});G.msg='Loaded '+c.name+' → '+S[G.sel].num;}
+function libSave(){const p=P[G.sel];if(!p){G.msg='Select an input channel';return;}const l=libAll();l[G.libSlot]={name:(S[G.sel].name||S[G.sel].num).slice(0,12),d:JSON.parse(JSON.stringify(p))};
+  try{localStorage.setItem(LKEY,JSON.stringify(l));}catch(_){}G.libSel=libList().findIndex(x=>x.slot===G.libSlot);G.msg='Saved '+S[G.sel].num+' to '+String(G.libSlot).padStart(3,'0');}
+function libDel(){const c=libList()[G.libSel];if(!c)return;const l=libAll();delete l[c.slot];try{localStorage.setItem(LKEY,JSON.stringify(l));}catch(_){}G.libSel=Math.max(0,G.libSel-1);G.msg='Deleted '+String(c.slot).padStart(3,'0');}
 function encPress(i){if(G.page==='mutegrp'&&G.shiftDown){G.mgArm=G.mgArm===i?null:i;draw();return;}const e=encDefs()[i];if(e&&e.press){e.press();applyAll();draw();}}
 function encDefs(){const p=P[G.sel],b=p&&p.b[p.band],s=S[G.sel];
   if(G.page==='mutegrp')return G.mg.map((g,i)=>({l:'Mute '+(i+1),get:()=>(g.on?'ON':'off')+' · '+g.m.length+' ch',set:()=>{},v:()=>g.on?1:0,press:()=>{g.on=!g.on;}}));
@@ -417,10 +430,17 @@ function encDefs(){const p=P[G.sel],b=p&&p.b[p.band],s=S[G.sel];
   if(G.page==='effects'){const d=FXDEF[G.fxSel||1],u=A&&A.fx[G.fxSel||1];if(!d)return [null,null,null,null,null,{l:'Slot',get:()=>'FX'+G.fxSel,set:dd=>{G.fxSel=cl((G.fxSel||1)+Math.sign(dd),1,8);},v:()=>((G.fxSel||1)-1)/7}];
     const par=k=>{const q=d.p[k];return {l:q.l,get:()=>q.f(q.v),set:dd=>{q.v=q.log?cl(q.v*Math.pow(1.04,dd),q.min,q.max):cl(q.v+dd*(q.max-q.min)/100,q.min,q.max);if(u)setFx(u);},v:()=>q.log?Math.log(q.v/q.min)/Math.log(q.max/q.min):(q.v-q.min)/(q.max-q.min)};};
     return [par(0),par(1),null,null,null,{l:'Slot',get:()=>'FX'+G.fxSel,set:dd=>{G.fxSel=cl((G.fxSel||1)+Math.sign(dd),1,8);},v:()=>((G.fxSel||1)-1)/7}];}
-  if(G.page==='utility'&&P[G.sel]){const id=G.sel,push=(l,f)=>({l,get:()=>'push',set:()=>{},v:()=>0,press:f}),keep=()=>({sends:P[id].sends.slice()});
-    return [push('Copy',()=>{G.clip={from:S[id].num,d:JSON.parse(JSON.stringify(P[id]))};G.msg='Copied '+S[id].num;}),
-      push('Paste',()=>{if(!G.clip){G.msg='Nothing copied yet';return;}P[id]=JSON.parse(JSON.stringify(G.clip.d));G.msg='Pasted '+G.clip.from+' → '+S[id].num;}),
-      push('Default',()=>{P[id]=JSON.parse(JSON.stringify(P0));G.msg=S[id].num+' back to default';}),null,null,null];}
+  if(G.page==='library'){const L=libList(),cur=L[G.libSel],psh=(l,get,set,v,press)=>({l,get,set,v,press});
+    return [psh('Recall',()=>LIBSC[G.libCur][1]+(G.libScope[LIBSC[G.libCur][0]]?' ✓':' ✗'),d=>{const k=step('lc',d);if(k)G.libCur=cl(G.libCur+k,0,5);},()=>G.libCur/5,()=>{const k=LIBSC[G.libCur][0];G.libScope[k]=!G.libScope[k];}),
+      psh('Load',()=>cur?String(cur.slot).padStart(3,'0'):'—',d=>{const k=step('ls',d);if(k)G.libSel=cl(G.libSel+k,0,Math.max(0,L.length-1));},()=>L.length>1?G.libSel/(L.length-1):0,libLoad),
+      psh('Save',()=>String(G.libSlot).padStart(3,'0'),d=>{const k=step('lv',d);if(k)G.libSlot=cl(G.libSlot+k,1,100);},()=>(G.libSlot-1)/99,libSave),
+      psh('Delete',()=>'push',()=>{},()=>0,libDel),null,null];}
+  if(G.page==='setup'){const s=S[G.sel],ids=Object.keys(P),i=ids.indexOf(G.sel);
+    return [{l:'Channel',get:()=>s.num,set:d=>{const k=step('sc',d);if(k&&i>=0)G.sel=ids[cl(i+k,0,ids.length-1)];},v:()=>Math.max(0,i)/(ids.length-1)},
+      {l:'Colour',get:()=>s.color==='off'?'black':s.color,set:d=>{const k=step('co',d);if(k)s.color=CO[(CO.indexOf(s.color)+k+CO.length)%CO.length];},v:()=>Math.max(0,CO.indexOf(s.color))/7,press:()=>{G.msg='Invert colour: not simulated';}},
+      null,
+      {l:'Name',get:()=>SNIP[G.snip],set:d=>{const k=step('sn',d);if(k)G.snip=(G.snip+k+SNIP.length)%SNIP.length;},v:()=>G.snip/(SNIP.length-1),press:()=>{s.name=SNIP[G.snip];G.msg=s.num+' named '+s.name;}},
+      null,null];}
   if(G.page!=='home')return [];
   const E=(l,get,set,v)=>({l,get,set,v});
   const fd=E('Fader',()=>fmtDb(f2db(s.fader))+' dB',d=>{s.fader=cl(s.fader+d*.01);},()=>s.fader);
@@ -434,10 +454,8 @@ function encDefs(){const p=P[G.sel],b=p&&p.b[p.band],s=S[G.sel];
     ef=E('Freq',()=>fmtF(b.f),d=>b.f=cl(b.f*Math.pow(1.03,d),20,20000),()=>Math.log(b.f/20)/Math.log(1000)),
     eg=E('Gain',()=>(b.g>0?'+':'')+b.g.toFixed(1)+' dB',d=>b.g=cl(b.g+d*.25,-15,15),()=>(b.g+15)/30),
     eq=E('Width',()=>'Q '+b.q.toFixed(1),d=>b.q=cl(b.q*Math.pow(1.03,d),.3,10),()=>Math.log(b.q/.3)/Math.log(10/.3)),
-    CO=['off','red','green','yellow','blue','magenta','cyan','white'],
-    co=E('Colour',()=>s.color==='off'?'black':s.color,d=>{G.colAcc=(G.colAcc||0)+d;if(Math.abs(G.colAcc)>=4){s.color=CO[(CO.indexOf(s.color)+Math.sign(G.colAcc)+CO.length)%CO.length];G.colAcc=0;}},()=>Math.max(0,CO.indexOf(s.color))/7),   // scribble-strip colour
     mc=E('M/C lvl',()=>Math.round(p.mcl*100)+' %',d=>p.mcl=cl(p.mcl+d*.01),()=>p.mcl);
-  return {home:[g,lcf,gt,ct,pn,fd],config:[g,lcf,co,null,null,fd],gate:[gt,null,null,null,null,fd],dyn:[ct,ra,null,null,null,fd],eq:[ef,eg,eq,null,null,fd],sends:[null,null,null,null,null,fd],main:[pn,mc,null,null,null,fd]}[G.tab]||[];}
+  return {home:[g,lcf,gt,ct,pn,fd],config:[g,lcf,null,null,null,fd],gate:[gt,null,null,null,null,fd],dyn:[ct,ra,null,null,null,fd],eq:[ef,eg,eq,null,null,fd],sends:[null,null,null,null,null,fd],main:[pn,mc,null,null,null,fd]}[G.tab]||[];}
 const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
 const fmtF=f=>f>=1000?(f/1000).toFixed(f>=10000?1:2)+'k':Math.round(f)+'';
 function encVal(i){const e=encDefs()[i];return e?e.v():-1;}
@@ -459,10 +477,14 @@ function drawScreen(){const g=scr();if(!g)return;const on=G.power;
     for(let k=-2;k<=2;k++){const n=G.scene+k;if(n<0||n>99)continue;const y=52+(k+2)*14,cur=k===0;
       h+=(cur?`<rect x="20" y="${y-9}" width="212" height="12" rx="2" fill="#3d6db3"/>`:'')+T(26,y,String(n).padStart(2,'0')+'  '+(sc[n]?sc[n].name+'  · saved':'(empty)'),cur?'mx-sv':'mx-st').replace('text-anchor="middle"','text-anchor="start"');}
     if(G.msg)h+=T(126,121,G.msg,'mx-samb');}
-  else if(G.page==='utility'&&P[G.sel]){const s=S[G.sel];h+=T(126,28,'UTILITY — '+s.num+' '+s.name,'mx-sv')+T(126,46,'push 1 = Copy this channel\'s settings · push 2 = Paste them here','mx-st')+
-      T(126,60,'(gain, 48 V, low cut, gate, dynamics, EQ, pan, sends — not the source or the fader)','mx-st')+T(126,78,'Clipboard: '+(G.clip?G.clip.from:'empty'),'mx-st')+
-      T(126,96,'push 3 = Default (simulator shortcut: back to factory settings)','mx-st')+(G.msg?T(126,121,G.msg,'mx-samb'):'');}
-  else{const NA={routing:'ROUTING: local IN 1-16 → channels 1-16, OUT 7/8 = MAIN L/R. Choose what arrives at each IN by clicking its socket on the rear panel.',library:'LIBRARY: presets for channels, effects and routing. Not simulated.',setup:'SETUP: global settings, scribble strips, preamps, card. Not simulated.',monitor:'MONITOR: monitor source, talkback and oscillator. Use the MONITOR / PHONES knobs.',scenes:'SCENES: save / recall full console snapshots. Not simulated yet.',mutegrp:'MUTE GRP: the 6 mute groups on the screen encoders. Not simulated yet.',utility:'UTILITY: copy / paste / name channels. Not simulated.'};
+  else if(G.page==='library'){const L=libList();h+=T(126,25,'LIBRARY · channel → '+s.num+' '+s.name,'mx-sv');
+    LIBSC.forEach(([k,l],i)=>{const x=4+i*41.3,on=G.libScope[k];h+=`<rect x="${x}" y="30" width="39" height="12" rx="2" fill="${on?'#2f6b3a':'#2a2b30'}" stroke="${G.libCur===i?'#ffb347':'none'}"/>`+T(x+19.5,38.5,l,'mx-st');});
+    for(let k=-2;k<=2;k++){const n=G.libSel+k,c=L[n];if(!c)continue;const y=56+(k+2)*12,cur=k===0;
+      h+=(cur?`<rect x="20" y="${y-8.5}" width="212" height="11" rx="2" fill="#3d6db3"/>`:'')+T(26,y,String(c.slot).padStart(3,'0')+'  '+c.name,cur?'mx-sv':'mx-st').replace('text-anchor="middle"','text-anchor="start"');}
+    h+=T(126,118,'enc 1 recall list · 2 load · 3 save to '+String(G.libSlot).padStart(3,'0')+' · 4 delete','mx-st')+(G.msg?T(126,108,G.msg,'mx-samb'):'');}
+  else if(G.page==='setup'){h+=T(126,25,'SETUP · scribble strips','mx-sv')+`<rect x="70" y="36" width="112" height="40" rx="4" fill="${COL[s.color]||COL.off}" stroke="#55585f"/>`+T(126,52,s.num,'mx-sv')+T(126,68,s.name||'','mx-sv')+
+      T(126,92,'enc 1 channel · 2 colour · 4 name list (push = assign) — icon and text editor not simulated','mx-st')+(G.msg?T(126,110,G.msg,'mx-samb'):'');}
+  else{const NA={routing:'ROUTING: local IN 1-16 → channels 1-16, OUT 7/8 = MAIN L/R. Choose what arrives at each IN by clicking its socket on the rear panel.',library:'',monitor:'MONITOR: monitor source, talkback and oscillator. Use the MONITOR / PHONES knobs.',scenes:'SCENES: save / recall full console snapshots. Not simulated yet.',mutegrp:'MUTE GRP: the 6 mute groups on the screen encoders. Not simulated yet.',recorder:'RECORDER: USB stick / DN32-USB multitrack recording. Not simulated.'};
     h+=T(126,40,G.page.toUpperCase(),'mx-sbig')+wrap(NA[G.page]||'',126,62,40);}
   // encoder row
   if(G.flip){const t=G.flip.mode==='bus'?'SENDS ON FADER · input faders = sends to '+S['bus'+G.flip.bus].name:'SENDS ON FADER · bus faders = sends of '+S[G.flip.ch].num+' '+S[G.flip.ch].name;h+=`<rect x="0" y="112" width="252" height="13" fill="#b5651d"/>`+T(126,121,t,'mx-st');}
@@ -524,8 +546,9 @@ function press(id){if(!G.power||G.boot)return;const p=P[G.sel];
   else if(p&&(m=id.match(/^band:(.+)$/)))p.band=m[1];
   else if((m=id.match(/^asg:(\d)$/)))G.assign[+m[1]]=!G.assign[+m[1]];
   else if(id==='dim')G.dim=!G.dim;else if(id==='talkA')G.talkA=!G.talkA;else if(id==='talkB')G.talkB=!G.talkB;else if(id==='flip'){const t=S[G.sel].type;if(G.flip)G.flip=null;else if(t==='bus')G.flip={mode:'bus',bus:busN(G.sel)};else if(t==='in'){G.flip={mode:'ch',ch:G.sel};if(G.busL!=='b1'&&G.busL!=='b2')G.busL='b1';}}else if(id==='rem')G.rem=!G.rem;
-  else if((m=id.match(/^scr:(.+)$/))){G.page=G.page===m[1]&&m[1]==='mutegrp'?'home':m[1];if(m[1]==='home')G.tab='home';}
-  else if(id.startsWith('v')){const t={vcfg:'config',vgate:'gate',vdyn:'dyn',veq:'eq',vmain:'main',vsend:'sends'}[id];if(t){G.page='home';G.tab=t;}else G.page={vmon:'monitor',vrec:'utility',vasg:'setup'}[id]||G.page;}
+  else if(id==='scr:utility'){if(G.page==='home'){G.page='library';G.msg='';}else if(G.page==='routing'||G.page==='effects')G.msg='LIBRARY routing / effects tab: not simulated';else if(G.page==='setup'){}else G.msg='No utility functions on this screen';}   // UTILITY = shortcut in the context of the current screen
+  else if((m=id.match(/^scr:(.+)$/))){G.page=G.page===m[1]&&m[1]==='mutegrp'?'home':m[1];if(m[1]==='home')G.tab='home';G.msg='';}
+  else if(id.startsWith('v')){const t={vcfg:'config',vgate:'gate',vdyn:'dyn',veq:'eq',vmain:'main',vsend:'sends'}[id];if(t){G.page='home';G.tab=t;}else G.page={vmon:'monitor',vrec:'recorder',vasg:'setup'}[id]||G.page;}
   else if(id==='cur:left'||id==='cur:right'){if(G.page==='home'){const i=TABS.indexOf(G.tab);G.tab=TABS[(i+(id==='cur:right'?1:TABS.length-1))%TABS.length];}}
   applyCh(G.sel);applyAll();draw();}
 function knobSet(id,d){const p=P[G.sel],b=p&&p.b[p.band];
