@@ -171,5 +171,5 @@ function loop(now){requestAnimationFrame(loop);const vis=document.getElementById
   if(vis){drawLcd();if(S.ftb.on||S.lockFlash>now)draw();}
   if(pop){const c=mvWin.document.getElementById('mv');if(c)c.getContext('2d').drawImage(mvCv,0,0);}}
 requestAnimationFrame(loop);
-window.ATEMR={mount,state:()=>st,program:()=>pgmCv};
+window.ATEMR={mount,redraw:()=>draw(),state:()=>st,program:()=>pgmCv};
 })();

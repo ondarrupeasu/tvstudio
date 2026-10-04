@@ -165,7 +165,7 @@ function plugMenu(s,ev){const m=document.getElementById('vh-plugmenu'),d=s[0],k=
     Object.entries(L).map(([v,l])=>`<button data-v="${v}" class="${v===cur?'on':''}">${l}${d==='i'&&SRCL[v]?` <i>${SRCL[v]}</i>`:''}</button>`).join('')+
     (d==='i'?'<p class="mx-snote">vMix fill / key arrive while vMix External is on; ATEM PGM = ATEM SDI OUT 1.</p>':'<p class="mx-snote">To cable it to an ATEM input you can also click this OUT and then the ATEM input on its rear panel.</p>');
   m.style.left=Math.min(ev.clientX,innerWidth-300)+'px';m.style.top=Math.max(10,Math.min(ev.clientY-40,innerHeight-m.offsetHeight-10))+'px';m.classList.add('on');
-  m.querySelectorAll('button').forEach(b=>b.onclick=()=>{const v=b.dataset.v;if(d==='o'&&v.startsWith('atem'))st.cabOut.forEach((x,o)=>{if(x===v)st.cabOut[o]='none';});(d==='i'?st.cabIn:st.cabOut)[k]=v;save();m.classList.remove('on');draw();});}
+  m.querySelectorAll('button').forEach(b=>b.onclick=()=>{const v=b.dataset.v;if(d==='o'&&v.startsWith('atem'))st.cabOut.forEach((x,o)=>{if(x===v)st.cabOut[o]='none';});(d==='i'?st.cabIn:st.cabOut)[k]=v;save();m.classList.remove('on');draw();window.ATEMR&&ATEMR.redraw();});}
 function loadPack(files){let n=0;Object.values(PACK.v).forEach(v=>{v.pause();URL.revokeObjectURL(v.src);});PACK.v={};
   [...files].forEach(f=>{const m=f.name.match(/^CAM(\d)\.(mp4|mov|m4v|webm)$/i);if(!m)return;const v=document.createElement('video');v.src=URL.createObjectURL(f);v.muted=true;v.loop=true;v.playsInline=true;PACK.v[+m[1]]=v;n++;});
   const vs=Object.values(PACK.v);vs.forEach(v=>{v.currentTime=0;v.play().catch(()=>{});});   // all start together = in sync (the files are synced)
@@ -202,5 +202,5 @@ function wire(){const tip=document.getElementById('vh-tip'),fs=document.getEleme
 let raf=0;function loop(){raf=requestAnimationFrame(loop);if(!root.classList.contains('on'))return;U.blink++;if(U.video||U.blink%30===0)drawLcd();}
 window.openVideohub=()=>{build();root.classList.add('on');draw();if(!raf)loop();};
 window.closeVideohub=()=>{root.classList.remove('on');document.getElementById('vh-tip')?.classList.remove('on');};
-window.VH={plugMenu,save:()=>{save();draw();},DEF,state:()=>st,inputLabel:inLab,outputLabel:outLab,frame:(o,c,w,h)=>sigFrame(c,st.routes[o],w,h)};   // for the ATEM / multiview later
+window.VH={plugMenu,save:()=>{save();draw();window.ATEMR&&ATEMR.redraw();},DEF,state:()=>st,inputLabel:inLab,outputLabel:outLab,frame:(o,c,w,h)=>sigFrame(c,st.routes[o],w,h)};   // for the ATEM / multiview later
 })();
