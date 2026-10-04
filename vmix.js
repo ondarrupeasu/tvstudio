@@ -192,6 +192,11 @@ function act(a,b,e){
     if(a==='ib-th'){V.pv=inp;return draw();}}
   if(a.startsWith('tp-')){const v=a.slice(3,5)==='pv'?V.pv:V.pgm,op=a.slice(6);if(!v||v.type!=='video')return;if(op==='play')v.el.paused?v.el.play():v.el.pause();if(op==='restart'){v.el.currentTime=0;}return draw();}
   if(a==='mx-master'){V.masterMute=!V.masterMute;if(A)A.master.gain.value=V.masterMute?0:.8;return draw();}
+  if(a==='rec')return toggleRec();if(a==='recset')return recDialog();
+  if(a==='stream')return toggleStream();if(a==='strset')return streamDialog(false);
+  if(a==='ext'){V.ext=!V.ext;if(V.ext)openExtWin();else if(V.extWin&&!V.extWin.closed)V.extWin.close();return draw();}if(a==='extset')return extDialog();
+  if(a==='multiview')return openMvWin('MultiView');if(a==='fullscreen')return fullscreenMenu(b);if(a==='snap')return snapshot();
+  if(a==='multicorder'||a==='mcset')return alertBox('MultiCorder','MultiCorder is not available in the HD edition (4K / Pro / Max only).');
   notYet(b.textContent.trim()||a);}
 function notYet(name){alertBox(name,'This part is not simulated yet. It will come in the next versions of the simulator.');}
 
@@ -224,7 +229,7 @@ function draw(){if(!root.dataset.built)return;
     $$('[data-mv]',mx).forEach(r=>r.oninput=()=>{const v=r.value/100;if(r.dataset.mv==='master')V.masterVol=v;else byId(+r.dataset.mv).vol=v;applyAudio();});
     $$('[data-mx]',mx).forEach(b=>b.onclick=()=>{const x=byId(+b.closest('.vx-strip').dataset.id),k=b.dataset.mx;if(k==='afv')x.afv=!x.afv;else if(k==='mute')x.mute=!x.mute;else{const bb=k.slice(3);x.bus[bb]=!x.bus[bb];}applyAudio();draw();});}
   // bottom bar
-  $('[data-a="rec"]',root).classList.toggle('live',V.rec);$('[data-a="stream"]',root).classList.toggle('live',V.stream);$('[data-a="ext"]',root).classList.toggle('live',V.ext);
+  $('[data-a="rec"]',root).classList.toggle('live',V.rec);$('[data-a="stream"]',root).classList.toggle('live',!!V.stream);$('[data-a="stream"]',root).textContent=V.stream==='connecting'?'Connecting…':'Stream ▴';$('[data-a="ftb"]',root).dataset.tip='Fade To Black: fades Record, Stream, External and Fullscreen to black. The Output viewer stays visible so you can prepare the next shot.';$('[data-a="ext"]',root).classList.toggle('live',V.ext);
   $('[data-a="lock"]',root).classList.toggle('lock',V.lock);$('[data-a="basic"]',root).textContent=V.basic?'Advanced':'Basic';
   $('[data-a="multicorder"]',root).dataset.tip='MultiCorder is not available in the HD edition (4K / Pro / Max only).';
   applyAudio();}
@@ -238,8 +243,10 @@ function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on')
   const T=V.T;const cpg=$('.vx-cpg',root),cpv=$('.vx-cpv',root);
   scene(cpg,{a:T?T.a:V.pgm,b:T?T.b:null,p:T?T.p||0:0,fx:T?T.fx:null,ovs:V.ov});
   scene(cpv,{a:V.pv,ovs:V.ov.map(o=>o.pend?{inp:o.pend,a:1}:{inp:null,a:0})});
-  if(V.extWin&&!V.extWin.closed)renderExternal();
+  renderOut(cpg);
+  if(V.ext&&V.extWin&&!V.extWin.closed)renderExternal();
   if(V.mvWin&&!V.mvWin.closed)renderMultiview();
+  if(V.fsWin&&!V.fsWin.closed){if(V.fsSrc==='MultiView'){V.mvWin=V.fsWin;}else renderFullscreen();}
   // thumbnails (live) + meters
   $$('.vx-box',root).forEach(bx=>{const inp=byId(+bx.dataset.id),c=$('canvas',bx);if(!inp||!c||!inp.ready&&inp.type!=='title')return;const g=c.getContext('2d');
     g.fillStyle='#000';g.fillRect(0,0,192,108);try{if(inp.type==='title'){inp.anim=1;drawTitle(inp);}g.drawImage(inp.el,0,0,192,108);}catch(_){}
@@ -284,8 +291,8 @@ function addInputDialog(){const m=modal('Input Select',`<div class="vx-is"><div 
         if(isPack){PACK.t0=performance.now();V.inputs.filter(x=>x.pack).forEach(x=>{x.el.currentTime=0;x.el.play().catch(()=>{});});}};}
     else if(n==='Image'){hd.textContent='Select the Image file to open (PNG with transparency supported).';ph.innerHTML=`<label class="vx-browse">Browse… <input type="file" accept="image/*" hidden></label><div class="vx-files"></div>`;
       let f=null;$('input',ph).onchange=e=>{f=e.target.files[0];$('.vx-files',ph).textContent=f?f.name:'';};V.addOk=()=>f&&imageInput(f);}
-    else if(n==='Colour'){hd.textContent='Select a colour.';ph.innerHTML=`<label>Colour <input type="color" value="#0b3d91"></label><label><input type="checkbox" class="vx-bars"> Colour Bars</label>`;
-      V.addOk=()=>{$('.vx-bars',ph).checked?barsInput():colourInput('Colour',$('input[type=color]',ph).value);};}
+    else if(n==='Colour'){hd.textContent='Select a colour.';ph.innerHTML=`<label>Colour <input type="color" value="#0b3d91"></label><label><input type="radio" name="ck" value="c" checked> Colour</label><label><input type="radio" name="ck" value="bars"> Colour Bars</label><label><input type="radio" name="ck" value="blank"> Blank (transparent)</label>`;
+      V.addOk=()=>{const k=$('input[name=ck]:checked',ph).value;k==='bars'?barsInput():k==='blank'?colourInput('Blank','rgba(0,0,0,0)'):colourInput('Colour',$('input[type=color]',ph).value);};}
     else if(n==='Camera'){hd.textContent='Select the Camera (capture device).';ph.innerHTML=`<label>Camera <select class="vx-dev"><option value="">Default camera</option></select></label><p class="vx-hint">Your webcam (or a capture card) works as a camera input. The browser asks for permission.</p>`;
       navigator.mediaDevices?.enumerateDevices().then(ds=>{ds.filter(d=>d.kind==='videoinput').forEach(d=>{const o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||'Camera';$('.vx-dev',ph).appendChild(o);});});
       V.addOk=()=>{const s=$('.vx-dev',ph);cameraInput(s.value,s.value?s.selectedOptions[0].textContent:null);};}
@@ -324,8 +331,61 @@ function titleEditor(inp){modal('Title Editor — '+inp.name,`<div class="vx-te"
 function catDialog(){const L=V.catLabels||(V.catLabels=CAT.map(()=>''));modal('Input Categories',`<div class="vx-cd">${CAT.slice(1).map((c,i)=>`<label><span style="background:${c.c}"></span><input data-c="${i+1}" value="${L[i+1]}" placeholder="${c.n}"></label>`).join('')}</div><p class="vx-hint">Type a label for each category. Drag an input's thumbnail onto a category button to move it there.</p>`,{w:420,onOk:m=>{$$('[data-c]',m).forEach(x=>L[+x.dataset.c]=x.value.trim());draw();}});}
 
 /* ---------- External (Fill + Key) and MultiView windows: second screens ---------- */
-function renderExternal(){}
-function renderMultiview(){}
+/* program feed (what Record / Stream / Fullscreen get): Output + FTB */
+const outCv=mkCanvas();let ftbA=0;
+function renderOut(src){const g=outCv.getContext('2d');g.drawImage(src,0,0,W,H);ftbA+=((V.ftb?1:0)-ftbA)*.12;if(ftbA>.002){g.fillStyle=`rgba(0,0,0,${ftbA})`;g.fillRect(0,0,W,H);}}
+/* External output (DeckLink): SDI 1 = Fill, SDI 2 = Key (only with Alpha Channel Straight / Premultiplied) */
+const EXT={device:'DeckLink Duo 2',port:'SDI',alpha:'None',fmt:'1080p25'};
+function extScene(c,keyOnly){const T=V.T;scene(c,{a:T?T.a:V.pgm,b:T?T.b:null,p:T?T.p||0:0,fx:T?T.fx:null,ovs:V.ov,keyOnly,transparent:!keyOnly});}
+function renderExternal(){const w=V.extWin,d=w.document;const f=d.getElementById('fill'),k=d.getElementById('key');if(!f)return;
+  extScene(f,false);const g=f.getContext('2d');g.globalCompositeOperation='destination-over';g.fillStyle='#000';g.fillRect(0,0,f.width,f.height);g.globalCompositeOperation='source-over';
+  if(ftbA>.002){g.fillStyle=`rgba(0,0,0,${ftbA})`;g.fillRect(0,0,f.width,f.height);}
+  if(EXT.alpha!=='None'){gl.blendFunc(gl.ONE,gl.ONE);extScene(k,true);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);}else{const kg=k.getContext('2d');kg.fillStyle='#000';kg.fillRect(0,0,k.width,k.height);}}
+function openExtWin(){const w=window.open('','vx_external','width=980,height=330');if(!w)return alertBox('External','Allow pop-up windows for this site to see the external output.');V.extWin=w;
+  w.document.title='External Output — '+EXT.device;w.document.body.style.cssText='margin:0;background:#0A0F14;color:#ddd;font:12px Segoe UI,Tahoma,sans-serif';
+  w.document.body.innerHTML=`<div style="padding:6px 10px">${EXT.device} · ${EXT.fmt} · Alpha Channel: <b>${EXT.alpha}</b>${EXT.alpha==='None'?' — no key signal (set Straight or Premultiplied in External Output settings)':''}</div>
+    <div style="display:flex;gap:10px;padding:0 10px 10px"><figure style="margin:0;flex:1"><canvas id="fill" width="${W/2}" height="${H/2}" style="width:100%;background:#000"></canvas><figcaption>SDI 1 (A) — <b>Fill</b> → ATEM input (fill)</figcaption></figure>
+    <figure style="margin:0;flex:1"><canvas id="key" width="${W/2}" height="${H/2}" style="width:100%;background:#000"></canvas><figcaption>SDI 2 (B) — <b>Key</b> → ATEM input (key)</figcaption></figure></div>`;}
+/* MultiView (second screen): Preview / Output + 8 Inputs */
+function renderMultiview(){const d=V.mvWin.document,c=d.getElementById('mv');if(!c)return;const g=c.getContext('2d'),cw=c.width,ch=c.height;g.fillStyle='#000';g.fillRect(0,0,cw,ch);
+  const big=(src,x,label,col)=>{g.drawImage(src,x,0,cw/2-2,ch/2-2);g.strokeStyle=col;g.lineWidth=4;g.strokeRect(x+2,2,cw/2-6,ch/2-6);g.fillStyle='rgba(0,0,0,.6)';g.fillRect(x,ch/2-26,cw/2-2,24);g.fillStyle='#fff';g.font='bold 15px Segoe UI, sans-serif';g.fillText(label,x+8,ch/2-9);};
+  big($('.vx-cpv',root),0,'Preview'+(V.pv?' — '+V.pv.name:''),'#FF8C00');big($('.vx-cpg',root),cw/2+2,'Output'+(V.pgm?' — '+V.pgm.name:''),'#006400');
+  const tw=cw/4,th=ch/4;V.inputs.slice(0,8).forEach((x,i)=>{const X=(i%4)*tw,Y=ch/2+Math.floor(i/4)*th;try{if(x.ready||x.type==='title')g.drawImage(x.el,X+1,Y+1,tw-2,th-2);}catch(_){}
+    const col=V.pgm===x?'#006400':V.pv===x?'#FF8C00':null;if(col){g.strokeStyle=col;g.lineWidth=4;g.strokeRect(X+2,Y+2,tw-4,th-4);}
+    g.fillStyle='rgba(0,0,0,.6)';g.fillRect(X,Y+th-20,tw,20);g.fillStyle='#fff';g.font='12px Segoe UI, sans-serif';g.fillText(x.num+'  '+x.name,X+6,Y+th-6);});}
+function openMvWin(src='MultiView'){const w=window.open('','vx_mv_'+src,'width=1024,height=600');if(!w)return alertBox(src,'Allow pop-up windows for this site to open the second screen.');
+  w.document.title=(src==='MultiView'?'MultiView':'Fullscreen — '+src)+' (drag it to a second monitor · double-click = full screen)';w.document.body.style.cssText='margin:0;background:#000;overflow:hidden';
+  w.document.body.innerHTML=`<canvas id="mv" width="${W*2}" height="${H*2}" style="width:100vw;height:100vh;object-fit:contain;display:block"></canvas>`;
+  w.document.body.ondblclick=()=>{w.document.fullscreenElement?w.document.exitFullscreen():w.document.documentElement.requestFullscreen().catch(()=>{});};
+  if(src==='MultiView')V.mvWin=w;else{V.fsWin=w;V.fsSrc=src;}}
+function renderFullscreen(){const c=V.fsWin.document.getElementById('mv');if(!c)return;const g=c.getContext('2d'),src=V.fsSrc==='Preview'?$('.vx-cpv',root):outCv;
+  if(V.fsSrc==='MultiView')return;g.drawImage(src,0,0,c.width,c.height);}
+/* Record (real file, in the browser) and Stream (simulated — nothing is sent) */
+const REC={fmt:'MP4',vb:8,ab:192};
+function toggleRec(){if(V.rec){V.recorder.stop();return;}const st=outCv.captureStream(25);if(A)A.dest.stream.getAudioTracks().forEach(t=>st.addTrack(t));
+  const mp4=REC.fmt==='MP4'&&MediaRecorder.isTypeSupported('video/mp4');const type=mp4?'video/mp4':'video/webm';
+  const r=new MediaRecorder(st,{mimeType:type,videoBitsPerSecond:REC.vb*1e6,audioBitsPerSecond:REC.ab*1000});const chunks=[];r.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+  r.onstop=()=>{V.rec=false;draw();const b=new Blob(chunks,{type});const a=document.createElement('a');const d=new Date();a.href=URL.createObjectURL(b);a.download=`capture - ${d.toISOString().slice(0,19).replace(/[T:]/g,'-')}.${mp4?'mp4':'webm'}`;a.click();};
+  r.start(1000);V.recorder=r;V.rec=true;V.recT0=performance.now();draw();}
+const STR={dest:'YouTube',url:'rtmp://a.rtmp.youtube.com/live2',key:'',quality:'720p 2.5mbps'};
+function toggleStream(){if(V.stream){V.stream=false;draw();return;}if(!STR.key&&STR.dest!=='—')return streamDialog(true);V.stream='connecting';V.streamT0=performance.now();draw();setTimeout(()=>{if(V.stream){V.stream=true;draw();}},1600);}
+function recDialog(){const m=modal('Recording Setup',`<label>Format <select class="rf"><option ${REC.fmt==='MP4'?'selected':''}>MP4</option><option ${REC.fmt==='WebM'?'selected':''}>WebM</option><option disabled>vMix AVI (not in the browser)</option><option disabled>AVI</option><option disabled>FFMPEG</option></select></label>
+  <label>Bit Rate <input class="rb" type="number" min="1" max="50" value="${REC.vb}"> Mbps <span class="vx-hint">(25 recommended for HD)</span></label><label>Audio Bit Rate <select class="ra">${[128,160,192].map(v=>`<option ${REC.ab===v?'selected':''}>${v}</option>`).join('')}</select> kbps</label>
+  <p class="vx-hint">The recording is real: when you press Record again, the file is saved to your Downloads folder. It records the Output (with Fade To Black) and the Master audio.</p>`,{w:460,onOk:m=>{REC.fmt=$('.rf',m).value;REC.vb=+$('.rb',m).value||8;REC.ab=+$('.ra',m).value;}});}
+function streamDialog(startAfter){modal('Streaming',`<div class="vx-dests">${[1,2,3,4,5].map(n=>`<button class="${n===1?'on':''}" ${n>1?'disabled':''}>${n}</button>`).join('')}</div>
+  <label>Destination <select class="sd">${['YouTube','Facebook','Twitch','Custom RTMP Server'].map(d=>`<option ${STR.dest===d?'selected':''}>${d}</option>`).join('')}</select></label>
+  <label>URL <input class="su" size="38" value="${STR.url}"></label><label>Stream Key <input class="sk" type="password" size="30" value="${STR.key}" placeholder="xxxx-xxxx-xxxx-xxxx"></label>
+  <label>Quality <select class="sq">${['360p 1.5mbps','720p 2.5mbps','720p 4mbps','1080p 6mbps'].map(q=>`<option ${STR.quality===q?'selected':''}>${q}</option>`).join('')}</select></label><label>Application <select disabled><option>FFMPEG</option></select></label>
+  <p class="vx-hint">Simulator: nothing is actually sent to the internet. Type any key to practise the steps. (Real YouTube URL: rtmp://a.rtmp.youtube.com/live2 + your stream key from YouTube Studio.)</p>`,{w:520,ok:startAfter?'Start':'Save and Close',onOk:m=>{STR.dest=$('.sd',m).value;STR.url=$('.su',m).value;STR.key=$('.sk',m).value;STR.quality=$('.sq',m).value;if(startAfter&&STR.key)toggleStream();}});
+  const sd=$('#vx-modal .sd');sd.onchange=()=>{const u={'YouTube':'rtmp://a.rtmp.youtube.com/live2','Facebook':'rtmps://live-api-s.facebook.com:443/rtmp/','Twitch':'rtmp://live.twitch.tv/app','Custom RTMP Server':'rtmp://'}[sd.value];$('#vx-modal .su').value=u;};}
+function extDialog(){modal('Settings — External Output',`<label><input type="radio" disabled> vMix Video / Streaming</label><label><input type="radio" checked> External Renderer</label>
+  <label>Frame Rate <select disabled><option>25</option></select></label><label>Output Size <select disabled><option>1920x1080</option></select></label>
+  <label>Device <select class="ed"><option>DeckLink Duo 2</option><option>DeckLink 8K Pro</option><option>UltraStudio HD Mini</option></select></label><label>Port <select><option>SDI</option></select></label>
+  <label>Alpha Channel <select class="ea">${['None','Straight','Premultiplied'].map(a=>`<option ${EXT.alpha===a?'selected':''}>${a}</option>`).join('')}</select></label>
+  <p class="vx-hint">With <b>Straight</b> or <b>Premultiplied</b>, the card sends <b>Fill on SDI 1</b> and <b>Key on SDI 2</b>. In the ATEM, both go into the keyer (Linear / Pre-multiplied). For titles alone, put a transparent input (Add Input → Colour → Blank) on the Output and the titles as overlays.</p>`,
+  {w:560,onOk:m=>{EXT.device=$('.ed',m).value;EXT.alpha=$('.ea',m).value;if(V.extWin&&!V.extWin.closed)openExtWin();}});}
+function fullscreenMenu(b){const p=pop(['Output','Preview','MultiView'].map(s=>`<button data-fs="${s}">${s}</button>`).join('')+'<div class="vx-ph">Opens a window: drag it to the second monitor, double-click = full screen.</div>',b);$$('[data-fs]',p).forEach(x=>x.onclick=()=>{p.classList.remove('on');openMvWin(x.dataset.fs);});}
+function snapshot(){const a=document.createElement('a');a.href=outCv.toDataURL('image/png');a.download='snapshot.png';a.click();}
 
 /* ---------- open / close ---------- */
 function seed(){if(V.inputs.length)return;barsInput();colourInput('Colour','#0b3d91');titleInput('classic');titleInput('news');V.pgm=V.inputs[0];V.pv=V.inputs[1];}
