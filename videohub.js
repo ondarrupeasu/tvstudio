@@ -66,7 +66,7 @@ function rear(){let s=`<svg viewBox="0 0 ${PW} ${PH+14}" class="vh-svg" id="vh-r
   s+=`<g data-tip="USB 2.0: Videohub Setup (IP address, firmware)."><rect x="${X(0.170)-7}" y="${Y(0.72)-4}" width="14" height="8" rx="1.5" class="vh-rj"/><text x="${X(0.170)}" y="${Y(0.92)}" class="vh-rt">USB 2.0</text></g>`;
   const grp=(x0,dir,lab)=>{for(let k=0;k<N;k++){const col=Math.floor(k/2),row=k%2,cx=X(x0+col*0.0385),cy=Y(row?0.66:0.25);
       s+=`<g class="vh-sock" data-s="${dir}${k}">${bnc(cx,cy)}<text x="${cx-14}" y="${cy-14.5}" class="vh-rn">${k+1}▸</text><circle cx="${cx}" cy="${cy}" r="9" class="vh-plug"/></g>`;}
-    const a=X(x0)-14,b=X(x0+9*0.0385)+14;s+=`<path d="M${a} ${PH-9}v3H${b}v-3" class="vh-brk"/><text x="${(a+b)/2}" y="${PH-2.5}" class="vh-rt">${lab}</text>`;};
+    const a=X(x0)-14,b=X(x0+9*0.0385)+14;s+=`<path d="M${a} ${PH-16}v3H${b}v-3" class="vh-brk"/><text x="${(a+b)/2}" y="${PH-8.5}" class="vh-rt">${lab}</text>`;};
   grp(0.202,'i','SD/HD/3G/6G-SDI IN');grp(0.587,'o','SD/HD/3G/6G-SDI OUT');
   return s+'</svg>';}
 function build(){if(root.dataset.built)return;root.dataset.built='1';

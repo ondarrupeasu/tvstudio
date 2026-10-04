@@ -81,13 +81,13 @@ function rear(){let s=`<svg viewBox="0 0 ${PW} ${PH+14}" class="vh-svg" id="at-r
   s+=`<g data-tip="TALKBACK (RJ45): intercom to the camera control units. Not simulated."><rect x="${X(0.192)}" y="${Y(0.11)}" width="${X(0.035)}" height="${Y(0.26)}" rx="2" class="vh-rj"/><text x="${X(0.2097)}" y="${Y(0.47)}" class="vh-rt">TALKBACK</text></g>`;
   s+=`<g data-tip="REF IN: reference (black burst / tri-sync).">${bnc(X(0.2095),Y(0.645),10)}<text x="${X(0.2095)}" y="${Y(0.92)}" class="vh-rt">REF IN</text></g>`;
   for(let k=0;k<20;k++){const cx=X(0.255+Math.floor(k/2)*0.03697),cy=Y(k%2?0.649:0.252);s+=`<g class="at-sock" data-s="i${k}">${bnc(cx,cy)}<text x="${cx-14}" y="${cy-13.5}" class="vh-rn">${k+1}</text><circle cx="${cx}" cy="${cy}" r="8.5" class="vh-plug"/></g>`;}
-  s+=`<path d="M${X(0.238)} ${PH-9}v3H${X(0.605)}v-3" class="vh-brk"/><text x="${X(0.4215)}" y="${PH-2.5}" class="vh-rt">SDI INPUTS</text>`;
+  s+=`<path d="M${X(0.238)} ${PH-16}v3H${X(0.605)}v-3" class="vh-brk"/><text x="${X(0.4215)}" y="${PH-8.5}" class="vh-rt">SDI INPUTS</text>`;
   for(let k=0;k<12;k++){const cx=X(0.6328+Math.floor(k/2)*0.0367),cy=Y(k%2?0.649:0.252);s+=`<g class="at-sock" data-s="o${k}">${bnc(cx,cy)}<text x="${cx-14}" y="${cy-13.5}" class="vh-rn">${k+1}</text><circle cx="${cx}" cy="${cy}" r="8.5" class="vh-plug"/></g>`;}
-  s+=`<path d="M${X(0.616)} ${PH-9}v3H${X(0.835)}v-3" class="vh-brk"/><text x="${X(0.7255)}" y="${PH-2.5}" class="vh-rt">SDI OUTPUTS</text>`;
+  s+=`<path d="M${X(0.616)} ${PH-16}v3H${X(0.835)}v-3" class="vh-brk"/><text x="${X(0.7255)}" y="${PH-8.5}" class="vh-rt">SDI OUTPUTS</text>`;
   [0,1].forEach(k=>{const cy=Y(k?0.649:0.252);s+=`<g class="at-sock" data-s="m${k}">${bnc(X(0.863),cy)}<text x="${X(0.863)-14}" y="${cy-13.5}" class="vh-rn">${k+1}</text><circle cx="${X(0.863)}" cy="${cy}" r="8.5" class="vh-plug"/></g>`;});
-  s+=`<text x="${X(0.863)}" y="${PH-2.5}" class="vh-rt">MULTIVIEW</text>`;
+  s+=`<text x="${X(0.863)}" y="${PH-8.5}" class="vh-rt">MULTIVIEW</text>`;
   [0,1].forEach(k=>{const cy=Y(k?0.663:0.262);s+=`<g data-tip="Analog audio in CH ${k+1} (balanced 1/4&quot; jack)."><circle cx="${X(0.914)}" cy="${cy}" r="8" class="vh-rj"/><circle cx="${X(0.914)}" cy="${cy}" r="3.5" class="vh-bnc3"/><text x="${X(0.914)+12}" y="${cy+2}" class="vh-rn">CH ${k+1}</text></g>`;});
-  s+=`<text x="${X(0.914)}" y="${PH-2.5}" class="vh-rt">ANALOG AUDIO IN</text>`;
+  s+=`<text x="${X(0.914)}" y="${PH-8.5}" class="vh-rt">ANALOG AUDIO IN</text>`;
   return s+'</svg>';}
 /* ---------- LCD ---------- */
 const MENU=['Program Source','Preview Source','Outputs','Transitions','Fade To Black','Settings'];
