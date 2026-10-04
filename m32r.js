@@ -27,7 +27,7 @@ for(let i=1;i<=32;i++)P['in'+i]={gain:0,p48:false,pol:false,lc:false,lcf:80,gate
 const LAYERS_IN={i1:['in',1],i2:['in',9],i3:['in',17],i4:['in',25],aux:['aux',1],fxr:['fx',1],b1:['bus',1],b2:['bus',9]};
 const LAYERS_BUS={dca:['dca',1],b1:['bus',1],b2:['bus',9],mtx:null};
 const G={power:false,inL:'i1',busL:'dca',sel:'in1',tab:'home',page:'home',flip:false,rem:false,dim:false,talkA:false,talkB:false,
-  assign:[true,true,true,true,false,false,false,false],mon:.6,phones:.5,talk:.5,
+  assign:[true,true,true,true,false,false,false,false],mon:.6,phones:.5,talk:.5,fxSel:1,
   dcaM:{},mg:Array.from({length:6},()=>({on:false,m:[]})),holdSel:null,holdEnc:null,scene:0};
 for(let i=1;i<=8;i++)G.dcaM['dca'+i]=[];
 const busN=id=>+id.slice(3);
@@ -78,7 +78,7 @@ function surface(){let s=`<svg class="mx-svg" viewBox="0 -70 1000 1295" role="im
   s+=`<defs><linearGradient id="mxbody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26272c"/><stop offset="1" stop-color="#1b1c20"/></linearGradient></defs>`;
   s+=`<rect x="2" y="78" width="996" height="490" rx="22" fill="url(#mxbody)" stroke="#0c0c0e" stroke-width="3"/>`;
   // TALKBACK
-  s+=panel(16,105,230,200,'TALKBACK')+btn('talkA',48,165,'TALK A','fn',40,20,'TALK A: talk to destination A (set on the screen). Drawn only.')+btn('talkB',98,165,'TALK B','fn',40,20,'TALK B: talk to destination B. Drawn only.')+knob('talk',182,150,15,'TALK|LEVEL'.replace('|',' '),'Talkback mic level (rear TALKBACK MIC input). Drawn only.');
+  s+=panel(16,105,230,200,'TALKBACK')+btn('talkA',48,165,'TALK A','fn',40,20,'TALK A: the talkback mic goes to mix buses 1-6 (studio monitors / earpieces). The control-room monitors dim while talking.')+btn('talkB',98,165,'TALK B','fn',40,20,'TALK B: the talkback mic goes to the main L/R mix.')+knob('talk',182,150,15,'TALK|LEVEL'.replace('|',' '),'Talkback mic level (rear TALKBACK MIC input).');
   // MONITOR
   s+=panel(237,105,448,200,'MONITOR')+knob('mon',275,150,15,'MONITOR LEVEL','Level of the control-room speakers (MONITOR L/R outputs). Here: the volume you hear.')+btn('dim',327,160,'DIM','fn',34,20,'DIM: lowers the monitor/phones level (−20 dB) without touching the mix.')+knob('phones',380,150,15,'PHONES LEVEL','Headphones level. Here: also the volume you hear.')+btn('vmon',425,182,'VIEW','view',32,18);
   // REC + BUS SEND
@@ -142,7 +142,7 @@ function rearSvg(){const tip=(n,t,inner)=>`<g data-name="${n}" data-tip="${t}">$
   s+=tip('MIDI IN / OUT','MIDI control.',xlr(245,58,9)+xlr(270,58,9)+T(257,98,'MIDI','mx-wt'));
   s+=tip('ULTRANET','16 channels to personal monitor mixers (P16).',rj(300,58)+T(300,98,'ULTRANET','mx-wt'));
   s+=tip('AES50 A / B','Digital snakes: 48×48 channels each to stage boxes.',rj(335,58)+rj(362,58)+T(348,98,'AES50 B · A','mx-wt'));
-  s+=tip('TALKBACK MIC','XLR input for the talkback microphone.',xlr(398,58)+T(398,98,'TALK','mx-wt'));
+  s+=`<g class="mx-sock" data-in="talk" data-name="TALKBACK MIC">${xlr(398,58)}<g class="mx-plug"><circle cx="398" cy="58" r="10.5" class="mx-plugr"/><circle cx="398" cy="58" r="6" fill="#141416"/><path d="M398 68 V75" stroke="#141416" stroke-width="7"/></g>${T(398,98,'TALK','mx-wt')}<circle cx="398" cy="58" r="13" fill="transparent"/></g>`;
   s+=tip('MONITOR L / R','Outputs to the control-room speakers (MONITOR LEVEL).',xlr(428,50,6)+xlr(428,70,6)+T(428,98,'MON','mx-wt'));
   s+=tip('AUX IN / OUT 1-6','Line-level jacks (and RCA on 5/6).',[0,1,2].map(k=>xlr(458+k*16,50,5)+xlr(458+k*16,70,5)).join('')+T(474,98,'AUX','mx-wt'));
   const sock=(n,x,y)=>`<g class="mx-sock" data-in="${n}" data-name="IN ${n}">${xlr(x,y,9)}<g class="mx-plug"><circle cx="${x}" cy="${y}" r="10.5" class="mx-plugr"/><circle cx="${x}" cy="${y}" r="6" fill="#141416"/><path d="M${x} ${y+10} V${y+17}" stroke="#141416" stroke-width="7"/></g>${T(x,y-12,n,'mx-xs')}<circle cx="${x}" cy="${y}" r="13" fill="transparent"/></g>`;
@@ -166,6 +166,24 @@ function musicBuffer(ctx){const sr=ctx.sampleRate,len=Math.floor(sr*9.6),b=ctx.c
   return b;}
 function noiseBuffer(ctx){const sr=ctx.sampleRate,len=sr*4,b=ctx.createBuffer(1,len,sr),d=b.getChannelData(0);let b0=0,b1=0,b2=0;
   for(let i=0;i<len;i++){const w=Math.random()*2-1;b0=.99765*b0+w*.099;b1=.963*b1+w*.2965;b2=.57*b2+w*1.0526;d[i]=(b0+b1+b2+w*.1848)*.12;}return b;}
+/* ---------- effects ---------- */
+const FXDEF={1:{name:'Hall Reverb',p:[{l:'Decay',v:2.6,min:.4,max:6,f:v=>v.toFixed(1)+' s'},{l:'Hi damp',v:7000,min:1500,max:16000,log:1,f:v=>fmtF(v)+' Hz'}]},
+  2:{name:'Plate Reverb',p:[{l:'Decay',v:1.3,min:.3,max:4,f:v=>v.toFixed(1)+' s'},{l:'Hi damp',v:11000,min:1500,max:16000,log:1,f:v=>fmtF(v)+' Hz'}]},
+  3:{name:'Stereo Delay',p:[{l:'Time',v:.375,min:.05,max:1.2,f:v=>Math.round(v*1000)+' ms'},{l:'Feedback',v:.35,min:0,max:.85,f:v=>Math.round(v*100)+' %'}]},
+  4:{name:'Stereo Chorus',p:[{l:'Rate',v:.8,min:.1,max:4,f:v=>v.toFixed(2)+' Hz'},{l:'Depth',v:.5,min:0,max:1,f:v=>Math.round(v*100)+' %'}]}};
+function irBuf(ctx,sec){const sr=ctx.sampleRate,len=Math.max(1,Math.floor(sr*sec)),b=ctx.createBuffer(2,len,sr);
+  for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2)*.6;}return b;}
+function makeFx(ctx,i){const u={in:ctx.createGain(),out:ctx.createGain(),i};const P=FXDEF[i].p;
+  if(i<=2){u.conv=ctx.createConvolver();u.conv.buffer=irBuf(ctx,P[0].v);u.lp=ctx.createBiquadFilter();u.lp.type='lowpass';u.lp.frequency.value=P[1].v;u.in.connect(u.conv);u.conv.connect(u.lp);u.lp.connect(u.out);}
+  else if(i===3){const sp=ctx.createChannelSplitter(2),mg=ctx.createChannelMerger(2);u.dL=ctx.createDelay(2);u.dR=ctx.createDelay(2);u.fb=ctx.createGain();
+    u.in.connect(u.dL);u.dL.connect(u.dR);u.dR.connect(u.fb);u.fb.connect(u.dL);u.dL.connect(mg,0,0);u.dR.connect(mg,0,1);mg.connect(u.out);setFx(u);}
+  else{const mg=ctx.createChannelMerger(2);u.dL=ctx.createDelay(.1);u.dR=ctx.createDelay(.1);u.dL.delayTime.value=.018;u.dR.delayTime.value=.024;u.lfo=ctx.createOscillator();u.lg=ctx.createGain();u.lgR=ctx.createGain();
+    u.lfo.connect(u.lg);u.lfo.connect(u.lgR);u.lg.connect(u.dL.delayTime);u.lgR.connect(u.dR.delayTime);u.lfo.start();u.in.connect(u.dL);u.in.connect(u.dR);u.dL.connect(mg,0,0);u.dR.connect(mg,0,1);mg.connect(u.out);setFx(u);}
+  return u;}
+function setFx(u){const P=FXDEF[u.i].p,ctx=A&&A.ctx||u.in.context;
+  if(u.i<=2){if(u.conv&&u._dec!==P[0].v){u._dec=P[0].v;u.conv.buffer=irBuf(ctx,P[0].v);}u.lp&&(u.lp.frequency.value=P[1].v);}
+  else if(u.i===3){u.dL.delayTime.value=P[0].v;u.dR.delayTime.value=P[0].v*.75;u.fb.gain.value=P[1].v;}
+  else{u.lfo.frequency.value=P[0].v;u.lg.gain.value=.004*P[1].v;u.lgR.gain.value=-.004*P[1].v;}}
 async function startAudio(){if(A){A.ctx.resume();return;}
   const ctx=new (window.AudioContext||window.webkitAudioContext)();A={ctx,ch:{}};
   const mainBus=ctx.createGain(),mainF=ctx.createGain(),mainM=ctx.createGain(),soloBus=ctx.createGain(),mainToMon=ctx.createGain(),soloToMon=ctx.createGain(),mon=ctx.createGain(),lim=ctx.createDynamicsCompressor();
@@ -176,6 +194,19 @@ async function startAudio(){if(A){A.ctx.resume();return;}
   Object.assign(A,{mainBus,mainF,mainM,soloBus,mainToMon,soloToMon,mon,anL,anR,soloAn});
   A.bus={};for(let k=1;k<=16;k++){const b={sum:ctx.createGain(),fad:ctx.createGain(),mute:ctx.createGain(),solo:ctx.createGain(),an:ctx.createAnalyser()};b.an.fftSize=1024;
     b.sum.connect(b.fad);b.fad.connect(b.mute);b.mute.connect(b.an);b.mute.connect(b.solo);b.solo.connect(soloBus);A.bus[k]=b;}
+  // mono / centre bus (Main C)
+  A.mono=ctx.createGain();A.monoF=ctx.createGain();A.monoM=ctx.createGain();A.monoSolo=ctx.createGain();A.monoAn=ctx.createAnalyser();A.monoAn.fftSize=1024;
+  A.mono.connect(A.monoF);A.monoF.connect(A.monoM);A.monoM.connect(A.monoAn);A.monoM.connect(A.monoSolo);A.monoSolo.connect(soloBus);
+  // FX rack: slots 1-4 are send effects fed by Mix 13-16, returning on FX RET 1L/1R … 4L/4R (M32 default)
+  A.fx={};for(let i=1;i<=4;i++){const u=makeFx(ctx,i);A.bus[12+i].mute.connect(u.in);const sp=ctx.createChannelSplitter(2),mg=ctx.createChannelMerger(2);
+    u.gL=ctx.createGain();u.gR=ctx.createGain();u.anL=ctx.createAnalyser();u.anR=ctx.createAnalyser();u.anL.fftSize=u.anR.fftSize=1024;u.soloL=ctx.createGain();u.soloR=ctx.createGain();
+    u.out.connect(sp);sp.connect(u.gL,0);sp.connect(u.gR,1);u.gL.connect(mg,0,0);u.gR.connect(mg,0,1);mg.connect(mainBus);u.gL.connect(u.anL);u.gR.connect(u.anR);
+    u.gL.connect(u.soloL);u.gR.connect(u.soloR);u.soloL.connect(soloBus);u.soloR.connect(soloBus);A.fx[i]=u;}
+  // matrices 1-6: copies of the main mix for other destinations (recording, lobby…)
+  A.mtx={};for(let i=1;i<=6;i++){const g=ctx.createGain(),m=ctx.createGain(),an=ctx.createAnalyser(),so=ctx.createGain();an.fftSize=1024;mainM.connect(g);g.connect(m);m.connect(an);m.connect(so);so.connect(soloBus);A.mtx[i]={g,m,an,so};}
+  // talkback: TALKBACK MIC → TALK LEVEL → TALK A (mix 1-6) / TALK B (main L/R)
+  A.talk={in:ctx.createGain(),lvl:ctx.createGain(),a:ctx.createGain(),b:ctx.createGain(),srcNodes:[],streams:[]};
+  A.talk.in.connect(A.talk.lvl);A.talk.lvl.connect(A.talk.a);A.talk.lvl.connect(A.talk.b);A.talk.b.connect(mainBus);for(let k=1;k<=6;k++)A.talk.a.connect(A.bus[k].sum);
   const load=async u=>{const r=await fetch(u);return ctx.decodeAudioData(await r.arrayBuffer());};
   for(let i=1;i<=16;i++)chain('in'+i);
   for(const [id,k] of Object.entries(SRC))await setSource(id,k);
@@ -189,6 +220,7 @@ function chain(id){const c=A.ctx,n={};
   n.in.connect(n.phantom);n.phantom.connect(n.pre);n.pre.connect(n.preAn);n.pre.connect(n.pol);n.pol.connect(n.hp);n.hp.connect(n.gate);n.gate.connect(n.comp);
   let last=n.comp;n.eq.forEach(f=>{last.connect(f);last=f;});last.connect(n.postAn);last.connect(n.solo);n.solo.connect(A.soloBus);
   last.connect(n.mute);n.mute.connect(n.fad);n.fad.connect(n.pan);n.pan.connect(n.st);n.st.connect(A.mainBus);
+  n.mono=c.createGain();n.mono.gain.value=0;n.fad.connect(n.mono);n.mono.connect(A.mono);
   n.snd={};for(let k=1;k<=16;k++){const g=c.createGain();g.gain.value=0;n.fad.connect(g);g.connect(A.bus[k].sum);n.snd[k]=g;}
   n.gateOpen=1;A.ch[id]=n;}
 const BT={LCUT:'highpass',LSHV:'lowshelf',PEQ:'peaking',VEQ:'peaking',HSHV:'highshelf',HCUT:'lowpass'};
@@ -199,11 +231,16 @@ function applyCh(id){if(!A||!A.ch[id])return;const n=A.ch[id],p=P[id],s=S[id],t=
   ['low','lomid','himid','high'].forEach((k,i)=>{const b=p.b[k],f=n.eq[i];
     if(!p.eq){f.type='peaking';f.gain.value=0;return;}
     f.type=BT[b.t];f.frequency.value=b.f;f.Q.value=b.t==='LCUT'||b.t==='HCUT'?.707:b.t==='LSHV'||b.t==='HSHV'?b.q/4:b.q;f.gain.value=b.g;});
-  sm(n.mute.gain,effMute(id)?0:1);sm(n.fad.gain,db2g(effDb(id)));for(let k=1;k<=16;k++)sm(n.snd[k].gain,db2g(f2db(p.sends[k])));n.pan.pan.setTargetAtTime(p.pan,t,.02);sm(n.st.gain,p.st?1:0);sm(n.solo.gain,s.solo?1:0);}
-function applyMain(){if(!A)return;const t=A.ctx.currentTime,anySolo=Object.values(S).some(s=>s.solo&&(s.type==='in'||s.type==='bus'));
+  sm(n.mute.gain,effMute(id)?0:1);sm(n.fad.gain,db2g(effDb(id)));for(let k=1;k<=16;k++)sm(n.snd[k].gain,db2g(f2db(p.sends[k])));sm(n.mono.gain,p.mono?db2g(f2db(p.mcl)):0);n.pan.pan.setTargetAtTime(p.pan,t,.02);sm(n.st.gain,p.st?1:0);sm(n.solo.gain,s.solo?1:0);}
+function applyMain(){if(!A)return;const t=A.ctx.currentTime,anySolo=Object.values(S).some(s=>s.solo&&s.type!=='dca'&&s.type!=='main');
+  const g2=(prm,v)=>prm.setTargetAtTime(v,t,.015);
+  g2(A.monoF.gain,db2g(f2db(S.mainc.fader)));g2(A.monoM.gain,S.mainc.mute?0:1);g2(A.monoSolo.gain,S.mainc.solo?1:0);
+  for(let i=1;i<=4;i++){const u=A.fx[i],L=S['fx'+(2*i-1)],Rr=S['fx'+(2*i)];g2(u.gL.gain,L.mute?0:db2g(f2db(L.fader)));g2(u.gR.gain,Rr.mute?0:db2g(f2db(Rr.fader)));g2(u.soloL.gain,L.solo?1:0);g2(u.soloR.gain,Rr.solo?1:0);}
+  for(let i=1;i<=6;i++){const m=A.mtx[i],s=S['mtx'+i];g2(m.g.gain,db2g(f2db(s.fader)));g2(m.m.gain,s.mute?0:1);g2(m.so.gain,s.solo?1:0);}
+  g2(A.talk.lvl.gain,G.talk*G.talk*4);g2(A.talk.a.gain,G.talkA?1:0);g2(A.talk.b.gain,G.talkB?1:0);
   for(let k=1;k<=16;k++){const b=A.bus[k],s=S['bus'+k];b.fad.gain.setTargetAtTime(db2g(f2db(s.fader)),t,.015);b.mute.gain.setTargetAtTime(s.mute?0:1,t,.015);b.solo.gain.setTargetAtTime(s.solo?1:0,t,.015);}
   A.mainF.gain.setTargetAtTime(db2g(f2db(S.main.fader)),t,.015);A.mainM.gain.setTargetAtTime(S.main.mute?0:1,t,.015);
-  const lvl=Math.max(G.mon,G.phones),v=lvl*lvl*(G.dim?0.1:1);
+  const lvl=Math.max(G.mon,G.phones),v=lvl*lvl*(G.dim||G.talkA||G.talkB?0.1:1);   // talking dims the monitors
   A.mon.gain.setTargetAtTime(G.power?v:0,t,.02);A.mainToMon.gain.setTargetAtTime(anySolo?0:1,t,.02);A.soloToMon.gain.setTargetAtTime(anySolo?1:0,t,.02);}
 function applyAll(){Object.keys(P).forEach(applyCh);applyMain();}
 /* ---------- input sources (the patch: what arrives at IN 1-8) ---------- */
@@ -212,19 +249,21 @@ const SOURCES={pres:{l:'Presenter (sample)',name:'PRESENTER',mic:'Lavalier (cond
   music:{l:'Music (generated)',name:'MUSIC',mic:'Playback (line)',color:'magenta'},
   amb:{l:'Ambience (generated)',name:'AMBIENCE',mic:'Room mic (dynamic)',color:'green'},
   tone:{l:'Tone 1 kHz',name:'TONE 1k',mic:'Test oscillator (line)',color:'yellow'},
+  tb:{l:'Director talkback mic (sample)',name:'TALK',mic:'Talkback mic',color:'white'},
   none:{l:'— nothing connected —',name:'',mic:'Nothing connected',color:'off'},
   dev:{l:'Microphone / audio input of this computer',name:'MY MIC',mic:'Computer input (mic level)',color:'cyan'},
   file:{l:'Audio or video file…',name:'FILE',mic:'File player (line)',color:'magenta'},
   tab:{l:'Browser tab audio (YouTube…)',name:'TAB AUDIO',mic:'Shared browser tab (line)',color:'magenta'}};
-const SRC={in1:'pres',in2:'guest',in3:'music',in4:'amb',in5:'tone'};for(let i=6;i<=16;i++)SRC['in'+i]='none';
+const SRC={in1:'pres',in2:'guest',in3:'music',in4:'amb',in5:'tone'};for(let i=6;i<=16;i++)SRC['in'+i]='none';SRC.talk='tb';
 const SRCX={};   // extra per channel: deviceId, file name
-function stopSource(id){const n=A&&A.ch[id];if(!n)return;(n.srcNodes||[]).forEach(x=>{try{x.stop&&x.stop();}catch(_){}try{x.disconnect();}catch(_){}});
+function stopSource(id){const n=A&&(id==='talk'?A.talk:A.ch[id]);if(!n)return;(n.srcNodes||[]).forEach(x=>{try{x.stop&&x.stop();}catch(_){}try{x.disconnect();}catch(_){}});
   (n.streams||[]).forEach(st=>st.getTracks().forEach(t=>t.stop()));if(n.media){n.media.pause();n.media.src='';n.media=null;}n.srcNodes=[];n.streams=[];}
-async function setSource(id,kind,opt={}){SRC[id]=kind;const meta=SOURCES[kind];Object.assign(S[id],{name:kind==='file'&&opt.fileName?opt.fileName.replace(/\.[^.]+$/,'').slice(0,10).toUpperCase():meta.name,mic:meta.mic,cond:!!meta.cond,color:meta.color});
-  if(!A){draw();return;}const ctx=A.ctx,n=A.ch[id];stopSource(id);
+async function setSource(id,kind,opt={}){SRC[id]=kind;const meta=SOURCES[kind];if(S[id])Object.assign(S[id],{name:kind==='file'&&opt.fileName?opt.fileName.replace(/\.[^.]+$/,'').slice(0,10).toUpperCase():meta.name,mic:meta.mic,cond:!!meta.cond,color:meta.color});
+  if(!A){draw();return;}const ctx=A.ctx,n=id==='talk'?A.talk:A.ch[id];stopSource(id);
   const lv=ctx.createGain();lv.connect(n.in);n.srcNodes=[lv];const loop=b=>{const x=ctx.createBufferSource();x.buffer=b;x.loop=true;x.connect(lv);x.start();n.srcNodes.push(x);};
   try{
-    if(kind==='pres'||kind==='guest'){lv.gain.value=db2g(-40);A.bufs=A.bufs||{};const u='audio/'+kind+'.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
+    if(kind==='tb'){lv.gain.value=db2g(-20);A.bufs=A.bufs||{};const u='audio/talk.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
+    else if(kind==='pres'||kind==='guest'){lv.gain.value=db2g(-40);A.bufs=A.bufs||{};const u='audio/'+kind+'.mp3';if(!A.bufs[u])A.bufs[u]=await (async()=>ctx.decodeAudioData(await (await fetch(u)).arrayBuffer()))();loop(A.bufs[u]);}
     else if(kind==='music'){lv.gain.value=db2g(-14);A.music=A.music||musicBuffer(ctx);loop(A.music);}
     else if(kind==='amb'){lv.gain.value=db2g(-46);A.noise=A.noise||noiseBuffer(ctx);loop(A.noise);}
     else if(kind==='tone'){lv.gain.value=db2g(-18);const o=ctx.createOscillator();o.frequency.value=1000;o.connect(lv);o.start();n.srcNodes.push(o);}
@@ -235,16 +274,16 @@ async function setSource(id,kind,opt={}){SRC[id]=kind;const meta=SOURCES[kind];O
     else if(kind==='tab'){lv.gain.value=db2g(-20);const st=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});st.getVideoTracks().forEach(t=>t.stop());
       if(!st.getAudioTracks().length)throw new Error('The shared tab has no audio (tick "Share tab audio").');n.streams=[st];const m=ctx.createMediaStreamSource(st);m.connect(lv);n.srcNodes.push(m);}
     SRCX[id]=Object.assign(SRCX[id]||{},{err:null});
-  }catch(e){SRCX[id]={err:e.message||String(e)};Object.assign(S[id],{name:'NO SIGNAL',color:'off'});}
+  }catch(e){SRCX[id]={err:e.message||String(e)};if(S[id])Object.assign(S[id],{name:'NO SIGNAL',color:'off'});}
   applyCh(id);draw();}
 /* patch dialog (HTML) */
-async function plugMenu(n,ev){const menu=document.getElementById('mx-plugmenu'),id='in'+n,cur=SRC[id];
+async function plugMenu(n,ev){const menu=document.getElementById('mx-plugmenu'),tk=n==='talk',id=tk?'talk':'in'+n,cur=SRC[id];
   let devs=[];try{devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');}catch(_){}
   const item=(v,l,on)=>`<button data-v="${v}" class="${on?'on':''}">${l}</button>`;
-  menu.innerHTML=`<div class="mx-pmh"><b>IN ${n}</b> → Ch${String(n).padStart(2,'0')} · plug a cable from…</div>`+
-    ['pres','guest','music','amb','tone'].map(k=>item(k,SOURCES[k].l,cur===k)).join('')+
+  menu.innerHTML=(tk?`<div class="mx-pmh"><b>TALKBACK MIC</b> · plug a microphone…</div>`+item('tb',SOURCES.tb.l,cur==='tb'):`<div class="mx-pmh"><b>IN ${n}</b> → Ch${String(n).padStart(2,'0')} · plug a cable from…</div>`+
+    ['pres','guest','music','amb','tone'].map(k=>item(k,SOURCES[k].l,cur===k)).join(''))+
     `<div class="mx-pmg">This computer</div>`+(devs.length&&devs[0].label?devs.map(d=>item('dev:'+d.deviceId,d.label,cur==='dev'&&(SRCX[id]||{}).deviceId===d.deviceId)).join(''):item('dev:','Microphone / audio input',cur==='dev'))+
-    item('file','Audio or video file…',cur==='file')+item('tab','Browser tab audio (YouTube… · Chrome/Edge)',cur==='tab')+
+    (tk?'':item('file','Audio or video file…',cur==='file')+item('tab','Browser tab audio (YouTube… · Chrome/Edge)',cur==='tab'))+
     `<div class="mx-pmg"></div>`+item('none',cur==='none'?'(nothing plugged in)':'Unplug the cable',false)+((SRCX[id]||{}).err?`<div class="mx-perr">${SRCX[id].err}</div>`:'');
   const r=root.getBoundingClientRect();menu.style.left=Math.min(ev.clientX-r.left+8,r.width-300)+'px';menu.style.top=(ev.clientY-r.top+8)+'px';menu.classList.add('on');
   menu.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const v=b.dataset.v;menu.classList.remove('on');
@@ -264,8 +303,8 @@ function meterTick(){requestAnimationFrame(meterTick);if(!root.classList.contain
     const open=!p.gate||pre>p.gthr;n.gateOpen=open;n.gate.gain.setTargetAtTime(open?1:0,A.ctx.currentTime,open?.005:.08);
     sm(id+':post',peakDb(n.postAn));});
   // strips
-  for(let k=1;k<=16;k++)sm('bus'+k,peakDb(A.bus[k].an));
-  [...stripsIn().map((id,k)=>['a'+k,id]),...stripsBus().map((id,k)=>['b'+k,id])].forEach(([slot,id])=>{const n=id&&A.ch[id],isB=id&&S[id].type==='bus';const v=n?lev[id+':post']:isB?lev[id]:-120;
+  for(let k=1;k<=16;k++)sm('bus'+k,peakDb(A.bus[k].an));for(let i=1;i<=4;i++){sm('fx'+(2*i-1),peakDb(A.fx[i].anL));sm('fx'+(2*i),peakDb(A.fx[i].anR));}for(let i=1;i<=6;i++)sm('mtx'+i,peakDb(A.mtx[i].an));sm('mainc',peakDb(A.monoAn));
+  [...stripsIn().map((id,k)=>['a'+k,id]),...stripsBus().map((id,k)=>['b'+k,id])].forEach(([slot,id])=>{const n=id&&A.ch[id],isB=id&&['bus','fx','mtx','mainc'].includes(S[id].type);const v=n?lev[id+':post']:isB?lev[id]:-120;
     [null,0,-6,-12,-18,-30,-60].forEach((th,k)=>{if(k===0)return;L('m:'+slot+':'+k,(n||isB)&&(k===1?v>=-0.1:v>=th));});
     L('m:'+slot+':0',n&&P[id].comp&&n.comp.reduction<-1);L('m:'+slot+':7',slot.startsWith('a')&&n&&P[id].gate&&!n.gateOpen);});
   // selected channel: preamp + dynamics meters
@@ -274,7 +313,7 @@ function meterTick(){requestAnimationFrame(meterTick);if(!root.classList.contain
   const gr=n&&P[G.sel].comp?-n.comp.reduction:0;[0,3,6,9,12,18,30].forEach((th,k)=>{if(k===0)L('dyn:0',n&&P[G.sel].comp&&gr>1);else L('dyn:'+k,gr>=th);});
   L('dyn:7',n&&P[G.sel].gate&&!n.gateOpen);
   // main meter
-  const anySolo=Object.values(S).some(s=>s.solo);const lv=[anySolo?sm('solo',peakDb(A.soloAn)):-120,sm('L',peakDb(A.anL)),sm('R',peakDb(A.anR))];
+  const anySolo=Object.values(S).some(s=>s.solo);const lv=[anySolo?sm('solo',peakDb(A.soloAn)):lev.mainc??-120,sm('L',peakDb(A.anL)),sm('R',peakDb(A.anR))];
   const sc=[-45,-42,-39,-36,-33,-30,-27,-24,-21,-18,-15,-12,-10,-8,-6,-4,-2,-0.1];
   lv.forEach((v,c)=>sc.forEach((th,k)=>L('mm:'+c+':'+k,v>=th)));
   L('mcomp',false);L('access',false);
@@ -300,7 +339,7 @@ function drawKnob(g){const id=g.dataset.k,c=g.querySelector('.mx-kb'),x=+c.getAt
   g.querySelector('.mx-kp').setAttribute('transform',`rotate(${ang} ${x} ${y})`);}
 function draw(){if(!svg)return;const on=G.power;
   svg.classList.toggle('off',!on);rear.classList.toggle('on',on);
-  rear.querySelectorAll('.mx-sock').forEach(g=>{const id='in'+g.dataset.in,k=SRC[id];g.classList.toggle('plugged',k!=='none');g.querySelector('.mx-plugr').setAttribute('fill',COL[SOURCES[k].color]||'#888');});
+  rear.querySelectorAll('.mx-sock').forEach(g=>{const id=g.dataset.in==='talk'?'talk':'in'+g.dataset.in,k=SRC[id];g.classList.toggle('plugged',k!=='none');g.querySelector('.mx-plugr').setAttribute('fill',COL[SOURCES[k].color]||'#888');});
   const fill=(slot,id)=>{const g=svg.querySelector(`.mx-f[data-slot="${slot}"]`),lcd=svg.querySelector(`[data-lcd="${slot}"]`),s=id&&S[id];
     g.querySelector('.mx-cap').style.transform=`translateY(${fpos(fVal(slot,id))}px)`;g.classList.toggle('flipf',!!(G.flip&&s&&((G.flip.mode==='bus'&&slot[0]==='a'&&s.type==='in')||(G.flip.mode==='ch'&&slot[0]==='b'&&s.type==='bus'))));
     lcd.classList.toggle('empty',!s||!on);lcd.querySelector('.mx-lcdc').setAttribute('fill',on&&s?COL[s.color]||COL.off:'#0b0c0e');
@@ -328,6 +367,9 @@ function encDefs(){const p=P[G.sel],b=p&&p.b[p.band],s=S[G.sel];
   if(G.page==='mutegrp')return G.mg.map((g,i)=>({l:'Mute '+(i+1),get:()=>(g.on?'ON':'off')+' · '+g.m.length+' ch',set:()=>{},v:()=>g.on?1:0,press:()=>{g.on=!g.on;}}));
   if(G.page==='scenes'){const sc=scenes();return [{l:'Scene',get:()=>String(G.scene).padStart(2,'0')+(sc[G.scene]?' ●':''),set:d=>{G.scene=cl(G.scene+Math.sign(d),0,99);},v:()=>G.scene/99},null,null,null,
     {l:'Save',get:()=>'push',set:()=>{},v:()=>0,press:saveScene},{l:'Load',get:()=>'push',set:()=>{},v:()=>0,press:loadScene}];}
+  if(G.page==='effects'){const d=FXDEF[G.fxSel||1],u=A&&A.fx[G.fxSel||1];if(!d)return [null,null,null,null,null,{l:'Slot',get:()=>'FX'+G.fxSel,set:dd=>{G.fxSel=cl((G.fxSel||1)+Math.sign(dd),1,8);},v:()=>((G.fxSel||1)-1)/7}];
+    const par=k=>{const q=d.p[k];return {l:q.l,get:()=>q.f(q.v),set:dd=>{q.v=q.log?cl(q.v*Math.pow(1.04,dd),q.min,q.max):cl(q.v+dd*(q.max-q.min)/100,q.min,q.max);if(u)setFx(u);},v:()=>q.log?Math.log(q.v/q.min)/Math.log(q.max/q.min):(q.v-q.min)/(q.max-q.min)};};
+    return [par(0),par(1),null,null,null,{l:'Slot',get:()=>'FX'+G.fxSel,set:dd=>{G.fxSel=cl((G.fxSel||1)+Math.sign(dd),1,8);},v:()=>((G.fxSel||1)-1)/7}];}
   if(G.page!=='home')return [];
   const E=(l,get,set,v)=>({l,get,set,v});
   const fd=E('Fader',()=>fmtDb(f2db(s.fader))+' dB',d=>{s.fader=cl(s.fader+d*.01);},()=>s.fader);
@@ -353,6 +395,10 @@ function drawScreen(){const g=scr();if(!g)return;const on=G.power;
   h+=`<rect x="2" y="2" width="12" height="12" rx="2" fill="${COL[s.color]||COL.off}"/>`+T(18,11,s.num+'  '+(s.name||''),'mx-s','start')+T(150,11,'00 Default','mx-samb','start')+T(248,11,'12:00','mx-s','end');
   if(G.page==='home'){h+=TABS.map((t,i)=>`<rect x="${2+i*35.5}" y="19" width="34" height="11" rx="2" fill="${G.tab===t?'#3d6db3':'#22324a'}"/>`+T(19+i*35.5,27.4,t,'mx-st')).join('');h+=homeBody(s,p);}
   else if(G.page==='meters')h+=T(126,28,'METERS · channel','mx-s')+`<g id="mx-smet"></g>`;
+  else if(G.page==='effects'){h+=T(126,27,'EFFECTS RACK — enc 6 picks the slot · enc 1-2 edit it','mx-st');
+    for(let i=1;i<=8;i++){const y=34+(i-1)*11,cur=i===G.fxSel,d=FXDEF[i];h+=(cur?`<rect x="4" y="${y}" width="244" height="10" rx="2" fill="#3d6db3"/>`:'')+
+      T(8,y+7.5,'FX'+i+'  '+(d?d.name:'— empty —'),cur?'mx-sv':'mx-st').replace('text-anchor="middle"','text-anchor="start"')+
+      T(244,y+7.5,i<=4?'in: Mix '+(12+i)+' → FX RET '+i+'L/R':'insert slot','mx-st').replace('text-anchor="middle"','text-anchor="end"');}}
   else if(G.page==='mutegrp'){h+=T(126,25,'MUTE GROUPS — push an encoder to mute / unmute','mx-st')+T(126,33,'assign: hold encoder + SEL  (mouse: Shift+click encoder, then Shift+click SEL)','mx-st');
     G.mg.forEach((g,i)=>{const x=4+i*41.3;h+=`<rect x="${x}" y="36" width="39" height="70" rx="3" fill="${g.on?'#7a2222':'#1d2a3d'}" stroke="${G.mgArm===i?'#ffb347':'#3b4a66'}" stroke-width="${G.mgArm===i?2:1}"/>`+T(x+19.5,50,'MG '+(i+1),'mx-sv')+T(x+19.5,64,g.on?'MUTED':'—','mx-st')+
       g.m.slice(0,3).map((id,k)=>T(x+19.5,78+k*9,S[id].num,'mx-st')).join('')+(g.m.length>3?T(x+19.5,104,'+'+(g.m.length-3),'mx-st'):'');});}
@@ -360,7 +406,7 @@ function drawScreen(){const g=scr();if(!g)return;const on=G.power;
     for(let k=-2;k<=2;k++){const n=G.scene+k;if(n<0||n>99)continue;const y=52+(k+2)*14,cur=k===0;
       h+=(cur?`<rect x="20" y="${y-9}" width="212" height="12" rx="2" fill="#3d6db3"/>`:'')+T(26,y,String(n).padStart(2,'0')+'  '+(sc[n]?sc[n].name+'  · saved':'(empty)'),cur?'mx-sv':'mx-st').replace('text-anchor="middle"','text-anchor="start"');}
     if(G.msg)h+=T(126,121,G.msg,'mx-samb');}
-  else{const NA={routing:'ROUTING: local IN 1-16 → channels 1-16, OUT 7/8 = MAIN L/R. Choose what arrives at IN 1-8 with the INPUT SOURCES button (top).',library:'LIBRARY: presets for channels, effects and routing. Not simulated.',effects:'EFFECTS: 8-slot rack (reverbs, delays, chorus, GEQ…). Not simulated yet.',setup:'SETUP: global settings, scribble strips, preamps, card. Not simulated.',monitor:'MONITOR: monitor source, talkback and oscillator. Use the MONITOR / PHONES knobs.',scenes:'SCENES: save / recall full console snapshots. Not simulated yet.',mutegrp:'MUTE GRP: the 6 mute groups on the screen encoders. Not simulated yet.',utility:'UTILITY: copy / paste / name channels. Not simulated.'};
+  else{const NA={routing:'ROUTING: local IN 1-16 → channels 1-16, OUT 7/8 = MAIN L/R. Choose what arrives at IN 1-8 with the INPUT SOURCES button (top).',library:'LIBRARY: presets for channels, effects and routing. Not simulated.',setup:'SETUP: global settings, scribble strips, preamps, card. Not simulated.',monitor:'MONITOR: monitor source, talkback and oscillator. Use the MONITOR / PHONES knobs.',scenes:'SCENES: save / recall full console snapshots. Not simulated yet.',mutegrp:'MUTE GRP: the 6 mute groups on the screen encoders. Not simulated yet.',utility:'UTILITY: copy / paste / name channels. Not simulated.'};
     h+=T(126,40,G.page.toUpperCase(),'mx-sbig')+wrap(NA[G.page]||'',126,62,40);}
   // encoder row
   if(G.flip){const t=G.flip.mode==='bus'?'SENDS ON FADER · input faders = sends to '+S['bus'+G.flip.bus].name:'SENDS ON FADER · bus faders = sends of '+S[G.flip.ch].num+' '+S[G.flip.ch].name;h+=`<rect x="0" y="112" width="252" height="13" fill="#b5651d"/>`+T(126,121,t,'mx-st');}
@@ -404,7 +450,7 @@ function diag(){const el=document.getElementById('mx-diag');if(!el)return;const 
 /* ---------- interaction ---------- */
 function srcInfo(id){const s=S[id];if(!s)return '';const n=+id.slice(2);
   if(s.type==='in')return n<=16?`Source: rear socket IN ${n} ← ${SOURCES[SRC[id]].l}${s.cond?' (condenser: needs 48 V)':''} — click IN ${n} on the rear panel to change it.`:`Source: channel ${n} has no local input (IN 1-16 only; 17-32 would come from AES50 stage boxes).`;
-  return {aux:'Aux input (line jacks / USB) — no source in the simulator.',fx:'Return of an effects slot — effects not simulated yet.',bus:'Mix bus (e.g. a monitor mix for the studio): fed by the channel sends (FADER FLIP). Hear it with SOLO.',dca:'DCA group: one fader that controls several channels. Assign: hold its SEL + press channel SELs (mouse: SEL the DCA, then Shift+click the channels).',mtx:'Matrix output — not simulated yet.',mainc:'Mono / centre bus.',main:'Main stereo bus (L/R) → OUT 7/8.'}[s.type]||'';}
+  return {aux:'Aux input (line jacks / USB) — no source in the simulator.',fx:'Effects return: FX1 Hall reverb ← Mix 13, FX2 Plate ← Mix 14, FX3 Delay ← Mix 15, FX4 Chorus ← Mix 16. Send a channel to that mix bus (FADER FLIP) and raise this return fader.',bus:'Mix bus (e.g. a monitor mix for the studio): fed by the channel sends (FADER FLIP). Hear it with SOLO.',dca:'DCA group: one fader that controls several channels. Assign: hold its SEL + press channel SELs (mouse: SEL the DCA, then Shift+click the channels).',mtx:'Matrix: a copy of the main mix with its own level, for another destination (recording, lobby speakers…). Hear it with SOLO.',mainc:'Mono / centre bus (Main C): fed by MONO CENTRE + M/C LEVEL of each channel. Shown on the M/C meter next to the screen.',main:'Main stereo bus (L/R) → OUT 7/8.'}[s.type]||'';}
 function stripId(slot){if(slot==='m')return 'main';const k=+slot.slice(1);return slot[0]==='a'?stripsIn()[k]:stripsBus()[k];}
 function press(id){if(!G.power||G.boot)return;const p=P[G.sel];
   let m;
@@ -465,7 +511,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     const mv=ev=>setVB([v0[0]-(ev.clientX-x0)*s2,v0[1]-(ev.clientY-y0)*s2,v0[2],v0[3]]),up=()=>{svg.classList.remove('panning');svg.removeEventListener('pointermove',mv);svg.removeEventListener('pointerup',up);};
     svg.addEventListener('pointermove',mv);svg.addEventListener('pointerup',up);});
   root.querySelectorAll('[data-zoom]').forEach(b=>b.addEventListener('click',()=>focus(b.dataset.zoom)));
-  rear.querySelectorAll('.mx-sock').forEach(g=>g.addEventListener('click',e=>{e.stopPropagation();plugMenu(+g.dataset.in,e);}));
+  rear.querySelectorAll('.mx-sock').forEach(g=>g.addEventListener('click',e=>{e.stopPropagation();plugMenu(g.dataset.in==='talk'?'talk':+g.dataset.in,e);}));
   root.addEventListener('pointerdown',e=>{if(!e.target.closest('#mx-plugmenu,.mx-sock'))document.getElementById('mx-plugmenu').classList.remove('on');});
   rear.querySelector('.mx-power').addEventListener('click',async()=>{G.power=!G.power;
     if(G.power){G.boot=true;draw();await startAudio();setTimeout(()=>{G.boot=false;applyAll();draw();},1400);}else{applyMain();if(A)A.ctx.suspend();}draw();});
@@ -479,7 +525,8 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     if(m.dataset.b?.startsWith('L:')||m.dataset.b?.startsWith('B:'))t='Fader layer: changes what the '+(m.dataset.b[0]==='L'?'left 8 (input)':'right 8 (group/bus)')+' faders control. The motorised faders move to their stored positions.';
     if(m.dataset.b?.startsWith('v'))t=t||'VIEW: opens this section on the screen.';
     if(m.dataset.b?.startsWith('scr:'))t='Screen page.';
-    if(m.dataset.in){const n=+m.dataset.in,k=SRC['in'+n];name='IN '+n+' (XLR, Midas PRO preamp) → Ch'+String(n).padStart(2,'0');t=(k==='none'?'Nothing plugged in.':'Plugged: '+SOURCES[k].l+'.')+' Click to plug / unplug a cable.';}
+    if(m.dataset.in==='talk'){name='TALKBACK MIC (XLR)';t=(SRC.talk==='none'?'Nothing plugged in.':'Plugged: '+SOURCES[SRC.talk].l+'.')+' TALK A → mix buses 1-6 (studio monitors), TALK B → main L/R. Click to plug / unplug.';}
+    else if(m.dataset.in){const n=+m.dataset.in,k=SRC['in'+n];name='IN '+n+' (XLR, Midas PRO preamp) → Ch'+String(n).padStart(2,'0');t=(k==='none'?'Nothing plugged in.':'Plugged: '+SOURCES[k].l+'.')+' Click to plug / unplug a cable.';}
     if(m.dataset.k?.startsWith('enc')){const en=encDefs()[+m.dataset.k.slice(3)];name='Screen encoder '+(+m.dataset.k.slice(3)+1);t=en?'Edits: '+en.l+' ('+en.get()+')':'Nothing on this page.';}
     const slot=m.dataset.lcd||m.dataset.slot||(m.dataset.b||'').split(':')[1];
     if(slot&&/^(a\d|b\d|m)$/.test(slot)){const sid=stripId(slot);if(sid){const s=S[sid];if(m.dataset.lcd){name=s.num+' '+(s.name||'');t='Scribble strip: number, name and colour of the channel.';}t+=(t?'<br>':'')+srcInfo(sid);}}
@@ -490,7 +537,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('mx-lay').addEventListener('click',()=>{LAY=LAY==='side'?'real':'side';fit();});
   document.getElementById('mx-guidebtn').addEventListener('click',()=>{document.getElementById('mx-guide').classList.toggle('on');});
   document.getElementById('mx-guideclose').addEventListener('click',()=>document.getElementById('mx-guide').classList.remove('on'));
-  Object.entries(SRC).forEach(([id,k])=>{const m=SOURCES[k];Object.assign(S[id],{name:m.name,mic:m.mic,cond:!!m.cond,color:m.color});});
+  Object.entries(SRC).forEach(([id,k])=>{const m=SOURCES[k];if(S[id])Object.assign(S[id],{name:m.name,mic:m.mic,cond:!!m.cond,color:m.color});});
   draw();meterTick();}
 let LAY=null,VB0=null,ZV=null,anim=0;
 const curVB=()=>ZV||VB0;
