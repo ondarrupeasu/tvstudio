@@ -13,6 +13,7 @@ function list(){const L=[],st=window.VH?VH.state():null;if(!st)return L;
     if(v==='none')return;const tag=/^cam\d$/.test(v)?'CAM '+v.slice(3):{vfill:'vMix FILL',vkey:'vMix KEY',hdk:'HyperDeck'}[v]||v;
     const up=i%2===0;   // top-row BNC (odd numbers) → cable and tag go up; bottom row → down
     L.push({a:`.vh-sock[data-s="i${i}"]`,hang:up?-35:34,tag,info:`${tag} → Videohub SDI IN ${i+1}`+(v.startsWith('cam')?' (from the studio patch panel, VIDEO '+v.slice(3)+')':' (DeckLink SDI out of the vMix PC)')});});
+  st.cabOut.forEach((v,o)=>{const m=/^vmix(\d)$/.exec(v);if(m)L.push({a:`.vh-sock[data-s="o${o}"]`,hang:o%2?34:-35,tag:'vMix '+m[1],info:`Videohub SDI OUT ${o+1} → vMix PC (DeckLink SDI ${m[1]} capture)`});});
   L.push({a:'.at-sock[data-s="m0"]',hang:-26,tag:'MONITOR',info:'ATEM MULTIVIEW 1 → control-room monitor wall'});
   return L;}
 /* same height for every tag; only a tag that would overlap its neighbour (long name) goes one step further */

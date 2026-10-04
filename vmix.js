@@ -263,7 +263,7 @@ function draw(){if(!root.dataset.built)return;
 /* ---------- main loop ---------- */
 let last=performance.now(),acc=0,frames=0;
 function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on'))return;const t0=performance.now();
-  packSync();V.inputs.forEach(x=>{if(x.type==='vset')renderVset(x);});
+  packSync();V.inputs.forEach(x=>{if(x.type==='sdi')sdiFrame(x);else if(x.type==='vset')renderVset(x);});
   if(V.T&&!V.T.manual){const p=Math.min(1,(now-V.T.t0)/V.T.ms);V.T.p=p;if(p>=1)finishTrans();}
   V.ov.forEach((o,n)=>{const S=V.ovset[n],sp=S.fx==='Cut'||!S.ms?1:Math.min(1,(now-(V.lastNow||now)+1)/S.ms);o.a+=Math.sign(o.target-o.a)*Math.min(Math.abs(o.target-o.a),sp);
     if(o.target>0&&o.a>=1&&S.dur>0){o.t1=o.t1||now;if(now-o.t1>S.dur){o.target=0;o.t1=0;draw();}}else if(o.target===0)o.t1=0;});V.lastNow=now;   // effect duration + auto close (Duration)
@@ -336,9 +336,9 @@ function addInputDialog(){const m=modal('Input Select',`<div class="vx-is"><div 
       let f=null;$('input',ph).onchange=e=>{f=e.target.files[0];$('.vx-files',ph).textContent=f?f.name:'';};V.addOk=()=>f&&imageInput(f);}
     else if(n==='Colour'){hd.textContent='Select a colour.';ph.innerHTML=`<label>Colour <input type="color" value="#0b3d91"></label><label><input type="radio" name="ck" value="c" checked> Colour</label><label><input type="radio" name="ck" value="bars"> Colour Bars</label><label><input type="radio" name="ck" value="blank"> Blank (transparent)</label>`;
       V.addOk=()=>{const k=$('input[name=ck]:checked',ph).value;k==='bars'?barsInput():k==='blank'?colourInput('Blank','rgba(0,0,0,0)'):colourInput('Colour',$('input[type=color]',ph).value);};}
-    else if(n==='Camera'){hd.textContent='Select the Camera (capture device).';ph.innerHTML=`<label>Camera <select class="vx-dev"><option value="">Default camera</option></select></label><p class="vx-hint">Your webcam (or a capture card) works as a camera input. The browser asks for permission.</p>`;
-      navigator.mediaDevices?.enumerateDevices().then(ds=>{ds.filter(d=>d.kind==='videoinput').forEach(d=>{const o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||'Camera';$('.vx-dev',ph).appendChild(o);});});
-      V.addOk=()=>{const s=$('.vx-dev',ph);cameraInput(s.value,s.value?s.selectedOptions[0].textContent:null);};}
+    else if(n==='Camera'){hd.textContent='Select the Camera (capture device).';ph.innerHTML=`<label>Camera <select class="vx-dev"><optgroup label="Studio (DeckLink capture card of the vMix PC)">${[1,2,3,4].map(n=>`<option value="sdi:${n}">Blackmagic DeckLink — SDI ${n} (router OUT ${10+n})</option>`).join('')}</optgroup><optgroup label="This computer"><option value="">Default camera</option></optgroup></select></label><p class="vx-hint">The <b>DeckLink</b> inputs receive the studio cameras through the Videohub (router OUT 11-14 → vMix PC). Change which camera arrives there on the router front panel. Or use your own webcam (the browser asks for permission).</p>`;
+      navigator.mediaDevices?.enumerateDevices().then(ds=>{ds.filter(d=>d.kind==='videoinput').forEach(d=>{const o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||'Camera';$('.vx-dev optgroup:last-child',ph).appendChild(o);});});
+      V.addOk=()=>{const s=$('.vx-dev',ph);if(s.value.startsWith('sdi:'))return sdiInput(+s.value.slice(4));cameraInput(s.value,s.value?s.selectedOptions[0].textContent:null);};}
     else if(n==='Title / XAML'){hd.textContent='Select a title template.';ph.innerHTML=`<div class="vx-gal">${Object.entries(TITLES).map(([k,t])=>`<button data-tpl="${k}"><span class="vx-gt">GT</span>${t.n}</button>`).join('')}</div>`;
       let tp='classic';$$('[data-tpl]',ph).forEach(b=>b.onclick=()=>{tp=b.dataset.tpl;$$('[data-tpl]',ph).forEach(x=>x.classList.toggle('on',x===b));});$('[data-tpl]',ph).classList.add('on');V.addOk=()=>titleInput(tp);}};
   $$('.vx-isl button',m).forEach(b=>b.onclick=()=>sel(+b.dataset.t));sel(0);}
@@ -538,7 +538,7 @@ function renderVset(inp){const S=inp.vs;
 const VS_SPEED={F:1000,M:2000,S:4000,C:0};
 function vsShot(inp,i){const S=inp.vs;S.from={z:S.z,x:S.x,y:S.y};S.shot=i;S.t0=performance.now();S.ms=VS_SPEED[S.speed];draw();}
 /* ---------- Presets: New · Open · Save · Save As · Last (a whole production in one file) ---------- */
-const KEEP=['type','name','cat','key','pos','ca','cc','layers','hex','tpl','fields','loop','vol','mute','afv','bus','file','pack','id'];
+const KEEP=['type','name','cat','key','pos','ca','cc','layers','hex','tpl','fields','loop','vol','mute','afv','bus','file','pack','id','sdi'];
 function presetData(){return {app:'tvstudio-vmix',v:1,name:V.preset||'Preset',inputs:V.inputs.map(x=>{const o={};KEEP.forEach(k=>{if(x[k]!==undefined)o[k]=JSON.parse(JSON.stringify(x[k]));});if(x.type==='colour'&&!x.hex)o.bars=true;if(x.type==='camera')o.label=x.name;if(x.type==='vset')o.vs={src:x.vsrc||null,shot:x.vs.shot,speed:x.vs.speed,layers:x.vs.layers.map(L=>({name:L.name,input:L.input}))};return o;}),
   pv:V.pv?.id,pgm:V.pgm?.id,trans:V.trans,ovset:V.ovset,stingers:V.stingers.map(x=>({id:x.inp?.id||null,cut:x.cut,dur:x.dur})),ov:V.ov.map(o=>({id:o.inp?.id||null,on:o.target>0})),catLabels:V.catLabels||null};}
 function clearAll(){[...V.inputs].forEach(x=>{V.lock=false;removeInput(x);});V.ov.forEach(o=>{o.inp=null;o.a=o.target=0;o.pend=null;});V.pv=V.pgm=null;}
@@ -548,11 +548,16 @@ function changeSource(inp,done){const i=document.createElement('input');i.type='
   if(inp.type==='video')inp.el.pause();if(f.type.startsWith('video')){const v=document.createElement('video');v.src=URL.createObjectURL(f);v.loop=inp.loop;v.playsInline=true;v.preload='auto';inp.el=v;inp.type='video';inp.audio=true;
     v.addEventListener('loadeddata',()=>{inp.dirty=true;draw();},{once:true});if(inp.g){try{inp.g.disconnect();}catch(_){}inp.g=null;}attachAudio(inp);}else{const im=new Image();im.onload=()=>{inp.dirty=true;draw();};im.src=URL.createObjectURL(f);inp.el=im;inp.type='image';}
   inp.file=f.name;inp.ready=false;inp.dirty=true;draw();done&&done();};i.click();}
+/* DeckLink SDI capture: what the Videohub sends to the vMix PC (router output cabled to 'vMix IN n') */
+function sdiInput(n){return addInput({type:'sdi',sdi:n,name:'DeckLink SDI '+n,el:mkCanvas(W/2,H/2)});}
+function sdiFrame(inp){const g=inp.el.getContext('2d'),w=inp.el.width,h=inp.el.height;let ok=false;
+  if(window.VH){const o=VH.state().cabOut.indexOf('vmix'+inp.sdi);if(o>=0)ok=VH.frame(o,g,w,h)!==false;}
+  if(!ok){g.fillStyle='#000';g.fillRect(0,0,w,h);g.fillStyle='#888';g.font='bold 22px Segoe UI, sans-serif';g.textAlign='center';g.fillText('No signal — DeckLink SDI '+inp.sdi,w/2,h/2);}inp.dirty=true;inp.ready=true;}
 function missingInput(o){const c=mkCanvas(),g=c.getContext('2d');g.fillStyle='#202428';g.fillRect(0,0,W,H);g.fillStyle='#ffb02e';g.font='bold 34px Segoe UI, sans-serif';g.textAlign='center';
   g.fillText(o.type==='camera'?'Camera not connected':'Missing file',W/2,H/2-20);g.fillStyle='#ccc';g.font='22px Segoe UI, sans-serif';g.fillText(o.file||o.label||o.name,W/2,H/2+22);g.fillText('Input Settings › General › Change…',W/2,H/2+60);
   return addInput({type:'missing',was:o.type,name:o.name,el:c,file:o.file});}
 function loadPreset(d){if(!d||d.app!=='tvstudio-vmix')return alertBox('Open','That file is not a preset of this simulator.');clearAll();const map={};
-  d.inputs.forEach(o=>{let x;if(o.type==='title')x=titleInput(o.tpl,TITLES[o.tpl].f.map(k=>o.fields?.[k]));else if(o.type==='colour')x=o.bars?barsInput():colourInput(o.name,o.hex||'#000');else if(o.type==='stinger'&&!o.file&&o.name==='Stinger (built-in)'){x=addInput({type:'stinger',name:o.name,el:mkCanvas()});stingerFrame(x,600);}else x=missingInput(o);
+  d.inputs.forEach(o=>{let x;if(o.type==='title')x=titleInput(o.tpl,TITLES[o.tpl].f.map(k=>o.fields?.[k]));else if(o.type==='colour')x=o.bars?barsInput():colourInput(o.name,o.hex||'#000');else if(o.type==='sdi'){x=sdiInput(o.sdi||1);}else if(o.type==='stinger'&&!o.file&&o.name==='Stinger (built-in)'){x=addInput({type:'stinger',name:o.name,el:mkCanvas()});stingerFrame(x,600);}else x=missingInput(o);
     ['name','cat','key','pos','ca','cc','layers','loop','vol','mute','afv','bus'].forEach(k=>{if(o[k]!==undefined)x[k]=o[k];});if(x.type==='title')drawTitle(x);map[o.id]=x;});
   V.inputs.forEach(x=>(x.layers||[]).forEach(L=>{L.id=L.id&&map[L.id]?map[L.id].id:null;}));
   d.inputs.filter(o=>o.type==='vset'&&o.vs&&o.vs.src==='demo').forEach(async o=>{const ph=map[o.id];const x=await loadVset(o.name,f=>fetch('vsets/DemoStudio/'+f).then(r=>r.blob()));x.vsrc='demo';   // the built-in set comes back by itself
