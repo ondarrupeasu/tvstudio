@@ -4,7 +4,7 @@
  * Cabling (assumed until confirmed): SDI IN ← ATEM SDI OUT 1 (programme). Not affiliated with Blackmagic Design. */
 (function(){
 const PW=1080,PH=100,X=f=>f*PW,Y=f=>f*PH,CW=480,CH=270;
-const H={input:'sdi',state:'stop',clips:[],cur:-1,loop:false,speed:1,dial:'jog',rem:false,rec:null,recT0:0,menu:null,ip:[192,168,11,20],msg:'',rewT:null};
+const H={spk:true,input:'sdi',state:'stop',clips:[],cur:-1,loop:false,speed:1,dial:'jog',rem:false,rec:null,recT0:0,menu:null,ip:[192,168,11,20],msg:'',rewT:null};
 const mk=(w=CW,h=CH)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 const inCv=mk(),outCv=mk(),vid=document.createElement('video');vid.playsInline=true;vid.muted=true;
 /* what arrives on the inputs */
@@ -16,16 +16,17 @@ window.VH_SOURCES=window.VH_SOURCES||{};VH_SOURCES.hdk=(g,w,h)=>outFrame(g,w,h);
 const tc=s=>{s=Math.max(0,s);const f=Math.floor((s%1)*25);s=Math.floor(s);return [Math.floor(s/3600),Math.floor(s/60)%60,s%60,f].map(v=>String(v).padStart(2,'0')).join(':');};
 /* ---------- transport ---------- */
 function record(){if(H.state==='rec')return;if(!inputFrame(inCv.getContext('2d'),CW,CH)){H.msg='No input signal';return;}stopPlay();
-  const st=inCv.captureStream(25),type=MediaRecorder.isTypeSupported('video/mp4')?'video/mp4':'video/webm',r=new MediaRecorder(st,{mimeType:type,videoBitsPerSecond:4e6}),chunks=[];
+  const st=inCv.captureStream(25),au=window.M32&&M32.stream();if(au)au.getAudioTracks().forEach(t=>st.addTrack(t));   // programme sound embedded in the SDI (Midas → ATEM)
+  const type=MediaRecorder.isTypeSupported('video/mp4')?'video/mp4':'video/webm',r=new MediaRecorder(st,{mimeType:type,videoBitsPerSecond:4e6}),chunks=[];H.withAudio=!!au;
   r.ondataavailable=e=>e.data.size&&chunks.push(e.data);
-  r.onstop=()=>{const b=new Blob(chunks,{type}),n=H.clips.length+1;H.clips.push({name:'HyperDeck_'+String(n).padStart(4,'0'),url:URL.createObjectURL(b),dur:(performance.now()-H.recT0)/1000,ext:type.includes('mp4')?'mp4':'webm'});H.cur=H.clips.length-1;draw();list();};
+  r.onstop=()=>{const b=new Blob(chunks,{type}),n=H.clips.length+1;H.clips.push({name:'HyperDeck_'+String(n).padStart(4,'0'),url:URL.createObjectURL(b),dur:(performance.now()-H.recT0)/1000,ext:type.includes('mp4')?'mp4':'webm',audio:H.withAudio});H.cur=H.clips.length-1;draw();list();};
   r.start(500);H.rec=r;H.recT0=performance.now();H.state='rec';H.pump=setInterval(()=>inputFrame(inCv.getContext('2d'),CW,CH),40);}   // 25 fps, also when the tab is in the background
 function stopRec(){clearInterval(H.pump);if(H.rec){H.rec.stop();H.rec=null;}}
 function stopPlay(){clearInterval(H.rewT);H.rewT=null;vid.pause();}
 function load(i){if(i<0||i>=H.clips.length)return false;if(H.cur!==i||!vid.src){H.cur=i;vid.src=H.clips[i].url;}return true;}
 function play(){if(H.state==='rec')return;if(!H.clips.length){H.msg='No clips on the disk';return;}
   if(H.state==='play'&&H.speed===1){H.loop=!H.loop;vid.loop=H.loop;H.msg=H.loop?'Loop clip':'Loop off';return;}   // PLAY again = loop
-  stopPlay();load(H.cur<0?0:H.cur);H.speed=1;vid.playbackRate=1;vid.play().catch(()=>{});H.state='play';}
+  stopPlay();load(H.cur<0?0:H.cur);H.speed=1;vid.playbackRate=1;vid.muted=!H.spk;vid.play().catch(()=>{});H.state='play';}
 function stop(){if(H.state==='rec'){stopRec();H.state='stop';return;}stopPlay();H.state='stop';H.speed=1;}
 function skip(d){if(H.state==='rec'||!H.clips.length)return;
   if(d<0&&vid.currentTime>.5){vid.currentTime=0;return;}const i=Math.max(0,Math.min(H.clips.length-1,(H.cur<0?0:H.cur)+d));load(i);vid.currentTime=0;if(H.state==='play')vid.play().catch(()=>{});}
@@ -43,7 +44,7 @@ function menuSet(){const m=H.menu;if(!m)return;if(m.edit!=null){m.edit=m.edit<3?
 const key=(id,fx,fy,w,h,l,cls,tip,lab)=>`<g class="hd-k ${cls}" data-k="${id}" data-tip="${tip}"><rect x="${X(fx)-w/2}" y="${Y(fy)-h/2}" width="${w}" height="${h}" rx="2.5"/>${l?`<text x="${X(fx)}" y="${Y(fy)+2.2}" class="hd-kt">${l}</text>`:''}${lab?`<text x="${X(fx)}" y="${Y(fy)+h/2+6.5}" class="hd-lab">${lab}</text>`:''}</g>`;
 function front(){let s=`<svg viewBox="0 0 ${PW} ${PH}" class="vh-svg" id="hd-fsvg"><rect x="1" y="1" width="${PW-2}" height="${PH-2}" rx="7" class="at-face"/>`;
   [0.0275,0.9725].forEach(c=>[0.17,0.83].forEach(y=>s+=`<rect x="${X(c)-9}" y="${Y(y)-4.5}" width="18" height="9" rx="4.5" class="vh-hole"/>`));
-  s+=key('spk',0.080,0.23,17,13,'🔈','hd-s','Speaker on / off (hold it + turn the dial = volume). Audio is not simulated.');
+  s+=key('spk',0.080,0.23,17,13,'🔈','hd-s','Speaker on / off: listen to the clip you play back (its sound = the programme sound recorded from the audio desk).');
   s+=key('rem',0.080,0.43,17,13,'REM','hd-s','REM: remote control on / off (needed for the ATEM or software to drive the deck).');
   s+=`<g data-tip="Headphone jack (1/4&quot;)."><circle cx="${X(0.079)}" cy="${Y(0.71)}" r="7.5" class="at-xlr"/><circle cx="${X(0.079)}" cy="${Y(0.71)}" r="3.2" class="vh-bnc3"/></g><rect x="${X(0.094)}" y="${Y(0.25)}" width="2.2" height="${Y(0.17)}" rx="1" class="hd-grill"/>`;
   [['ssd1',0.104,0.285,'SSD 1 (2.5&quot; drive bay) — the simulated clips are recorded here. The bezel lights red when recording and green when playing.'],['ssd2',0.306,0.488,'SSD 2 bay — empty.']].forEach(([id,a,b,t])=>s+=`<g class="hd-bay" data-k="${id}" data-tip="${t}"><rect x="${X(a)}" y="${Y(0.21)}" width="${X(b-a)}" height="${Y(0.58)}" rx="5" class="hd-bez"/><rect x="${X(a)+6}" y="${Y(0.32)}" width="${X(b-a)-12}" height="${Y(0.36)}" rx="2" class="hd-slot"/>${id==='ssd1'?`<rect x="${X(a)+10}" y="${Y(0.37)}" width="${X(b-a)-20}" height="${Y(0.26)}" rx="1.5" class="hd-disk"/>`:''}</g>`);
@@ -89,17 +90,17 @@ function drawLcd(){const cv=document.getElementById('hd-lcd');if(!cv)return;cons
   const t=H.state==='rec'?(performance.now()-H.recT0)/1000:vid.src?vid.currentTime:0;c.fillStyle='rgba(0,0,0,.6)';c.fillRect(0,h-48,w,48);c.fillStyle=H.state==='rec'?'#ff6b60':'#fff';c.font='700 30px monospace';c.fillText(tc(t),10,h-14);
   c.font='600 12px sans-serif';c.fillStyle='#bbb';c.textAlign='right';c.fillText(H.state==='rec'?'recording…':H.cur>=0&&H.clips[H.cur]?H.clips[H.cur].name:'no clips',w-6,h-32);c.textAlign='left';
   c.fillStyle='#222';c.fillRect(w-20,30,6,h-84);c.fillRect(w-11,30,6,h-84);}
-function draw(){setK('rec','on',H.state==='rec');setK('play','on',H.state==='play'||H.state==='rec');setK('stop','on',H.state==='stop');setK('rem','on',H.rem);
+function draw(){setK('rec','on',H.state==='rec');setK('play','on',H.state==='play'||H.state==='rec');setK('stop','on',H.state==='stop');setK('rem','on',H.rem);setK('spk','on',H.spk);
   ['stl','jog','scr'].forEach(k=>setK(k,'on',H.dial===k));setK('menu','on',!!H.menu);setK('input','on',false);
   setK('ssd1','rec',H.state==='rec');setK('ssd1','play',['play','ff','rew','jog','shuttle','scroll'].includes(H.state));drawLcd();}
-function list(){const el=document.getElementById('hd-clips');if(!el)return;el.innerHTML=H.clips.length?'<b>Clips on SSD 1:</b> '+H.clips.map((c,i)=>`<a href="${c.url}" download="${c.name}.${c.ext}" class="${i===H.cur?'on':''}">${c.name} (${c.dur.toFixed(1)} s) ⬇</a>`).join(''):'<b>Clips on SSD 1:</b> none yet — press REC on the HyperDeck.';}
+function list(){const el=document.getElementById('hd-clips');if(!el)return;el.innerHTML=H.clips.length?'<b>Clips on SSD 1:</b> '+H.clips.map((c,i)=>`<a href="${c.url}" download="${c.name}.${c.ext}" class="${i===H.cur?'on':''}">${c.name} (${c.dur.toFixed(1)} s${c.audio?' · with sound':' · no sound'}) ⬇</a>`).join(''):'<b>Clips on SSD 1:</b> none yet — press REC on the HyperDeck.';}
 function press(id){H.msg='';
   if(id==='menu'){H.menu=H.menu?null:{i:0,edit:null};return;}if(id==='set'){menuSet();return;}
   if(H.menu&&(id==='skipb'||id==='skipf')){menuSpin(id==='skipf'?1:-1);return;}
   if(id==='rec')record();else if(id==='stop')stop();else if(id==='play')play();else if(id==='skipb')skip(-1);else if(id==='skipf')skip(1);
   else if(id==='ff')wind(1);else if(id==='rew')wind(-1);else if(id==='input'&&H.state!=='rec')H.input=H.input==='sdi'?'hdmi':'sdi';
   else if(id==='rem')H.rem=!H.rem;else if(id==='search')H.dial={jog:'stl',stl:'scr',scr:'jog'}[H.dial];else if(['stl','jog','scr'].includes(id))H.dial=id;
-  else if(id==='spk')H.msg='Speaker: audio not simulated';}
+  else if(id==='spk'){H.spk=!H.spk;vid.muted=!H.spk;H.msg='Speaker '+(H.spk?'on':'off');}}
 vid.addEventListener('ended',()=>{if(!H.loop){H.state='stop';draw();}});
 function mount(){const f=document.getElementById('hd-front'),r=document.getElementById('hd-rear');if(!f||f.dataset.built)return;f.dataset.built='1';
   f.className='vh-front';f.innerHTML=front()+'<canvas id="hd-lcd" width="320" height="240"></canvas><div class="hd-clips" id="hd-clips"></div>';r.className='vh-rear';r.innerHTML=rear();

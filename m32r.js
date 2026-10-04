@@ -209,6 +209,7 @@ async function startAudio(){if(A){A.ctx.resume();return;}
   mainBus.connect(mainF);mainF.connect(mainM);mainM.connect(spl);spl.connect(anL,0);spl.connect(anR,1);mainM.connect(mainToMon);soloBus.connect(soloToMon);soloBus.connect(soloAn);
   mainToMon.connect(mon);soloToMon.connect(mon);mon.connect(lim);lim.connect(ctx.destination);
   Object.assign(A,{mainBus,mainF,mainM,soloBus,mainToMon,soloToMon,mon,anL,anR,soloAn});
+  A.out78=ctx.createMediaStreamDestination();mainM.connect(A.out78);   // OUT 7/8 = MAIN L/R → the ATEM analog audio in (programme sound for the video side)
   A.bus={};for(let k=1;k<=16;k++){const b={sum:ctx.createGain(),fad:ctx.createGain(),mute:ctx.createGain(),solo:ctx.createGain(),an:ctx.createAnalyser()};b.an.fftSize=1024;
     b.sum.connect(b.fad);b.fad.connect(b.mute);b.mute.connect(b.an);b.mute.connect(b.solo);b.solo.connect(soloBus);A.bus[k]=b;}
   // mono / centre bus (Main C)
@@ -658,6 +659,8 @@ function fit(){if(!root.classList.contains('on'))return;const body=root.querySel
   const W=LAY==='side'?Math.min(aw,ah*vb[2]/vb[3]):Math.min(aw,1100);document.getElementById('mx-front').style.width=Math.floor(W)+'px';
   root.classList.toggle('side',LAY==='side');const b=document.getElementById('mx-lay');if(b)b.textContent=LAY==='side'?'Real layout':'Side by side';}
 addEventListener('resize',fit);
+/* programme sound for the video side (ATEM analog in → embedded in the programme SDI → HyperDeck) */
+window.M32={stream:()=>A&&G.power&&A.out78?A.out78.stream:null,levelDb:()=>A&&G.power?Math.max(peakDb(A.anL),peakDb(A.anR)):-120};
 window.openMixer=()=>{build();root.classList.add('on');fit();draw();};
 window.closeMixer=()=>{root.classList.remove('on');tip.classList.remove('on');};
 })();

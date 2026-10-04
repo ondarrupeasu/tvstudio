@@ -98,7 +98,7 @@ function rear(){let s=`<svg viewBox="0 0 ${PW} ${PH+14}" class="vh-svg" id="at-r
   s+=`<path d="M${X(0.616)} ${PH-16}v3H${X(0.835)}v-3" class="vh-brk"/><text x="${X(0.7255)}" y="${PH-8.5}" class="vh-rt">SDI OUTPUTS</text>`;
   [0,1].forEach(k=>{const cy=Y(k?0.649:0.252);s+=`<g class="at-sock" data-s="m${k}">${bnc(X(0.863),cy)}<text x="${X(0.863)-14}" y="${cy-13.5}" class="vh-rn">${k+1}</text><circle cx="${X(0.863)}" cy="${cy}" r="8.5" class="vh-plug"/></g>`;});
   s+=`<text x="${X(0.863)}" y="${PH-8.5}" class="vh-rt">MULTIVIEW</text>`;
-  [0,1].forEach(k=>{const cy=Y(k?0.663:0.262);s+=`<g data-tip="Analog audio in CH ${k+1} (balanced 1/4&quot; jack)."><circle cx="${X(0.914)}" cy="${cy}" r="8" class="vh-rj"/><circle cx="${X(0.914)}" cy="${cy}" r="3.5" class="vh-bnc3"/><text x="${X(0.914)+12}" y="${cy+2}" class="vh-rn">CH ${k+1}</text></g>`;});
+  [0,1].forEach(k=>{const cy=Y(k?0.663:0.262);s+=`<g data-tip="Analog audio in CH ${k+1} (balanced 1/4&quot; jack) ← Midas M32R OUT ${7+k} (MAIN ${k?'RIGHT':'LEFT'}): the programme sound (assumed cabling). It is embedded in the programme SDI."><circle cx="${X(0.914)}" cy="${cy}" r="8" class="vh-rj"/><circle cx="${X(0.914)}" cy="${cy}" r="3.5" class="vh-bnc3"/><text x="${X(0.914)+12}" y="${cy+2}" class="vh-rn">CH ${k+1}</text></g>`;});
   s+=`<text x="${X(0.914)}" y="${PH-8.5}" class="vh-rt">ANALOG AUDIO IN</text>`;
   return s+'</svg>';}
 /* ---------- LCD ---------- */
@@ -116,7 +116,7 @@ function drawLcd(){const cv=document.getElementById('at-lcd');if(!cv)return;cons
     return;}
   c.fillStyle='#000';c.fillRect(0,0,w,h);c.drawImage(pgmCv,0,0,w-26,(w-26)*9/16+0);
   c.fillStyle='rgba(0,0,0,.6)';c.fillRect(0,0,w-26,24);c.fillStyle='#fff';c.font='700 15px sans-serif';c.fillText(S.audioSel?inName(S.audioSel):'Master',8,17);
-  const lv=0;   // no embedded audio is simulated on the video sources['#3be07a'].forEach(col=>{c.fillStyle='#222';c.fillRect(w-22,4,7,h-40);c.fillRect(w-12,4,7,h-40);c.fillStyle=col;const hh=(h-40)*Math.min(1,lv);c.fillRect(w-22,4+(h-40)-hh,7,hh);c.fillRect(w-12,4+(h-40)-hh*.96,7,hh*.96);});
+  const db=window.M32?M32.levelDb():-120,lv=db<=-60?0:(db+60)/60;   // ANALOG AUDIO IN ← Midas OUT 7/8 (main L/R): moves only when the desk really sends sound['#3be07a'].forEach(col=>{c.fillStyle='#222';c.fillRect(w-22,4,7,h-40);c.fillRect(w-12,4,7,h-40);c.fillStyle=col;const hh=(h-40)*Math.min(1,lv);c.fillRect(w-22,4+(h-40)-hh,7,hh);c.fillRect(w-12,4+(h-40)-hh*.96,7,hh*.96);});
   c.fillStyle='#fff';c.font='700 16px sans-serif';c.textAlign='right';c.fillText((S.master>=0?'':'')+S.master.toFixed(1)+'dB',w-6,h-12);c.textAlign='left';
   c.font='600 13px sans-serif';c.fillStyle='#c9ced6';c.fillText(S.locked?'🔒 Panel locked':(S.msg||'PGM '+srcLabel(S.pgm)+' · PVW '+srcLabel(S.pvw)),8,h-12);}
 /* ---------- keys ---------- */
