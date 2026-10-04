@@ -524,6 +524,15 @@ function knobSet(id,d){const p=P[G.sel],b=p&&p.b[p.band];
   else if(id==='eqw')b.q=cl(b.q*Math.pow(1.03,d),.3,10);else if(id==='eqf')b.f=cl(b.f*Math.pow(1.03,d),20,20000);else if(id==='eqg')b.g=cl(b.g+d*.25,-15,15);
   else if(id==='mcl')p.mcl=cl(p.mcl+d*.01);else if(id==='pan')p.pan=cl(p.pan+d*.02,-1,1);
   applyCh(G.sel);applyMain();draw();}
+/* live readout while dragging a fader / knob (the tooltip follows the hand) */
+function liveTip(e,name,val){tip.innerHTML=`<b>${name}</b><span>${val}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');}
+function knobText(id){const p=P[G.sel],b=p&&p.b[p.band],pc=v=>Math.round(v*100)+' %';
+  if(id.startsWith('enc')){const e=encDefs()[+id.slice(3)];return e?e.l+': '+e.get():'';}
+  switch(id){case 'mon':return pc(G.mon);case 'phones':return pc(G.phones);case 'talk':return pc(G.talk);}
+  if(!p)return '';switch(id){case 'gain':return '+'+p.gain.toFixed(1)+' dB';case 'lcf':return Math.round(p.lcf)+' Hz'+(p.lc?'':' (LOW CUT off)');
+    case 'gthr':return p.gthr.toFixed(1)+' dB'+(p.gate?'':' (GATE off)');case 'cthr':return p.cthr.toFixed(1)+' dB'+(p.comp?'':' (COMP off)');
+    case 'eqw':return p.band.toUpperCase()+' · Q '+b.q.toFixed(2);case 'eqf':return p.band.toUpperCase()+' · '+fmtF(b.f)+' Hz';case 'eqg':return p.band.toUpperCase()+' · '+(b.g>0?'+':'')+b.g.toFixed(1)+' dB';
+    case 'mcl':return fmtDb(f2db(p.mcl))+' dB';case 'pan':return p.pan===0?'Centre':(p.pan<0?'L ':'R ')+Math.round(Math.abs(p.pan)*100);}return '';}
 const KNAME={gain:'GAIN',lcf:'LOW CUT FREQUENCY',gthr:'GATE THRESHOLD',cthr:'COMP THRESHOLD',eqw:'EQ WIDTH',eqf:'EQ FREQUENCY',eqg:'EQ GAIN',mcl:'M/C LEVEL',pan:'PAN/BAL',mon:'MONITOR LEVEL',phones:'PHONES LEVEL',talk:'TALK LEVEL'};
 function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('mx-front').innerHTML=surface();
@@ -532,14 +541,14 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   svg.addEventListener('pointerdown',e=>{G.shiftDown=e.shiftKey;
     const f=e.target.closest('.mx-f');
     if(f&&G.power&&!G.boot){const sid=stripId(f.dataset.slot);if(!sid)return;e.preventDefault();try{svg.setPointerCapture(e.pointerId);}catch(_){}
-      const cap=f.querySelector('.mx-cap');cap.classList.add('drag');
-      const set=ev=>{const q=svg.createSVGPoint();q.x=ev.clientX;q.y=ev.clientY;const y=q.matrixTransform(f.getScreenCTM().inverse()).y;fSet(f.dataset.slot,sid,cl((FY1-y)/(FY1-FY0)));if(S[sid].type==='dca'||G.flip)applyAll();else if(S[sid].type==='in')applyCh(sid);applyMain();draw();};set(e);
-      const up=()=>{cap.classList.remove('drag');svg.removeEventListener('pointermove',set);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);};
+      const cap=f.querySelector('.mx-cap');cap.classList.add('drag');G.dragging=true;
+      const set=ev=>{const q=svg.createSVGPoint();q.x=ev.clientX;q.y=ev.clientY;const y=q.matrixTransform(f.getScreenCTM().inverse()).y;fSet(f.dataset.slot,sid,cl((FY1-y)/(FY1-FY0)));{const v=fVal(f.dataset.slot,sid),fl=G.flip&&v!==S[sid].fader;liveTip(ev,S[sid].num+' '+(S[sid].name||''),(fl?'Send '+(G.flip.mode==='bus'?'→ '+S['bus'+G.flip.bus].name:'→ '+S[sid].name)+': ':'Fader: ')+fmtDb(f2db(v))+' dB');}if(S[sid].type==='dca'||G.flip)applyAll();else if(S[sid].type==='in')applyCh(sid);applyMain();draw();};set(e);
+      const up=()=>{cap.classList.remove('drag');G.dragging=false;svg.removeEventListener('pointermove',set);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);};
       svg.addEventListener('pointermove',set);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);return;}
     const k=e.target.closest('.mx-k');
-    if(k&&G.power&&!G.boot){e.preventDefault();try{svg.setPointerCapture(e.pointerId);}catch(_){}let y0=e.clientY,moved=false;const ei=k.dataset.k.startsWith('enc')?+k.dataset.k.slice(3):null;if(ei!=null&&G.page==='mutegrp')G.holdEnc=ei;
-      const mv=ev=>{const d=(y0-ev.clientY);if(Math.abs(d)>=2){moved=true;knobSet(k.dataset.k,Math.round(d/2));y0=ev.clientY;}};
-      const up=()=>{svg.removeEventListener('pointermove',mv);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);
+    if(k&&G.power&&!G.boot){e.preventDefault();try{svg.setPointerCapture(e.pointerId);}catch(_){}let y0=e.clientY,moved=false;G.dragging=true;const ei=k.dataset.k.startsWith('enc')?+k.dataset.k.slice(3):null;if(ei!=null&&G.page==='mutegrp')G.holdEnc=ei;
+      const mv=ev=>{const d=(y0-ev.clientY);if(Math.abs(d)>=2){moved=true;knobSet(k.dataset.k,Math.round(d/2));y0=ev.clientY;}const kk=k.dataset.k;liveTip(ev,KNAME[kk]||('Screen encoder '+(+kk.slice(3)+1)),knobText(kk));};
+      const up=()=>{G.dragging=false;svg.removeEventListener('pointermove',mv);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);
         if(ei!=null){const hadAssign=G.holdEnc!=null&&G.mgAssigned;G.holdEnc=null;G.mgAssigned=false;if(!moved&&!hadAssign)encPress(ei);}};
       svg.addEventListener('pointermove',mv);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);return;}
     const b=e.target.closest('[data-b]');if(b){e.preventDefault();if(G.holdEnc!=null&&b.dataset.b.startsWith('sel:'))G.mgAssigned=true;press(b.dataset.b);
@@ -558,7 +567,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.addEventListener('pointerdown',e=>{if(!e.target.closest('#mx-plugmenu,.mx-sock'))document.getElementById('mx-plugmenu').classList.remove('on');});
   rear.querySelector('.mx-power').addEventListener('click',async()=>{G.power=!G.power;
     if(G.power){G.boot=true;draw();await startAudio();setTimeout(()=>{G.boot=false;applyAll();draw();},1400);}else{applyMain();if(A)A.ctx.suspend();}draw();});
-  root.addEventListener('mousemove',e=>{const m=e.target.closest('[data-name]');if(!m||!root.contains(m)){tip.classList.remove('on');return;}
+  root.addEventListener('mousemove',e=>{if(G.dragging)return;const m=e.target.closest('[data-name]');if(!m||!root.contains(m)){tip.classList.remove('on');return;}
     let name=m.dataset.name,t=m.dataset.tip||TIPS[m.dataset.b||m.dataset.k]||'';
     if(m.dataset.k&&KNAME[m.dataset.k])name=KNAME[m.dataset.k];
     if(m.classList.contains('mx-f')){const s=S[stripId(m.dataset.slot)];name=s?s.num+' '+s.name:'(empty)';t=s?'Fader: '+fmtDb(f2db(s.fader))+' dB — drag it.':'';}

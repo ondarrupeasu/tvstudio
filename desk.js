@@ -328,6 +328,8 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   const barName=id=>{const b=BAR[id];return b.tray?'a fixed cyc-light bar':b.m?'a movable bar':b.grey?'a fixed grey pipe':'a fixed rail';};
   root.addEventListener('mousemove',e=>{const m=e.target.closest('[data-name]');if(!m||!root.contains(m)){tip.classList.remove('on');hl([],[]);return;}
     let tipTxt=m.dataset.tip||'';
+    if(m.matches('.dk-f')){const id=m.dataset.f,t=/^c\d+$/.test(id)?D.f[+id.slice(1)]:D[id],v=id==='mB'?1-t:t;   // live value while dragging
+      tipTxt=`<b style="display:inline;color:#fff">Now: ${Math.round(v*100)} % · DMX ${Math.round(v*255)}</b><br>`+tipTxt;}
     if(m.matches('.fx')){const f=FX.find(x=>x.id===m.dataset.fx),pct=v=>Math.round(v*100)+' %';
       tipTxt=`Fader ${f.int} = intensity (now ${pct(out[f.int-1])})`+(f.temp?` · fader ${f.temp} = colour temperature`:'')+
         `<br>${f.zone==='c'?'LED · powered by the “LED” breaker':'Dimmed by Datapak 2 · “Dimmers” breaker'} · hangs on ${barName(f.bar)}`+(f.fixed?'':f.lock?' — drag to slide it along the cyc-light bars':' — drag to move it');
