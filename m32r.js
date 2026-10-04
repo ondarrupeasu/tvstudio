@@ -65,10 +65,9 @@ function strip(slot,x,main){let s='';
   s+=btn('mute:'+slot,x,854,'MUTE','mute',38,18);
   return s+fader(slot,x);}
 
-function surface(){let s=`<svg class="mx-svg" viewBox="0 70 1000 1295" role="img" aria-label="Midas M32R">`;
+function surface(){let s=`<svg class="mx-svg" viewBox="0 -70 1000 1430" role="img" aria-label="Midas M32R"><g class="mx-rear" id="mxRear" transform="translate(0,-66)">${rearSvg()}</g><g id="mxTop">`;
   s+=`<defs><linearGradient id="mxbody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26272c"/><stop offset="1" stop-color="#1b1c20"/></linearGradient></defs>`;
-  s+=`<rect x="2" y="78" width="996" height="1180" rx="22" fill="url(#mxbody)" stroke="#0c0c0e" stroke-width="3"/><rect x="0" y="1246" width="1000" height="112" rx="26" fill="#141518" stroke="#0a0a0c" stroke-width="3"/>`;
-  s+=`<rect x="60" y="1268" width="880" height="40" fill="#cfcab4" opacity=".85" transform="rotate(-.3 500 1288)"/>`;
+  s+=`<rect x="2" y="78" width="996" height="490" rx="22" fill="url(#mxbody)" stroke="#0c0c0e" stroke-width="3"/>`;
   // TALKBACK
   s+=panel(16,105,230,200,'TALKBACK')+btn('talkA',48,165,'TALK A','fn',40,20,'TALK A: talk to destination A (set on the screen). Drawn only.')+btn('talkB',98,165,'TALK B','fn',40,20,'TALK B: talk to destination B. Drawn only.')+knob('talk',182,150,15,'TALK|LEVEL'.replace('|',' '),'Talkback mic level (rear TALKBACK MIC input). Drawn only.');
   // MONITOR
@@ -113,17 +112,18 @@ function surface(){let s=`<svg class="mx-svg" viewBox="0 70 1000 1295" role="img
   [['L:i1','INPUTS|1-8',805,384],['L:i2','INPUTS|9-16',850,384],['L:i3','INPUTS|17-24',805,420],['L:i4','INPUTS|25-32',850,420],['L:aux','AUX IN|USB',805,456],['L:fxr','FX|RET',850,456],['L:b1','BUS|1-8',805,492],['L:b2','BUS|9-16',850,492]].forEach(([id,l,x,y])=>s+=btn(id,x,y,l,'lay',40,28));
   [['B:dca','GROUP|DCA 1-8',955,384],['B:b1','BUS|1-8',955,420],['B:b2','BUS|9-16',955,456],['B:mtx','MATRIX|MAIN C',955,492]].forEach(([id,l,x,y])=>s+=btn(id,x,y,l,'lay',42,28));
   s+=btn('rem',902,400,'REM','fn',36,20,'REM: DAW remote control. Drawn only.')+T(902,420,'DAW REMOTE','mx-xs')+btn('flip',902,492,'FADER|FLIP','fn',40,28,'FADER FLIP (sends on fader). Not simulated yet.')+T(902,516,'SENDS ON FADER','mx-xs');
+  s+=`</g><g id="mxBot"><rect x="2" y="560" width="996" height="698" rx="22" fill="#1d1e22" stroke="#0c0c0e" stroke-width="3"/><rect x="0" y="1246" width="1000" height="112" rx="26" fill="#141518" stroke="#0a0a0c" stroke-width="3"/><rect x="60" y="1268" width="880" height="40" fill="#cfcab4" opacity=".85" transform="rotate(-.3 500 1288)"/>`;
   // strips
   for(let k=0;k<8;k++)s+=strip('a'+k,35+k*56);
   for(let k=0;k<8;k++)s+=strip('b'+k,490+k*56);
   s+=strip('m',956,true)+T(956,898,'MAIN','mx-pt');
   s+=`<rect x="7" y="752" width="448" height="74" rx="3" fill="none" stroke="#000"/><rect x="462" y="752" width="453" height="74" rx="3" fill="none" stroke="#000"/>`;
-  return s+'</svg>';}
+  return s+'</g></svg>';}
 
 function rearSvg(){const tip=(n,t,inner)=>`<g data-name="${n}" data-tip="${t}">${inner}</g>`;
   const xlr=(x,y,r=8)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#111" stroke="#9a9a9a"/><circle cx="${x}" cy="${y}" r="${r*.45}" fill="#2a2a2e"/>`;
   const rj=(x,y)=>`<rect x="${x-9}" y="${y-8}" width="18" height="16" rx="2" fill="#111" stroke="#9a9a9a"/><rect x="${x-5}" y="${y-3}" width="10" height="7" fill="#333"/>`;
-  let s=`<svg class="mx-rear" viewBox="0 0 1000 130" role="img" aria-label="M32R rear panel"><rect x="2" y="4" width="996" height="122" rx="10" fill="#2b2c31" stroke="#0e0e10"/>`;
+  let s=`<rect x="2" y="4" width="996" height="122" rx="10" fill="#2b2c31" stroke="#0e0e10"/>`;
   s+=`<g class="mx-power" data-name="POWER switch" data-tip="Switches the console on (it boots in a moment). Click it!"><rect x="22" y="38" width="44" height="44" rx="4" fill="#0d0d0f"/><rect class="pr1" x="27" y="43" width="17" height="34" rx="2"/><rect class="pr2" x="44" y="43" width="17" height="34" rx="2"/>${T(35,64,'I','mx-wt')}${T(53,64,'O','mx-wt')}${T(44,98,'POWER','mx-wt')}</g>`;
   s+=tip('AC POWER','100-240 V mains input (IEC).',`<rect x="76" y="44" width="30" height="30" rx="3" fill="#0d0d0f" stroke="#888"/>${T(91,98,'AC IN','mx-wt')}`);
   s+=tip('DN32-USB card','Klark Teknik card: 32×32 audio over USB to a computer (record / playback).',`<rect x="120" y="36" width="70" height="46" rx="3" fill="#1a1b1f" stroke="#777"/>${T(155,56,'DN32-USB','mx-wt')}<rect x="146" y="62" width="18" height="10" fill="#111" stroke="#999"/>`);
@@ -138,7 +138,7 @@ function rearSvg(){const tip=(n,t,inner)=>`<g data-name="${n}" data-tip="${t}">$
   s+=tip('INPUTS 1-16','16 Midas PRO mic preamps (XLR). By default IN 1-16 feed channels 1-16. The studio mics arrive here through the patch panels.',ins+T(635,98,'IN 8 … 1  ·  IN 16 … 9','mx-wt'));
   let outs='';for(let k=0;k<8;k++)outs+=xlr(790+k*26,56,8);
   s+=tip('OUTPUTS 1-8','8 XLR outputs. OUT 7/8 = MAIN L/R by default.',outs+T(880,98,'OUT 8 (MAIN R) · 7 (MAIN L) … 1','mx-wt'));
-  return s+'</svg>';}
+  return s;}
 
 /* ---------- audio engine ---------- */
 let A=null;
@@ -356,14 +356,14 @@ function knobSet(id,d){const p=P[G.sel],b=p&&p.b[p.band];
   applyCh(G.sel);applyMain();draw();}
 const KNAME={gain:'GAIN',lcf:'LOW CUT FREQUENCY',gthr:'GATE THRESHOLD',cthr:'COMP THRESHOLD',eqw:'EQ WIDTH',eqf:'EQ FREQUENCY',eqg:'EQ GAIN',mcl:'M/C LEVEL',pan:'PAN/BAL',mon:'MONITOR LEVEL',phones:'PHONES LEVEL',talk:'TALK LEVEL'};
 function build(){if(root.dataset.built)return;root.dataset.built='1';
-  document.getElementById('mx-front').innerHTML=surface();document.getElementById('mx-back').innerHTML=rearSvg();
+  document.getElementById('mx-front').innerHTML=surface();
   svg=root.querySelector('.mx-svg');rear=root.querySelector('.mx-rear');
   const pt=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());};
   svg.addEventListener('pointerdown',e=>{
     const f=e.target.closest('.mx-f');
     if(f&&G.power&&!G.boot){const sid=stripId(f.dataset.slot);if(!sid)return;e.preventDefault();try{svg.setPointerCapture(e.pointerId);}catch(_){}
       const cap=f.querySelector('.mx-cap');cap.classList.add('drag');
-      const set=ev=>{const y=pt(ev).y;S[sid].fader=cl((FY1-y)/(FY1-FY0));if(S[sid].type==='in')applyCh(sid);applyMain();draw();};set(e);
+      const set=ev=>{const q=svg.createSVGPoint();q.x=ev.clientX;q.y=ev.clientY;const y=q.matrixTransform(f.getScreenCTM().inverse()).y;S[sid].fader=cl((FY1-y)/(FY1-FY0));if(S[sid].type==='in')applyCh(sid);applyMain();draw();};set(e);
       const up=()=>{cap.classList.remove('drag');svg.removeEventListener('pointermove',set);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);};
       svg.addEventListener('pointermove',set);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);return;}
     const k=e.target.closest('.mx-k');
@@ -390,9 +390,18 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.addEventListener('mouseleave',()=>tip.classList.remove('on'));
   document.getElementById('mx-photo').addEventListener('click',e=>{const on=root.classList.toggle('photo');e.currentTarget.textContent=on?'Recreation':'Real photo';});
   document.getElementById('mx-close').addEventListener('click',()=>window.closeMixer());
+  document.getElementById('mx-lay').addEventListener('click',()=>{LAY=LAY==='side'?'real':'side';fit();});
   draw();meterTick();}
-function fit(){if(!root.classList.contains('on')||matchMedia('(max-width:900px)').matches)return;
-  const body=root.querySelector('.mx-body'),w=body.clientWidth-24;['mx-back','mx-front'].forEach(id=>document.getElementById(id).style.width=Math.min(w,1100)+'px');}
+let LAY=null;
+function fit(){if(!root.classList.contains('on'))return;const body=root.querySelector('.mx-body'),cs=getComputedStyle(body);
+  const aw=body.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ah=body.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-4;
+  if(!LAY)LAY=innerWidth/innerHeight>1.25&&innerWidth>900?'side':'real';
+  const top=svg.querySelector('#mxTop'),bot=svg.querySelector('#mxBot'),rr=svg.querySelector('#mxRear');let vb;
+  if(LAY==='side'){rr.setAttribute('transform','translate(0,-66)');top.setAttribute('transform','translate(0,-12)');bot.setAttribute('transform','translate(1010,-630)');vb=[0,-70,2012,810];}
+  else{rr.setAttribute('transform','translate(0,-66)');top.removeAttribute('transform');bot.removeAttribute('transform');vb=[0,-70,1000,1430];}
+  svg.setAttribute('viewBox',vb.join(' '));
+  const W=LAY==='side'?Math.min(aw,ah*vb[2]/vb[3]):Math.min(aw,1100);document.getElementById('mx-front').style.width=Math.floor(W)+'px';
+  root.classList.toggle('side',LAY==='side');const b=document.getElementById('mx-lay');if(b)b.textContent=LAY==='side'?'Real layout':'Side by side';}
 addEventListener('resize',fit);
 window.openMixer=()=>{build();root.classList.add('on');fit();draw();};
 window.closeMixer=()=>{root.classList.remove('on');tip.classList.remove('on');};

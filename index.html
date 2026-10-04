@@ -204,8 +204,8 @@
   .mx{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.mx.on{display:flex}
   .mx .pwr-hd{padding:8px 16px 6px;align-items:center}.mx .pwr-hd p{font-size:11.5px}.mx .pwr-btns button{padding:6px 10px;font-size:12px}
   .mx-body{flex:1;min-height:0;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px}
-  #mx-back,#mx-front{width:min(1100px,100%)}.mx-rear,.mx-svg{display:block;width:100%}
-  .mx-photo{display:none;max-width:100%;max-height:calc(100vh - 140px);object-fit:contain}.mx.photo .mx-photo{display:block}.mx.photo #mx-back,.mx.photo #mx-front{display:none}
+  #mx-front{width:min(1100px,100%)}.mx.side .mx-body{justify-content:center}.mx-rear,.mx-svg{display:block;width:100%}
+  .mx-photo{display:none;max-width:100%;max-height:calc(100vh - 140px);object-fit:contain}.mx.photo .mx-photo{display:block}.mx.photo #mx-front{display:none}
   .mx .pwr-status{padding:6px 16px}.mx-sel{margin-left:auto;font-size:12px;color:var(--ce-muted)}.mx-sel b{color:#fff}
   .mx-svg,.mx-rear{user-select:none;-webkit-user-select:none;touch-action:none}
   .mx-svg text,.mx-rear text{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;pointer-events:none}
@@ -460,9 +460,9 @@
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
-    <div class="pwr-btns"><button id="mx-photo">Real photo</button></div></div>
+    <div class="pwr-btns"><button id="mx-lay">Real layout</button><button id="mx-photo">Real photo</button></div></div>
   <button class="close" id="mx-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-  <div class="mx-body"><div id="mx-back"></div><div id="mx-front"></div><img class="mx-photo" src="img/mesa-audio.jpg" alt="Midas M32R in the control room (photo)"></div>
+  <div class="mx-body"><div id="mx-front"></div><img class="mx-photo" src="img/mesa-audio.jpg" alt="Midas M32R in the control room (photo)"></div>
   <div class="pwr-status" id="mx-diag"></div>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
