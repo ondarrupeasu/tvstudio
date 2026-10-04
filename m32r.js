@@ -15,7 +15,7 @@ Object.assign(S.in3,{name:'MUSIC',color:'magenta',mic:'Playback (line)'});
 Object.assign(S.in4,{name:'AMBIENCE',color:'green',mic:'Room mic (dynamic)'});
 Object.assign(S.in5,{name:'TONE 1k',color:'yellow',mic:'Test oscillator (line)'});
 Object.assign(S.in6,{name:'YOUR MIC',color:'cyan',mic:'Your computer microphone'});
-for(let i=1;i<=8;i++)mk('aux'+i,i<=6?'Aux'+i:'USB'+(i-6),i<=6?'Aux '+i:'USB '+(i-6),'off','aux');
+for(let i=1;i<=8;i++)mk('aux'+i,i<=6?'Aux'+i:'USB'+(i-6),i<=6?['M350 L','M350 R','Virt L','Virt R','Aux 5','Aux 6'][i-1]:'USB '+(i-6),i<=4?['magenta','magenta','cyan','cyan'][i-1]:'off','aux');   // AUX IN 1-4 = returns of the outboard effects (audio rack)
 for(let i=1;i<=8;i++)mk('fx'+i,'Fx'+Math.ceil(i/2)+(i%2?'L':'R'),'FxRtn '+Math.ceil(i/2)+(i%2?'L':'R'),'off','fx');
 for(let i=1;i<=16;i++)mk('bus'+i,'MX'+String(i).padStart(2,'0'),'MixBus '+i,'off','bus');
 for(let i=1;i<=8;i++)mk('dca'+i,'DCA'+i,'DCA '+i,'off','dca');
@@ -190,6 +190,11 @@ const FXDEF={1:{name:'Hall Reverb',p:[{l:'Decay',v:2.6,min:.4,max:6,f:v=>v.toFix
   4:{name:'Stereo Chorus',p:[{l:'Rate',v:.8,min:.1,max:4,f:v=>v.toFixed(2)+' Hz'},{l:'Depth',v:.5,min:0,max:1,f:v=>Math.round(v*100)+' %'}]}};
 function irBuf(ctx,sec){const sr=ctx.sampleRate,len=Math.max(1,Math.floor(sr*sec)),b=ctx.createBuffer(2,len,sr);
   for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2)*.6;}return b;}
+/* outboard settings (the knobs of the M350 / Virtualizer front panels) */
+const OB={m350:{input:.8,mix:.5,decay:2.4,predelay:.02,delay:.32,feedback:.25,type:'Hall'},virt:{input:.8,mix:.5,decay:1.4,predelay:.01,delay:.25,feedback:.2,type:'Plate'}};
+function setOb(o){const c=OB[o.k],ctx=o.inG.context;o.inG.gain.value=c.input;o.dry.gain.value=0;o.wet.gain.value=1;o.pre.delayTime.value=c.predelay;o.dl.delayTime.value=c.delay;o.fb.gain.value=c.feedback;
+  o.lp.frequency.value=c.type==='Plate'?7000:4500;if(o._d!==c.decay){o._d=c.decay;o.conv.buffer=irBuf(ctx,c.decay);}o.wet.gain.value=c.mix*1.2;}
+window.OUTBOARD={get:k=>OB[k],set(k,v){Object.assign(OB[k],v);if(A&&A.ob&&A.ob[k])setOb(A.ob[k]);},level:id=>A&&A.aux&&A.aux[id]?peakDb(A.aux[id].an):-120};
 function makeFx(ctx,i){const u={in:ctx.createGain(),out:ctx.createGain(),i};const P=FXDEF[i].p;
   if(i<=2){u.conv=ctx.createConvolver();u.conv.buffer=irBuf(ctx,P[0].v);u.lp=ctx.createBiquadFilter();u.lp.type='lowpass';u.lp.frequency.value=P[1].v;u.in.connect(u.conv);u.conv.connect(u.lp);u.lp.connect(u.out);}
   else if(i===3){const sp=ctx.createChannelSplitter(2),mg=ctx.createChannelMerger(2);u.dL=ctx.createDelay(2);u.dR=ctx.createDelay(2);u.fb=ctx.createGain();
@@ -220,6 +225,11 @@ async function startAudio(){if(A){A.ctx.resume();return;}
     u.gL=ctx.createGain();u.gR=ctx.createGain();u.anL=ctx.createAnalyser();u.anR=ctx.createAnalyser();u.anL.fftSize=u.anR.fftSize=1024;u.soloL=ctx.createGain();u.soloR=ctx.createGain();
     u.out.connect(sp);sp.connect(u.gL,0);sp.connect(u.gR,1);u.gL.connect(mg,0,0);u.gR.connect(mg,0,1);mg.connect(mainBus);u.gL.connect(u.anL);u.gR.connect(u.anR);
     u.gL.connect(u.soloL);u.gR.connect(u.soloR);u.soloL.connect(soloBus);u.soloR.connect(soloBus);A.fx[i]=u;}
+  // outboard effects in the audio rack: AUX OUT 1-2 (Mix 1-2) → TC Electronic M350, AUX OUT 3-4 (Mix 3-4) → Behringer Virtualizer Pro; returns on AUX IN 1-4
+  A.ob={};[['m350',1],['virt',3]].forEach(([k,b])=>{const mg=ctx.createChannelMerger(2),inG=ctx.createGain(),dry=ctx.createGain(),wet=ctx.createGain(),out=ctx.createGain(),conv=ctx.createConvolver(),pre=ctx.createDelay(1),dl=ctx.createDelay(2),fb=ctx.createGain(),lp=ctx.createBiquadFilter();
+    A.bus[b].mute.connect(mg,0,0);A.bus[b+1].mute.connect(mg,0,1);mg.connect(inG);inG.connect(dry);dry.connect(out);inG.connect(pre);pre.connect(conv);conv.connect(lp);lp.connect(wet);inG.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(wet);wet.connect(out);lp.type='lowpass';
+    const o={inG,dry,wet,out,conv,pre,dl,fb,lp,k};A.ob[k]=o;setOb(o);const sp=ctx.createChannelSplitter(2);out.connect(sp);
+    [0,1].forEach(c=>{const id='aux'+(b+c),g=ctx.createGain(),m=ctx.createGain(),pn=ctx.createStereoPanner(),an=ctx.createAnalyser(),so=ctx.createGain();an.fftSize=1024;pn.pan.value=c?1:-1;sp.connect(g,c);g.connect(m);m.connect(an);m.connect(pn);pn.connect(mainBus);m.connect(so);so.connect(soloBus);A.aux=A.aux||{};A.aux[id]={g,m,an,so};});});
   // matrices 1-6: copies of the main mix for other destinations (recording, lobby…)
   A.mtx={};for(let i=1;i<=6;i++){const g=ctx.createGain(),m=ctx.createGain(),an=ctx.createAnalyser(),so=ctx.createGain();an.fftSize=1024;mainM.connect(g);g.connect(m);m.connect(an);m.connect(so);so.connect(soloBus);A.mtx[i]={g,m,an,so};}
   // talkback: TALKBACK MIC → TALK LEVEL → TALK A (mix 1-6) / TALK B (main L/R)
@@ -250,7 +260,7 @@ function applyCh(id){if(!A||!A.ch[id])return;const n=A.ch[id],p=P[id],s=S[id],t=
     if(!p.eq){f.type='peaking';f.gain.value=0;return;}
     f.type=BT[b.t];f.frequency.value=b.f;f.Q.value=b.t==='LCUT'||b.t==='HCUT'?.707:b.t==='LSHV'||b.t==='HSHV'?b.q/4:b.q;f.gain.value=b.g;});
   sm(n.mute.gain,effMute(id)?0:1);sm(n.fad.gain,db2g(effDb(id)));for(let k=1;k<=16;k++)sm(n.snd[k].gain,db2g(f2db(p.sends[k])));sm(n.mono.gain,p.mono?db2g(f2db(p.mcl)):0);n.pan.pan.setTargetAtTime(p.pan,t,.02);sm(n.st.gain,p.st?1:0);sm(n.solo.gain,s.solo?1:0);}
-function applyMain(){if(!A)return;const t=A.ctx.currentTime,anySolo=Object.values(S).some(s=>s.solo&&s.type!=='dca'&&s.type!=='main');
+function applyMain(){if(!A)return;if(A.aux)Object.entries(A.aux).forEach(([id,n])=>{const s=S[id];n.g.gain.setTargetAtTime(db2g(f2db(s.fader)),A.ctx.currentTime,.015);n.m.gain.setTargetAtTime(s.mute?0:1,A.ctx.currentTime,.015);n.so.gain.setTargetAtTime(s.solo?1:0,A.ctx.currentTime,.015);});const t=A.ctx.currentTime,anySolo=Object.values(S).some(s=>s.solo&&s.type!=='dca'&&s.type!=='main');
   const g2=(prm,v)=>prm.setTargetAtTime(v,t,.015);
   g2(A.monoF.gain,db2g(f2db(S.mainc.fader)));g2(A.monoM.gain,S.mainc.mute?0:1);g2(A.monoSolo.gain,S.mainc.solo?1:0);
   for(let i=1;i<=4;i++){const u=A.fx[i],L=S['fx'+(2*i-1)],Rr=S['fx'+(2*i)];g2(u.gL.gain,L.mute?0:db2g(f2db(L.fader)));g2(u.gR.gain,Rr.mute?0:db2g(f2db(Rr.fader)));g2(u.soloL.gain,L.solo?1:0);g2(u.soloR.gain,Rr.solo?1:0);}
@@ -348,8 +358,8 @@ function meterTick(){requestAnimationFrame(meterTick);if(!root.classList.contain
     const open=!p.gate||pre>p.gthr;n.gateOpen=open;n.gate.gain.setTargetAtTime(open?1:0,A.ctx.currentTime,open?.005:.08);
     sm(id+':post',peakDb(n.postAn));});
   // strips
-  for(let k=1;k<=16;k++)sm('bus'+k,peakDb(A.bus[k].an));for(let i=1;i<=4;i++){sm('fx'+(2*i-1),peakDb(A.fx[i].anL));sm('fx'+(2*i),peakDb(A.fx[i].anR));}for(let i=1;i<=6;i++)sm('mtx'+i,peakDb(A.mtx[i].an));sm('mainc',peakDb(A.monoAn));
-  [...stripsIn().map((id,k)=>['a'+k,id]),...stripsBus().map((id,k)=>['b'+k,id])].forEach(([slot,id])=>{const n=id&&A.ch[id],isB=id&&['bus','fx','mtx','mainc'].includes(S[id].type);const v=n?lev[id+':post']:isB?lev[id]:-120;
+  for(let k=1;k<=16;k++)sm('bus'+k,peakDb(A.bus[k].an));if(A.aux)Object.entries(A.aux).forEach(([id,n])=>sm(id,peakDb(n.an)));for(let i=1;i<=4;i++){sm('fx'+(2*i-1),peakDb(A.fx[i].anL));sm('fx'+(2*i),peakDb(A.fx[i].anR));}for(let i=1;i<=6;i++)sm('mtx'+i,peakDb(A.mtx[i].an));sm('mainc',peakDb(A.monoAn));
+  [...stripsIn().map((id,k)=>['a'+k,id]),...stripsBus().map((id,k)=>['b'+k,id])].forEach(([slot,id])=>{const n=id&&A.ch[id],isB=id&&(['bus','fx','mtx','mainc'].includes(S[id].type)||(S[id].type==='aux'&&A.aux&&A.aux[id]));const v=n?lev[id+':post']:isB?lev[id]:-120;
     [null,0,-6,-12,-18,-30,-60].forEach((th,k)=>{if(k===0)return;L('m:'+slot+':'+k,(n||isB)&&(k===1?v>=-0.1:v>=th));});
     L('m:'+slot+':0',n&&P[id].comp&&n.comp.reduction<-1);L('m:'+slot+':7',slot.startsWith('a')&&n&&P[id].gate&&!n.gateOpen);});
   const ok=performance.now()-(G.sigT[G.sel]||-1e9)<1500;if(ok!==G.sigOk){G.sigOk=ok;diag();}
@@ -529,7 +539,7 @@ function diag(){const el=document.getElementById('mx-diag');if(!el)return;const 
 /* ---------- interaction ---------- */
 function srcInfo(id){const s=S[id];if(!s)return '';const n=+id.slice(2);
   if(s.type==='in')return n<=16?`Source: rear socket IN ${n} ← ${SOURCES[SRC[id]].l}${s.cond?' (condenser: needs 48 V)':''} — click IN ${n} on the rear panel to change it.`:`Source: channel ${n} has no local input (IN 1-16 only; 17-32 would come from AES50 stage boxes).`;
-  return {aux:'Aux input (line jacks / USB) — no source in the simulator.',fx:'Effects return: FX1 Hall reverb ← Mix 13, FX2 Plate ← Mix 14, FX3 Delay ← Mix 15, FX4 Chorus ← Mix 16. Send a channel to that mix bus (FADER FLIP) and raise this return fader.',bus:'Mix bus (e.g. a monitor mix for the studio): fed by the channel sends (FADER FLIP). Hear it with SOLO.',dca:'DCA group: one fader that controls several channels. Assign: hold its SEL + press channel SELs (mouse: SEL the DCA, then Shift+click the channels).',mtx:'Matrix: a copy of the main mix with its own level, for another destination (recording, lobby speakers…). Hear it with SOLO.',mainc:'Mono / centre bus (Main C): fed by MONO CENTRE + M/C LEVEL of each channel. Shown on the M/C meter next to the screen.',main:'Main stereo bus (L/R) → OUT 7/8.'}[s.type]||'';}
+  return {aux:'Aux input: AUX IN 1-2 = TC Electronic M350 return (fed by Mix 1-2 on AUX OUT 1-2), AUX IN 3-4 = Behringer Virtualizer return (Mix 3-4 → AUX OUT 3-4) — the outboard effects of the audio rack. Send a channel to Mix 1 / 2 (FADER FLIP) and raise these faders.',fx:'Effects return: FX1 Hall reverb ← Mix 13, FX2 Plate ← Mix 14, FX3 Delay ← Mix 15, FX4 Chorus ← Mix 16. Send a channel to that mix bus (FADER FLIP) and raise this return fader.',bus:'Mix bus (e.g. a monitor mix for the studio): fed by the channel sends (FADER FLIP). Hear it with SOLO.',dca:'DCA group: one fader that controls several channels. Assign: hold its SEL + press channel SELs (mouse: SEL the DCA, then Shift+click the channels).',mtx:'Matrix: a copy of the main mix with its own level, for another destination (recording, lobby speakers…). Hear it with SOLO.',mainc:'Mono / centre bus (Main C): fed by MONO CENTRE + M/C LEVEL of each channel. Shown on the M/C meter next to the screen.',main:'Main stereo bus (L/R) → OUT 7/8.'}[s.type]||'';}
 function stripId(slot){if(slot==='m')return 'main';const k=+slot.slice(1);return slot[0]==='a'?stripsIn()[k]:stripsBus()[k];}
 function press(id){if(!G.power||G.boot)return;const p=P[G.sel];
   let m;

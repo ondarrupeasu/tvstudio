@@ -206,6 +206,11 @@
   @media (max-width:900px){.swbtn{top:auto;bottom:14px}}
   /* Midas M32R */
   .rc-sim{border:0;cursor:pointer;font-family:inherit}
+  /* outboard effects (audio rack) */
+  .ob-silver{fill:#a9adb3;stroke:#5c6066}.ob-dark{fill:#1b1d21}.ob-brand{font-size:15px;font-weight:700;fill:#1c1c1c}.ob-brand2{font-size:12px;font-weight:800;fill:#fff}.ob-sm{font-size:9px;fill:#1c1c1c}.ob-sm2{font-size:5px;fill:#ccc}
+  .ob-sec{font-size:7px;font-weight:800;fill:#1c1c1c}.ob-l{font-size:5.5px;font-weight:700;fill:#1c1c1c;text-anchor:middle}.ob-tape{font-size:8px;font-weight:700;fill:#2b4c8a}
+  .ob-k{cursor:ns-resize}.ob-p{stroke:#fff;stroke-width:2;stroke-linecap:round}.ob-k:hover .vh-kn{stroke:var(--ce-accent);stroke-width:2}.ob-btn{fill:#2a2c30}.ob-btn2{fill:#2a2c30;cursor:pointer}.ob-bl{font-size:5px;font-weight:700;fill:#eee;text-anchor:middle}
+  .ob-disp{fill:#0b0c0e}.ob-dt{font:700 9px monospace;fill:#7fd3ff;text-anchor:middle}.ob-red{font:700 15px monospace;fill:#ff3b30;text-anchor:middle}.ob-led{fill:#3a3c41}.ob-led.on{fill:#36d36e}
   /* Ultimatte 12 HD + Smart Remote 4 */
   .um{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.um.on{display:flex}.um .pwr-hd{padding:8px 16px 6px;align-items:center}.um .pwr-hd p{font-size:11.5px}.um .pwr-btns button{padding:6px 10px;font-size:12px}
   .um-body{flex:1;min-height:0;overflow:auto;padding:8px 12px;display:flex;flex-direction:column;gap:12px}.um-row{display:flex;gap:12px;justify-content:center}.um-unit{position:relative;width:min(48%,560px)}
@@ -625,7 +630,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=82"></script>
+<script src="power.js?v=83"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -635,7 +640,7 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=82"></script>
+<script src="desk.js?v=83"></script>
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
@@ -670,20 +675,22 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=82"></script>
+<script src="m32r.js?v=83"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=82"></script>
-<script src="constellation.js?v=82"></script>
-<script src="hyperdeck.js?v=82"></script>
-<script src="cables.js?v=82"></script>
+<script src="videohub.js?v=83"></script>
+<script src="constellation.js?v=83"></script>
+<script src="hyperdeck.js?v=83"></script>
+<script src="cables.js?v=83"></script>
 <div class="cr" id="cr"></div>
 <div class="um" id="um"></div>
-<script src="ccu.js?v=82"></script>
-<script src="atempanel.js?v=82"></script>
-<script src="controlroom.js?v=82"></script>
-<script src="ultimatte.js?v=82"></script>
+<div class="vh ob" id="ob"></div>
+<script src="ccu.js?v=83"></script>
+<script src="atempanel.js?v=83"></script>
+<script src="controlroom.js?v=83"></script>
+<script src="ultimatte.js?v=83"></script>
+<script src="outboard.js?v=83"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=82"></script>
+<script src="vmix.js?v=83"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
@@ -730,8 +737,8 @@ const RACK_AUDIO=[
   {name:"JVC A-X7 — stereo amplifier",prod:"img/producto/jvc-ax7.jpg",link:"https://hifi-wiki.com/index.php/JVC_A-X_7",desc:"Powers the passive monitor speakers. Labelled SP-1 = control-room speakers, SP-2 = studio speakers (SPEAKERS selector 1 / 2 / 1+2).",y:2,h:26.1,x:1,w:96},
   {name:"Behringer MULTICOM PRO-XL MDX4600 (1)",prod:"img/producto/multicom.jpg",link:"https://www.behringer.com/en/products/0817-ABC",desc:"4 channels of dynamics: expander/gate, compressor/limiter and peak limiter on each.",y:28.6,h:8,x:1,w:96},
   {name:"Behringer MULTICOM PRO-XL MDX4600 (2)",prod:"img/producto/multicom.jpg",link:"https://www.behringer.com/en/products/0817-ABC",desc:"Another 4 channels of gate + compressor/limiter.",y:36.8,h:8,x:1,w:96},
-  {name:"TC Electronic M350 — effects",prod:"img/producto/m350.jpg",link:"https://www.yumpu.com/en/document/view/27078053/m350-manual-english-tc-electronic",desc:"Dual-engine effects: reverb + delay/chorus at the same time (discontinued — link = manual). Labelled “AUX 1 y 2”: fed by aux sends 1-2 of the Midas.",y:44.9,h:7.8,x:1,w:96},
-  {name:"Behringer VIRTUALIZER PRO DSP2024P — effects",prod:"img/producto/virtualizer.jpg",link:"https://www.behringer.com/en/products/0828-AAB",desc:"24-bit multi-effects (reverbs, delays, modulation). Labelled “AUX 3 y 4”: fed by aux sends 3-4.",y:53,h:7.8,x:1,w:96},
+  {name:"TC Electronic M350 — effects",sim:"ob",prod:"img/producto/m350.jpg",link:"https://www.yumpu.com/en/document/view/27078053/m350-manual-english-tc-electronic",desc:"Dual-engine effects: reverb + delay/chorus at the same time (discontinued — link = manual). Labelled “AUX 1 y 2”: fed by aux sends 1-2 of the Midas.",y:44.9,h:7.8,x:1,w:96},
+  {name:"Behringer VIRTUALIZER PRO DSP2024P — effects",sim:"ob",prod:"img/producto/virtualizer.jpg",link:"https://www.behringer.com/en/products/0828-AAB",desc:"24-bit multi-effects (reverbs, delays, modulation). Labelled “AUX 3 y 4”: fed by aux sends 3-4.",y:53,h:7.8,x:1,w:96},
   {name:"img Stage Line LS-280 — line splitter",prod:"img/producto/splitter.jpg",link:"https://www.img-stageline.com/products/audio-tools/line-combiner-line-splitter/ls-280-sw/",desc:"Stereo line distributor: one ST-L/ST-R input to 8 outputs with their own level (sections A 1-4, B 5-8). Outputs labelled PGM and VU: it shares the programme sound out to several destinations. (Older unit; the picture shows today's version.)",y:61,h:7.8,x:1,w:96},
   {name:"Behringer ULTRA-CURVE PRO DEQ2496",prod:"img/producto/deq2496.jpg",link:"https://www.behringer.com/en/products/0821-AAD",desc:"Mastering / room processor: graphic + parametric EQ, feedback destroyer, dynamics and a real-time analyser (RTA).",y:69,h:7.8,x:1,w:96}
 ];
@@ -754,7 +761,7 @@ function showDev(d,z){
   if(z){document.querySelectorAll('.rhs.on').forEach(e=>e.classList.remove('on'));z.classList.add('on');}
   document.getElementById('rackcard').innerHTML=`${d.prod?`<img class="rc-img" src="${d.prod}" alt="${escAttr(d.name)}" onerror="this.style.visibility='hidden'">`:''}`+
     `<div class="rc-txt"><div class="rc-name">${d.name}</div><div class="rc-desc">${d.desc}</div>`+
-    `<div class="rc-btns">${d.link?`<a class="rc-btn" href="${d.link}" target="_blank" rel="noopener">Maker's site ↗</a>`:''}${d.sim?`<button class="rc-btn rc-sim" onclick="${d.sim==='um'?'openUltimatte()':'openVideohub()'}">▶ Open the simulator</button>`:''}</div></div>`;
+    `<div class="rc-btns">${d.link?`<a class="rc-btn" href="${d.link}" target="_blank" rel="noopener">Maker's site ↗</a>`:''}${d.sim?`<button class="rc-btn rc-sim" onclick="${d.sim==='um'?'openUltimatte()':d.sim==='ob'?'openOutboard()':'openVideohub()'}">▶ Open the simulator</button>`:''}</div></div>`;
 }
 function resetCard(){document.getElementById('rackcard').innerHTML='<div class="rc-hint">Hover a unit to see its name · click it to see its card here.</div>';}
 /* which simulator each place on the plan opens (card button) */

@@ -17,6 +17,7 @@ const ASSETS = [
   './atempanel.js',
   './controlroom.js',
   './ultimatte.js',
+  './outboard.js',
   './manifest.webmanifest',
   './icon.svg',
   './img/rack-v2.jpg',
