@@ -175,7 +175,7 @@ function loop(now){requestAnimationFrame(loop);const vis=document.getElementById
 requestAnimationFrame(loop);
 /* control from the ATEM 1 M/E Advanced Panel (same switcher, same state) */
 let tbStart=0;
-const API={S,st:()=>st,inName,srcLabel,program:()=>pgmCv,preview:()=>pvwCv,multiview:()=>mvCv,drawMV,
+const API={S,st:()=>st,mvOpen:()=>!!(mvWin&&!mvWin.closed),inName,srcLabel,program:()=>pgmCv,preview:()=>pvwCv,multiview:()=>mvCv,drawMV,
   pvw(v){if(st.mode==='cut')S.pgm=v;else S.pvw=v;draw();},pgm(v){S.pgm=v;draw();},cut(){take();draw();},auto(){auto();draw();},trans(t){S.trans=t;draw();},
   tbar(v){if(!S.T){if(Math.abs(v-tbStart)<.01)return;S.T={manual:true,p:0,fx:S.trans};ties();}if(!S.T.manual)return;S.T.p=Math.min(1,Math.abs(v-tbStart));
     if(S.T.p>=1){const a=S.pgm;S.pgm=S.pvw;S.pvw=a;S.T=null;tbStart=v;}draw();},
