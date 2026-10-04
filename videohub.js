@@ -76,10 +76,9 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   <button class="close" id="vh-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   <div class="vh-body"><div class="vh-units">
     <div class="vh-hdwrap"><div class="vh-lab">HYPERDECK STUDIO HD PRO <span>— recorder (it will move to the control-room view, next to the ATEM panel)</span></div><div id="hd-front"></div><div id="hd-rear"></div></div>
-    <div class="vh-lab">SMART VIDEOHUB 20×20 <span>— front</span></div><div class="vh-front">${front()}<canvas id="vh-lcd" width="320" height="240"></canvas></div>
-    <div class="vh-rearwrap" id="vh-rearwrap"><div class="vh-lab">SMART VIDEOHUB — rear <span>(as seen from behind) · hover a cable to see what it carries</span></div><div class="vh-rear">${rear()}</div><div class="vh-gap"></div>
-      <div class="vh-lab">ATEM 2 M/E CONSTELLATION HD — rear</div><div id="atem-rear"></div><svg class="vh-cables" id="vh-cables"></svg></div>
-    <div class="vh-lab">ATEM CONSTELLATION — front</div><div id="atem-front"></div>
+    <div class="vh-lab">SMART VIDEOHUB 20×20 <span>— front · rear below ↓</span></div><div class="vh-front">${front()}<canvas id="vh-lcd" width="320" height="240"></canvas></div>
+    <div class="vh-rearwrap" id="vh-rearwrap"><div class="vh-lab">SMART VIDEOHUB — rear <span>(as seen from behind) · hover a cable to see what it carries</span></div><div class="vh-rear">${rear()}</div><div class="vh-gap"></div><div id="atem-rear"></div><svg class="vh-cables" id="vh-cables"></svg></div>
+    <div class="vh-lab">ATEM 2 M/E CONSTELLATION HD <span>— rear ↑ · front ↓</span></div><div id="atem-front"></div>
     <div class="vh-tbl" id="vh-tbl"></div></div></div>
   <div class="pwr-status" id="vh-diag"></div>
   <div class="mx-plugmenu" id="vh-plugmenu"></div>
@@ -130,7 +129,7 @@ function draw(){const lit=U.menu?null:U.mode==='dest'?U.dest+1:(U.pend!=null?U.p
   setKey('take','flash',pending||menuSel);setKey('clear','flash',pending);
   root.querySelectorAll('.vh-sock').forEach(g=>{const d=g.dataset.s[0],k=+g.dataset.s.slice(1),v=d==='i'?st.cabIn[k]:st.cabOut[k];g.classList.toggle('plugged',v!=='none');
     g.classList.toggle('hl',d==='o'?k===U.dest:k===(U.pend!=null?U.pend:st.routes[U.dest]));});
-  const tb=document.getElementById('vh-tbl');if(tb)tb.innerHTML='<div class="vh-th">Routing now (output ← input) — outputs with known cabling</div>'+st.cabOut.map((v,o)=>v==='none'&&o!==U.dest?'':`<span class="vh-rt2${o===U.dest?' on':''}"><b>OUT ${o+1}</b> ${outLab(o)} ← <b>IN ${st.routes[o]+1}</b> ${inLab(st.routes[o])}${st.locks[o]?' 🔒':''}</span>`).join('');
+  const tb=document.getElementById('vh-tbl');if(tb)tb.innerHTML='<span class="vh-th">ROUTING NOW</span>'+st.cabOut.map((v,o)=>v==='none'&&o!==U.dest?'':`<span class="vh-rt2${o===U.dest?' on':''}" title="${outLab(o)}"><b>OUT ${o+1}</b> ← <b>IN ${st.routes[o]+1}</b> ${inLab(st.routes[o])}${st.locks[o]?' 🔒':''}</span>`).join('');
   const dg=document.getElementById('vh-diag');if(dg){const s=st.routes[U.dest];dg.innerHTML=`<span class="pw-chip ok"><i></i>Destination: OUT ${U.dest+1} · ${outLab(U.dest)}</span>`+
     `<span class="pw-chip ${hasSig(s)?'ok':'bad'}"><i></i>carrying IN ${s+1} · ${inLab(s)}${hasSig(s)?'':' (no signal)'}</span>`+(U.pend!=null?`<span class="pw-chip bad"><i></i>Waiting: IN ${U.pend+1} ${inLab(U.pend)} → press TAKE or CLEAR</span>`:'')+
     (st.locks[U.dest]?'<span class="pw-chip bad"><i></i>Destination locked (hold DEST 2 s)</span>':'')+(U.msg?`<span class="mx-sel">${U.msg}</span>`:'');}

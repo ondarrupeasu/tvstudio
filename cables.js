@@ -11,8 +11,8 @@ function list(){const L=[],st=window.VH?VH.state():null;if(!st)return L;
   st.cabOut.forEach((v,o)=>{const m=/^atem(\d+)$/.exec(v);if(m)L.push({a:`.vh-sock[data-s="o${o}"]`,b:`.at-sock[data-s="i${+m[1]-1}"]`,info:`Videohub SDI OUT ${o+1} → ATEM SDI INPUT ${m[1]}`});});
   st.cabIn.forEach((v,i)=>{if(v==='none')return;const tag={cam1:'CAM 1',cam2:'CAM 2',cam3:'CAM 3',cam4:'CAM 4',vfill:'vMix FILL',vkey:'vMix KEY'}[v]||v;
     const up=i%2===0,lvl=Math.floor(i/2);   // top-row BNC (odd numbers) → cable and tag go up; bottom row → down
-    L.push({a:`.vh-sock[data-s="i${i}"]`,hang:(up?-1:1)*(34+lvl*20),tag,info:`${tag} → Videohub SDI IN ${i+1}`+(v.startsWith('cam')?' (from the studio patch panel, VIDEO '+v.slice(3)+')':' (DeckLink SDI out of the vMix PC)')});});
-  L.push({a:'.at-sock[data-s="m0"]',hang:-40,tag:'MONITOR',info:'ATEM MULTIVIEW 1 → control-room monitor wall'});
+    L.push({a:`.vh-sock[data-s="i${i}"]`,hang:(up?-1:1)*(20+lvl*15),tag,info:`${tag} → Videohub SDI IN ${i+1}`+(v.startsWith('cam')?' (from the studio patch panel, VIDEO '+v.slice(3)+')':' (DeckLink SDI out of the vMix PC)')});});
+  L.push({a:'.at-sock[data-s="m0"]',hang:-26,tag:'MONITOR',info:'ATEM MULTIVIEW 1 → control-room monitor wall'});
   return L;}
 function build(){const s=svg();if(!s)return;const L=list();ropes=L.map(c=>{const A=centre(c.a),B=c.b?centre(c.b):null;if(!A||(c.b&&!B))return null;
     const end=B||{x:A.x-6,y:A.y+c.hang};   // negative hang = the cable leaves upwards (into the space between the rear panels)
