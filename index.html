@@ -691,7 +691,7 @@ const DATA={
   ccu:{name:"Camera control (CCU)",kind:"Blackmagic ATEM Camera Control Panel",ph:"img/producto/ccu.jpg",link:"https://www.blackmagicdesign.com/products/atemcameracontrolpanel",what:"A 4-channel camera control panel: one set of controls per camera (RGB balance, iris, gain, master black).",use:"To adjust the cameras from the control room and, above all, match them in colour and exposure so cuts don't jump."},
   mezclador:{name:"Vision mixer",kind:"ATEM 1 M/E Advanced Panel 10",ph:"img/producto/atem-panel.jpg",link:"https://www.blackmagicdesign.com/products/atemconstellation/advancedpanel",what:"The control surface for the switcher (the switcher itself, an ATEM 2 M/E Constellation, is in the rack): PROGRAM/PREVIEW buses, T-bar, CUT and AUTO.",use:"To choose which camera goes to air, cut or mix, and add titles and chroma (KEY/DSK). It's the heart of the gallery."},
   rack:{name:"Technical rack",kind:"The signal chain",ph:"img/rack-v2.jpg",prod:"img/producto/constellation.jpg",what:"On the desk to the right: 3 Ultimatte 12 HD + switch, Ultimatte Smart Remote 4, HyperDeck Studio HD Pro, Smart Videohub 20×20, ATEM 2 M/E Constellation HD.",use:"The Ultimatte units take the 3 cameras over SDI and do the chroma; the Constellation mixes; the HyperDeck records; the Videohub routes."},
-  tituladora:{name:"Graphics (CG)",kind:"Computer",ph:"img/control-2-top.jpg",what:"One of the two computers on the middle desk. (Exact use to be confirmed.)",use:"To generate the titles and graphics overlaid on screen."},
+  tituladora:{name:"Graphics (CG) — vMix",kind:"Computer",ph:"img/control-2-top.jpg",what:"One of the two computers on the middle desk. (Which one runs vMix is still to be confirmed.)",use:"vMix makes the titles and graphics and sends them as fill + key (DeckLink) to the ATEM through the router (IN 9 / IN 10)."},
   prompter:{name:"Teleprompter",kind:"Computer",ph:"img/control-2-top.jpg",what:"The other computer on the middle desk. (Exact use to be confirmed.)",use:"To scroll the text the presenter reads, reflected in front of the lens."},
   rackaudio:{name:"Audio rack",kind:"Sound processing & connection",ph:"img/rack-audio.jpg",what:"The rack next to the audio desk.",use:"It houses the audio electronics: preamps, converters, distribution and interconnection of the programme sound."},
   audio:{name:"Audio desk",kind:"Midas M32R",ph:"img/producto/midas.jpg",link:"https://www.midasconsoles.com/en/products/0603-AEP",what:"A Midas M32R digital desk (16 faders) with its audio rack alongside.",use:"To mix the mics and sound sources of the programme (EQ, dynamics, sends, talkback)."},
@@ -746,6 +746,12 @@ function showDev(d,z){
     `<div class="rc-btns">${d.link?`<a class="rc-btn" href="${d.link}" target="_blank" rel="noopener">Maker's site ↗</a>`:''}${d.sim?`<button class="rc-btn rc-sim" onclick="openVideohub()">▶ Open the simulator</button>`:''}</div></div>`;
 }
 function resetCard(){document.getElementById('rackcard').innerHTML='<div class="rc-hint">Hover a unit to see its name · click it to see its card here.</div>';}
+/* which simulator each place on the plan opens (card button) */
+const SIMS={luces:['Open the light simulator',()=>openDesk()],audio:['Open the M32R simulator',()=>openMixer()],
+  mezclador:['Open the vision desk simulator',()=>openControlRoom()],ccu:['Open the vision desk simulator',()=>openControlRoom()],pantallas:['Open the vision desk simulator',()=>openControlRoom()],
+  camaras:['Open the camera control (CCU)',()=>{openControlRoom();document.querySelector('.cr-seg button[data-v="ccu"]')?.click();}],
+  tituladora:['Open the vMix simulator',()=>openVmix()],
+  patch_control:['Open the video rack (router)',()=>openVideohub()],patch_plato:['Open the video rack (router)',()=>openVideohub()]};
 const drawer=document.getElementById('drawer'),scrim=document.getElementById('scrim');
 function open(k){
   document.querySelectorAll('.zone.sel').forEach(z=>z.classList.remove('sel'));document.querySelector(`.zone[data-k="${k}"]`)?.classList.add('sel');
@@ -765,13 +771,13 @@ function open(k){
     gal.appendChild(f);});
   document.getElementById('d-name').textContent=d.name;document.getElementById('d-kind').textContent=d.kind;document.getElementById('d-what').textContent=d.what;document.getElementById('d-use').textContent=d.use;
   document.getElementById('d-normal').classList.toggle('notext',!!d.notext);
-  const sb=document.getElementById('d-simbtn');const VIS=['mezclador','ccu','pantallas'];sb.classList.toggle('on',k==='luces'||k==='audio'||VIS.includes(k));sb.dataset.k=k;sb.textContent=k==='audio'?'▶ Open the M32R simulator':VIS.includes(k)?'▶ Open the vision desk simulator':'▶ Open the light simulator';
+  const sb=document.getElementById('d-simbtn'),sm=SIMS[k];sb.classList.toggle('on',!!sm);sb.dataset.k=k;if(sm)sb.textContent='▶ '+sm[0];
   drawer.classList.add('on');scrim.classList.add('on');}
 function close(){document.querySelectorAll('.zone.sel').forEach(z=>z.classList.remove('sel'));drawer.classList.remove('on');scrim.classList.remove('on');setTimeout(()=>drawer.classList.remove('rackmode'),260);}
 document.querySelectorAll('.zone').forEach(z=>z.addEventListener('click',()=>open(z.dataset.k)));
 document.getElementById('close').addEventListener('click',close);
 document.querySelectorAll('.simgo').forEach(b=>b.addEventListener('click',()=>{close();b.dataset.sim==='light'?openDesk():b.dataset.sim==='sound'?openMixer():b.dataset.sim==='vmix'?openVmix():b.dataset.sim==='vision'?openControlRoom():0;}));
-document.getElementById('d-simbtn').addEventListener('click',e=>{const k=e.currentTarget.dataset.k;close();k==='audio'?openMixer():['mezclador','ccu','pantallas'].includes(k)?openControlRoom():openDesk();});
+document.getElementById('d-simbtn').addEventListener('click',e=>{const sm=SIMS[e.currentTarget.dataset.k];close();if(sm)sm[1]();});
 scrim.addEventListener('click',close);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pwr').classList.contains('on'))closePower();else{close();closeDesk();closeMixer();}}});
 </script>
