@@ -134,8 +134,9 @@ function rearSvg(){const tip=(n,t,inner)=>`<g data-name="${n}" data-tip="${t}">$
   s+=tip('TALKBACK MIC','XLR input for the talkback microphone.',xlr(398,58)+T(398,98,'TALK','mx-wt'));
   s+=tip('MONITOR L / R','Outputs to the control-room speakers (MONITOR LEVEL).',xlr(428,50,6)+xlr(428,70,6)+T(428,98,'MON','mx-wt'));
   s+=tip('AUX IN / OUT 1-6','Line-level jacks (and RCA on 5/6).',[0,1,2].map(k=>xlr(458+k*16,50,5)+xlr(458+k*16,70,5)).join('')+T(474,98,'AUX','mx-wt'));
-  let ins='';for(let k=0;k<8;k++){ins+=xlr(530+k*30,40,9)+xlr(530+k*30,74,9);}
-  s+=tip('INPUTS 1-16','16 Midas PRO mic preamps (XLR). By default IN 1-16 feed channels 1-16. The studio mics arrive here through the patch panels.',ins+T(635,98,'IN 8 … 1  ·  IN 16 … 9','mx-wt'));
+  const sock=(n,x,y)=>`<g class="mx-sock" data-in="${n}" data-name="IN ${n}">${xlr(x,y,9)}<g class="mx-plug"><circle cx="${x}" cy="${y}" r="10.5" class="mx-plugr"/><circle cx="${x}" cy="${y}" r="6" fill="#141416"/><path d="M${x} ${y+10} V${y+17}" stroke="#141416" stroke-width="7"/></g>${T(x,y-12,n,'mx-xs')}<circle cx="${x}" cy="${y}" r="13" fill="transparent"/></g>`;
+  for(let k=0;k<8;k++)s+=sock(8-k,530+k*30,40)+sock(16-k,530+k*30,76);
+  s+=T(635,104,'INPUTS · click a socket to plug / unplug','mx-wt');
   let outs='';for(let k=0;k<8;k++)outs+=xlr(790+k*26,56,8);
   s+=tip('OUTPUTS 1-8','8 XLR outputs. OUT 7/8 = MAIN L/R by default.',outs+T(880,98,'OUT 8 (MAIN R) · 7 (MAIN L) … 1','mx-wt'));
   return s;}
@@ -163,7 +164,7 @@ async function startAudio(){if(A){A.ctx.resume();return;}
   mainToMon.connect(mon);soloToMon.connect(mon);mon.connect(lim);lim.connect(ctx.destination);
   Object.assign(A,{mainBus,mainF,mainM,soloBus,mainToMon,soloToMon,mon,anL,anR,soloAn});
   const load=async u=>{const r=await fetch(u);return ctx.decodeAudioData(await r.arrayBuffer());};
-  for(let i=1;i<=8;i++)chain('in'+i);
+  for(let i=1;i<=16;i++)chain('in'+i);
   for(const [id,k] of Object.entries(SRC))await setSource(id,k);
   applyAll();}
 function chain(id){const c=A.ctx,n={};
@@ -200,7 +201,7 @@ const SOURCES={pres:{l:'Presenter (sample)',name:'PRESENTER',mic:'Lavalier (cond
   dev:{l:'Microphone / audio input of this computer',name:'MY MIC',mic:'Computer input (mic level)',color:'cyan'},
   file:{l:'Audio or video file…',name:'FILE',mic:'File player (line)',color:'magenta'},
   tab:{l:'Browser tab audio (YouTube…)',name:'TAB AUDIO',mic:'Shared browser tab (line)',color:'magenta'}};
-const SRC={in1:'pres',in2:'guest',in3:'music',in4:'amb',in5:'tone',in6:'none',in7:'none',in8:'none'};
+const SRC={in1:'pres',in2:'guest',in3:'music',in4:'amb',in5:'tone'};for(let i=6;i<=16;i++)SRC['in'+i]='none';
 const SRCX={};   // extra per channel: deviceId, file name
 function stopSource(id){const n=A&&A.ch[id];if(!n)return;(n.srcNodes||[]).forEach(x=>{try{x.stop&&x.stop();}catch(_){}try{x.disconnect();}catch(_){}});
   (n.streams||[]).forEach(st=>st.getTracks().forEach(t=>t.stop()));if(n.media){n.media.pause();n.media.src='';n.media=null;}n.srcNodes=[];n.streams=[];}
@@ -220,18 +221,20 @@ async function setSource(id,kind,opt={}){SRC[id]=kind;const meta=SOURCES[kind];O
       if(!st.getAudioTracks().length)throw new Error('The shared tab has no audio (tick "Share tab audio").');n.streams=[st];const m=ctx.createMediaStreamSource(st);m.connect(lv);n.srcNodes.push(m);}
     SRCX[id]=Object.assign(SRCX[id]||{},{err:null});
   }catch(e){SRCX[id]={err:e.message||String(e)};Object.assign(S[id],{name:'NO SIGNAL',color:'off'});}
-  applyCh(id);draw();renderSrc();}
+  applyCh(id);draw();}
 /* patch dialog (HTML) */
-async function renderSrc(){const box=document.getElementById('mx-srclist');if(!box)return;
+async function plugMenu(n,ev){const menu=document.getElementById('mx-plugmenu'),id='in'+n,cur=SRC[id];
   let devs=[];try{devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');}catch(_){}
-  box.innerHTML=Array.from({length:8},(_,k)=>{const id='in'+(k+1),cur=SRC[id],x=SRCX[id]||{};
-    const opts=Object.entries(SOURCES).filter(([key])=>key!=='dev').map(([key,m])=>`<option value="${key}" ${cur===key?'selected':''}>${m.l}</option>`).join('')+
-      `<optgroup label="Inputs of this computer">${devs.length?devs.map(d=>`<option value="dev:${d.deviceId}" ${cur==='dev'&&x.deviceId===d.deviceId?'selected':''}>${d.label||'Microphone / audio input'}</option>`).join(''):`<option value="dev:" ${cur==='dev'?'selected':''}>Microphone / audio input (default)</option>`}</optgroup>`;
-    return `<div class="mx-srow"><span class="mx-sin">IN ${k+1} → <b>Ch${String(k+1).padStart(2,'0')}</b></span><select data-ch="${id}">${opts}</select>${x.err?`<span class="mx-serr">${x.err}</span>`:cur==='file'&&x.fileName?`<span class="mx-sok">${x.fileName}</span>`:''}</div>`;}).join('');
-  box.querySelectorAll('select').forEach(sel=>sel.addEventListener('change',async()=>{const id=sel.dataset.ch,v=sel.value;
+  const item=(v,l,on)=>`<button data-v="${v}" class="${on?'on':''}">${l}</button>`;
+  menu.innerHTML=`<div class="mx-pmh"><b>IN ${n}</b> → Ch${String(n).padStart(2,'0')} · plug a cable from…</div>`+
+    ['pres','guest','music','amb','tone'].map(k=>item(k,SOURCES[k].l,cur===k)).join('')+
+    `<div class="mx-pmg">This computer</div>`+(devs.length&&devs[0].label?devs.map(d=>item('dev:'+d.deviceId,d.label,cur==='dev'&&(SRCX[id]||{}).deviceId===d.deviceId)).join(''):item('dev:','Microphone / audio input',cur==='dev'))+
+    item('file','Audio or video file…',cur==='file')+item('tab','Browser tab audio (YouTube… · Chrome/Edge)',cur==='tab')+
+    `<div class="mx-pmg"></div>`+item('none',cur==='none'?'(nothing plugged in)':'Unplug the cable',false)+((SRCX[id]||{}).err?`<div class="mx-perr">${SRCX[id].err}</div>`:'');
+  const r=root.getBoundingClientRect();menu.style.left=Math.min(ev.clientX-r.left+8,r.width-300)+'px';menu.style.top=(ev.clientY-r.top+8)+'px';menu.classList.add('on');
+  menu.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const v=b.dataset.v;menu.classList.remove('on');
     if(v==='file'){const inp=document.getElementById('mx-file');inp.onchange=()=>{if(inp.files[0])setSource(id,'file',{file:inp.files[0],fileName:inp.files[0].name});inp.value='';};inp.click();return;}
-    if(v.startsWith('dev:'))return setSource(id,'dev',{deviceId:v.slice(4)||undefined});
-    setSource(id,v);}));}
+    if(v.startsWith('dev:'))return setSource(id,'dev',{deviceId:v.slice(4)||undefined});setSource(id,v);}));}
 
 /* ---------- meters ---------- */
 const buf=new Float32Array(1024);
@@ -281,6 +284,7 @@ function drawKnob(g){const id=g.dataset.k,c=g.querySelector('.mx-kb'),x=+c.getAt
   g.querySelector('.mx-kp').setAttribute('transform',`rotate(${ang} ${x} ${y})`);}
 function draw(){if(!svg)return;const on=G.power;
   svg.classList.toggle('off',!on);rear.classList.toggle('on',on);
+  rear.querySelectorAll('.mx-sock').forEach(g=>{const id='in'+g.dataset.in,k=SRC[id];g.classList.toggle('plugged',k!=='none');g.querySelector('.mx-plugr').setAttribute('fill',COL[SOURCES[k].color]||'#888');});
   const fill=(slot,id)=>{const g=svg.querySelector(`.mx-f[data-slot="${slot}"]`),lcd=svg.querySelector(`[data-lcd="${slot}"]`),s=id&&S[id];
     g.querySelector('.mx-cap').style.transform=`translateY(${fpos(s?s.fader:0)}px)`;
     lcd.classList.toggle('empty',!s||!on);lcd.querySelector('.mx-lcdc').setAttribute('fill',on&&s?COL[s.color]||COL.off:'#0b0c0e');
@@ -337,7 +341,7 @@ function homeBody(s,p){let h='';
   const blk=(x,l,v,on)=>`<rect x="${x}" y="36" width="38" height="40" rx="3" fill="${on?'#2c5a3a':'#20283a'}" stroke="#3b4a66"/>`+T(x+19,48,l,'mx-st')+T(x+19,64,v,'mx-sv');
   h+=blk(4,'Config',(p.p48?'48V ':'')+'+'+p.gain.toFixed(0),true)+blk(45,'Lo cut',p.lc?Math.round(p.lcf)+'Hz':'off',p.lc)+blk(86,'Gate',p.gate?p.gthr.toFixed(0):'off',p.gate)+blk(127,'Dyn',p.comp?p.cthr.toFixed(0):'off',p.comp)+blk(168,'EQ',p.eq?'on':'off',p.eq)+blk(209,'Main',(p.st?'LR ':'')+(p.mono?'M':''),p.st||p.mono);
   h+=`<g id="mx-shm"></g>`+T(126,126,'Fader '+fmtDb(f2db(s.fader))+' dB · Pan '+(p.pan===0?'C':(p.pan<0?'L':'R')+Math.round(Math.abs(p.pan)*100))+(s.mute?' · MUTED':''),'mx-s');
-  const nIn=+G.sel.slice(2);h+=T(126,108,'Source: IN '+nIn+' ← '+(nIn<=8?SOURCES[SRC[G.sel]].l:'nothing connected'),'mx-st');
+  const nIn=+G.sel.slice(2);h+=T(126,108,'Source: Local IN '+nIn+(nIn<=16?' ← '+SOURCES[SRC[G.sel]].l:' (nothing patched)'),'mx-st');
   if(S[G.sel].cond&&!p.p48)h+=T(126,117,'⚠ condenser mic: needs 48 V','mx-warn');
   if(false)h+=`<g class="mx-micbtn" data-b="usemic"><rect x="70" y="80" width="112" height="16" rx="3" fill="#3d6db3"/>${T(126,91,A.micErr?'mic blocked by browser':'▶ use my microphone','mx-st')}</g>`;
   return h;}
@@ -362,7 +366,7 @@ function diag(){const el=document.getElementById('mx-diag');if(!el)return;const 
 
 /* ---------- interaction ---------- */
 function srcInfo(id){const s=S[id];if(!s)return '';const n=+id.slice(2);
-  if(s.type==='in')return n<=8?`Source: IN ${n} ← ${SOURCES[SRC[id]].l}${s.cond?' (condenser: needs 48 V)':''} — change it with INPUT SOURCES (top).`:`Source: IN ${n} — nothing connected (in the simulator only IN 1-8 have sources).`;
+  if(s.type==='in')return n<=16?`Source: rear socket IN ${n} ← ${SOURCES[SRC[id]].l}${s.cond?' (condenser: needs 48 V)':''} — click IN ${n} on the rear panel to change it.`:`Source: channel ${n} has no local input (IN 1-16 only; 17-32 would come from AES50 stage boxes).`;
   return {aux:'Aux input (line jacks / USB) — no source in the simulator.',fx:'Return of an effects slot — effects not simulated yet.',bus:'Mix bus (e.g. a monitor send) — sends not simulated yet.',dca:'DCA group: one fader that controls several channels — not simulated yet.',mtx:'Matrix output — not simulated yet.',mainc:'Mono / centre bus.',main:'Main stereo bus (L/R) → OUT 7/8.'}[s.type]||'';}
 function stripId(slot){if(slot==='m')return 'main';const k=+slot.slice(1);return slot[0]==='a'?stripsIn()[k]:stripsBus()[k];}
 function press(id){if(!G.power||G.boot)return;const p=P[G.sel];
@@ -410,6 +414,8 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       svg.addEventListener('pointermove',mv);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);return;}
     const b=e.target.closest('[data-b]');if(b){e.preventDefault();press(b.dataset.b);}});
   svg.addEventListener('wheel',e=>{const k=e.target.closest('.mx-k');if(!k||!G.power)return;e.preventDefault();knobSet(k.dataset.k,e.deltaY<0?2:-2);},{passive:false});
+  rear.querySelectorAll('.mx-sock').forEach(g=>g.addEventListener('click',e=>{e.stopPropagation();plugMenu(+g.dataset.in,e);}));
+  root.addEventListener('pointerdown',e=>{if(!e.target.closest('#mx-plugmenu,.mx-sock'))document.getElementById('mx-plugmenu').classList.remove('on');});
   rear.querySelector('.mx-power').addEventListener('click',async()=>{G.power=!G.power;
     if(G.power){G.boot=true;draw();await startAudio();setTimeout(()=>{G.boot=false;applyAll();draw();},1400);}else{applyMain();if(A)A.ctx.suspend();}draw();});
   root.addEventListener('mousemove',e=>{const m=e.target.closest('[data-name]');if(!m||!root.contains(m)){tip.classList.remove('on');return;}
@@ -422,6 +428,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     if(m.dataset.b?.startsWith('L:')||m.dataset.b?.startsWith('B:'))t='Fader layer: changes what the '+(m.dataset.b[0]==='L'?'left 8 (input)':'right 8 (group/bus)')+' faders control. The motorised faders move to their stored positions.';
     if(m.dataset.b?.startsWith('v'))t=t||'VIEW: opens this section on the screen.';
     if(m.dataset.b?.startsWith('scr:'))t='Screen page.';
+    if(m.dataset.in){const n=+m.dataset.in,k=SRC['in'+n];name='IN '+n+' (XLR, Midas PRO preamp) → Ch'+String(n).padStart(2,'0');t=(k==='none'?'Nothing plugged in.':'Plugged: '+SOURCES[k].l+'.')+' Click to plug / unplug a cable.';}
     if(m.dataset.k?.startsWith('enc')){const en=encDefs()[+m.dataset.k.slice(3)];name='Screen encoder '+(+m.dataset.k.slice(3)+1);t=en?'Edits: '+en.l+' ('+en.get()+')':'Nothing on this page.';}
     const slot=m.dataset.lcd||m.dataset.slot||(m.dataset.b||'').split(':')[1];
     if(slot&&/^(a\d|b\d|m)$/.test(slot)){const sid=stripId(slot);if(sid){const s=S[sid];if(m.dataset.lcd){name=s.num+' '+(s.name||'');t='Scribble strip: number, name and colour of the channel.';}t+=(t?'<br>':'')+srcInfo(sid);}}
@@ -430,11 +437,8 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   document.getElementById('mx-photo').addEventListener('click',e=>{const on=root.classList.toggle('photo');e.currentTarget.textContent=on?'Recreation':'Real photo';});
   document.getElementById('mx-close').addEventListener('click',()=>window.closeMixer());
   document.getElementById('mx-lay').addEventListener('click',()=>{LAY=LAY==='side'?'real':'side';fit();});
-  document.getElementById('mx-srcbtn').addEventListener('click',()=>{const d=document.getElementById('mx-src');d.classList.toggle('on');if(d.classList.contains('on'))renderSrc();});
-  document.getElementById('mx-srcclose').addEventListener('click',()=>document.getElementById('mx-src').classList.remove('on'));
-  document.getElementById('mx-guidebtn').addEventListener('click',()=>{document.getElementById('mx-src').classList.remove('on');document.getElementById('mx-guide').classList.toggle('on');});
+  document.getElementById('mx-guidebtn').addEventListener('click',()=>{document.getElementById('mx-guide').classList.toggle('on');});
   document.getElementById('mx-guideclose').addEventListener('click',()=>document.getElementById('mx-guide').classList.remove('on'));
-  document.getElementById('mx-srcbtn').addEventListener('click',()=>document.getElementById('mx-guide').classList.remove('on'));
   Object.entries(SRC).forEach(([id,k])=>{const m=SOURCES[k];Object.assign(S[id],{name:m.name,mic:m.mic,cond:!!m.cond,color:m.color});});
   draw();meterTick();}
 let LAY=null;

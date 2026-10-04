@@ -231,6 +231,11 @@
   .mx-srow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0;border-top:1px solid #23252c}.mx-sin{width:110px;font-size:12px;color:var(--ce-muted)}.mx-sin b{color:#fff}
   .mx-srow select{flex:1;min-width:200px;background:#0f1014;color:#e6e7ea;border:1px solid var(--ce-line);border-radius:6px;padding:4px 6px;font:inherit;font-size:12.5px}
   .mx-serr{font-size:11px;color:#ff8a80;width:100%;padding-left:118px}.mx-sok{font-size:11px;color:#8fe3a8;width:100%;padding-left:118px}
+  .mx-plugmenu{position:absolute;z-index:6;width:290px;background:#16171c;border:1px solid var(--ce-line);border-radius:10px;padding:6px;box-shadow:0 18px 40px rgba(0,0,0,.6);display:none}
+  .mx-plugmenu.on{display:block}.mx-pmh{font-size:12px;color:var(--ce-muted);padding:4px 6px 6px}.mx-pmh b{color:#fff}.mx-pmg{font-size:10.5px;color:var(--ce-muted2);padding:6px 6px 2px;border-top:1px solid #23252c;margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
+  .mx-plugmenu button{display:block;width:100%;text-align:left;background:none;border:0;color:#e6e7ea;font:inherit;font-size:12.5px;padding:5px 8px;border-radius:6px;cursor:pointer}
+  .mx-plugmenu button:hover{background:#23252c}.mx-plugmenu button.on{color:var(--ce-accent);font-weight:700}.mx-perr{font-size:11px;color:#ff8a80;padding:4px 8px}
+  .mx-sock{cursor:pointer}.mx-sock .mx-plug{display:none}.mx-sock.plugged .mx-plug{display:inline}.mx-sock:hover circle:first-child{stroke:var(--ce-accent);stroke-width:2}
   .mx-steps{margin:4px 0 0;padding-left:20px;font-size:12.5px;color:#d9dbe0;line-height:1.45}.mx-steps li{margin:3px 0}.mx-steps b{color:#fff}
   .mx-snote{font-size:11.5px;color:var(--ce-muted);margin:8px 0 0;line-height:1.4}
   .mx-power{cursor:pointer}.mx-power .pr1{fill:#2b2b2e}.mx-power .pr2{fill:#4c4c52}.mx-rear.on .pr1{fill:#4c4c52}.mx-rear.on .pr2{fill:#2b2b2e}.mx-power:hover>rect:first-child{stroke:var(--ce-accent);stroke-width:2}
@@ -468,17 +473,15 @@
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
-    <div class="pwr-btns"><button id="mx-guidebtn">How to use</button><button id="mx-srcbtn">Input sources</button><button id="mx-lay">Real layout</button><button id="mx-photo">Real photo</button></div></div>
+    <div class="pwr-btns"><button id="mx-guidebtn">How to use</button><button id="mx-lay">Real layout</button><button id="mx-photo">Real photo</button></div></div>
   <button class="close" id="mx-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   <div class="mx-body"><div id="mx-front"></div><img class="mx-photo" src="img/mesa-audio.jpg" alt="Midas M32R in the control room (photo)"></div>
   <div class="pwr-status" id="mx-diag"></div>
-  <div class="mx-src" id="mx-src"><div class="mx-srchd"><b>Input sources</b> — what is plugged into IN 1-8 (the patch). <button id="mx-srcclose" aria-label="Close">✕</button></div>
-    <div id="mx-srclist"></div>
-    <p class="mx-snote">Samples and the microphone arrive at <b>mic level</b>: raise <b>GAIN</b>. "Browser tab audio" works in Chrome/Edge: pick a tab (e.g. YouTube) and tick <i>Share tab audio</i>. Files and tabs stay on your computer — nothing is uploaded.</p></div>
+  <div class="mx-plugmenu" id="mx-plugmenu"></div>
   <div class="mx-src mx-guide" id="mx-guide"><div class="mx-srchd"><b>How to use the M32R</b> <button id="mx-guideclose" aria-label="Close">✕</button></div>
     <ol class="mx-steps">
       <li>Switch it on: <b>POWER</b> on the rear panel (top-left).</li>
-      <li>Choose what is plugged in: <b>Input sources</b> (top). By default IN 1-5 carry samples: presenter, guest, music, ambience, 1 kHz tone. You can also use your <b>microphone</b>, an <b>audio/video file</b> or the audio of a <b>browser tab</b> (YouTube…).</li>
+      <li>Plug the sources into the <b>rear panel</b> (top strip): click an input socket <b>IN 1-16</b>. IN 1-5 already carry the presenter and guest lavaliers, music, a room mic and a 1 kHz tone. You can also plug your <b>microphone / audio interface</b>, an <b>audio or video file</b> or the audio of a <b>browser tab</b> (YouTube…). IN n feeds channel n.</li>
       <li>Pick the channel: press its <b>SEL</b>. The knobs at the top-left and the screen now edit that channel (the screen shows its name and its source).</li>
       <li>Condenser mics (CH 1-2) need <b>48 V</b> (CONFIG/PREAMP).</li>
       <li>Raise <b>GAIN</b> (drag the knob up) until the meter next to it peaks around −12, never CLIP.</li>
