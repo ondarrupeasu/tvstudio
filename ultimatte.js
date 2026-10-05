@@ -139,7 +139,7 @@ function sr4(){const W=1000,H=406,X=f=>f*W,Y=f=>f*H,b=(id,fx,fy,l,tip,w=30,h=22)
   [1,2,3,4,5].forEach((n,i)=>s+=`<text x="${X([.056,.099,.142,.186,.229][i])}" y="${Y(.82)-16}" class="um-st">${n}</text>`+b('ql'+n,[.056,.099,.142,.186,.229][i],.82,'',`QUICK LOAD ${n}: load quick preset ${n} (with ALT: save it).`));
   s+=`<text x="${X(.142)}" y="${Y(.93)}" class="um-st">QUICK LOAD</text><text x="${X(.142)}" y="${Y(.97)}" class="um-st" fill="#666">QUICK SAVE</text>`;
   [0,1,2,3].forEach(i=>{[[.309,i],[.938,i+4]].forEach(([x,n])=>s+=`<g class="vh-knob um-srk" data-n="${n}" data-tip="Knob ${n+1}: the control shown next to it on the screen. Drag up/down or scroll; Shift+click = default."><circle cx="${X(x)}" cy="${Y([.19,.39,.59,.79][i])}" r="${X(.027)}" class="vh-kn"/><circle cx="${X(x)}" cy="${Y([.19,.39,.59,.79][i])}" r="${X(.022)}" class="vh-kn2"/></g>`);});
-  s+=`<rect x="${X(.375)}" y="${Y(.1)}" width="${X(.501)}" height="${Y(.75)}" rx="4" class="vh-lcdb"/><text x="${X(.625)}" y="${Y(.95)}" class="um-st" style="letter-spacing:.4em">SMART │ REMOTE │ <tspan fill="#4aa3ff">4</tspan></text>`;
+  s+=`<rect x="${X(.347)}" y="${Y(.045)}" width="${X(.554)}" height="${Y(.86)}" rx="4" class="vh-lcdb"/><text x="${X(.625)}" y="${Y(.95)}" class="um-st" style="letter-spacing:.4em">SMART │ REMOTE │ <tspan fill="#4aa3ff">4</tspan></text>`;
   return s+'</svg><canvas id="um-touch" width="800" height="500"></canvas>';}
 /* ---------- screens ---------- */
 function drawHdLcd(i){const u=U[i],c=root.querySelector(`.um-lcd[data-u="${i}"]`);if(!c)return;const g=c.getContext('2d'),w=240,h=180;g.fillStyle='#000';g.fillRect(0,0,w,h);
@@ -209,8 +209,9 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     <div class="um-body" id="um-wrap"><div class="um-row"><div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 1 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(0)}</div>${hdRear(0)}</div>
         <div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 2 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(1)}</div>${hdRear(1)}</div></div>
       <div class="um-row2"><div class="um-srw"><div class="vh-lab">SMART REMOTE 4 <span>— controls the Ultimattes over Ethernet (rack network switch) · its HDMI OUT copies the touch screen to a monitor</span></div><div class="um-srf">${sr4()}</div></div><div class="um-monw"><div class="vh-lab" id="um-monl"></div><canvas id="um-mon" width="640" height="360"></canvas>
-        <p class="um-note">Unit 1: <b>chroma camera → Videohub IN 11 → OUT 15 → CAMERA FG</b> · <b>CAM 3 → OUT 16 → BACKGROUND</b> · <b>PGM OUT → IN 12</b> · <b>PGM FILL → IN 13</b> and <b>PGM MATTE → IN 14</b> → ATEM IN 13 / 14 (KEY 2, luma). Unit 2 (assumed): FG = IN 11, BG = CAM 4, PGM → IN 15. Hover a cable.</p></div></div><svg class="vh-cables" id="um-cables"></svg></div>
+        <p class="um-note">Hover a cable to see where it goes · the whole signal path is in <b>How to use</b>.</p></div></div><svg class="vh-cables" id="um-cables"></svg></div>
     <div class="mx-src mx-guide" id="um-guide"><div class="mx-srchd"><b>How to key with the Ultimatte</b> <button id="um-guideclose" aria-label="Close">✕</button></div><ol class="mx-steps">
+      <li>Unit 1: <b>chroma camera → Videohub IN 11 → OUT 15 → CAMERA FG</b> · <b>CAM 3 → OUT 16 → BACKGROUND</b> · <b>PGM OUT → IN 12</b> · <b>PGM FILL → IN 13</b> and <b>PGM MATTE → IN 14</b> → ATEM IN 13 / 14 (KEY 2, luma). Unit 2 (assumed): FG = IN 11, BG = CAM 4, PGM → IN 15. Hover a cable.</li>
       <li>Your own footage: <b>Load a chroma video…</b> (a clip shot on green or blue). It replaces the test chroma camera on Videohub IN 11, so it goes Videohub → Ultimatte like a real camera. For a blue screen: SETTINGS › Blue, then Auto Key.</li>
       <li><b>FILE CLEAR</b> (or ⟲ auto key on the screen): the Ultimatte samples the green and makes the key.</li>
       <li><b>MONITOR OUTPUT › Combined Matte</b>: the presenter must be solid <b>black</b>, the green <b>white</b>. Raise <b>Matte Density</b> until no grey is left inside the presenter.</li>
@@ -237,6 +238,14 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.addEventListener('wheel',e=>{const kn=e.target.closest('.um-srk');if(!kn)return;e.preventDefault();setVal(+kn.dataset.n,e.deltaY<0?1:-1);},{passive:false});
   const tip=document.getElementById('um-tip');root.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip]');if(!t){tip.classList.remove('on');return;}tip.innerHTML=`<span>${t.dataset.tip}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});}
 let last=0,running=false;function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on'))return;if(now-last<60)return;last=now;U.forEach(u=>process(u));drawHdLcd(0);drawHdLcd(1);drawTouch();drawMon();}
-window.openUltimatte=()=>{build();root.classList.add('on');if(!ropes&&window.ROPES){ropes=ROPES({wrap:()=>document.getElementById('um-wrap'),svg:()=>document.getElementById('um-cables'),list:cableList,active:()=>root.classList.contains('on'),sig:()=>window.VH?JSON.stringify([VH.state().cabIn,VH.state().cabOut]):''});}ropes&&ropes.start();if(window.VH&&!document.getElementById('vh')?.dataset.built){openVideohub();closeVideohub();}if(!running){running=true;requestAnimationFrame(loop);}};
+/* the remote takes all the room left: as wide as the row allows (minus the monitor) and as tall as the window allows */
+function fit(){const sw=root.querySelector('.um-srw'),row=root.querySelector('.um-row2'),body=document.getElementById('um-wrap');if(!sw||!row||!root.classList.contains('on'))return;
+  const r0=root.querySelector('.um-row').getBoundingClientRect(),uw=Math.min(r0.width*.495,(body.clientHeight*.47-30)*4.75/2);   // the two units: at most ~47 % of the height
+  root.querySelectorAll('.um-unit').forEach(u=>u.style.width=uw+'px');
+  const mon=root.querySelector('.um-monw'),lab=sw.querySelector('.vh-lab'),r=row.getBoundingClientRect(),bottom=body.getBoundingClientRect().bottom-12;
+  const avH=bottom-r.top;mon.style.width=Math.min(r.width*.26,(avH-18-40)*16/9)+'px';   // monitor: as big as the height allows
+  const availW=r.width-mon.getBoundingClientRect().width-14,availH=bottom-r.top-(lab?lab.getBoundingClientRect().height+4:0);sw.style.width=Math.max(320,Math.min(availW,availH*1000/406))+'px';}
+addEventListener('resize',fit);
+window.openUltimatte=()=>{build();root.classList.add('on');requestAnimationFrame(fit);if(!ropes&&window.ROPES){ropes=ROPES({wrap:()=>document.getElementById('um-wrap'),svg:()=>document.getElementById('um-cables'),list:cableList,active:()=>root.classList.contains('on'),sig:()=>window.VH?JSON.stringify([VH.state().cabIn,VH.state().cabOut]):''});}ropes&&ropes.start();if(window.VH&&!document.getElementById('vh')?.dataset.built){openVideohub();closeVideohub();}if(!running){running=true;requestAnimationFrame(loop);}};
 window.closeUltimatte=()=>{root.classList.remove('on');document.getElementById('um-tip')?.classList.remove('on');};
 })();
