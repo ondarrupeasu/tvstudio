@@ -212,7 +212,7 @@ async function startAudio(){if(A){A.ctx.resume();return;}
   lim.threshold.value=-3;lim.ratio.value=20;lim.attack.value=.002;lim.release.value=.1;
   const spl=ctx.createChannelSplitter(2),anL=ctx.createAnalyser(),anR=ctx.createAnalyser(),soloAn=ctx.createAnalyser();[anL,anR,soloAn].forEach(a=>a.fftSize=1024);
   mainBus.connect(mainF);mainF.connect(mainM);mainM.connect(spl);spl.connect(anL,0);spl.connect(anR,1);mainM.connect(mainToMon);soloBus.connect(soloToMon);soloBus.connect(soloAn);
-  mainToMon.connect(mon);soloToMon.connect(mon);mon.connect(lim);lim.connect(ctx.destination);
+  mainToMon.connect(mon);soloToMon.connect(mon);mon.connect(lim);A.spk=ctx.createGain();lim.connect(A.spk);A.spk.connect(ctx.destination);   // A.spk: the audio rack re-routes it (DEQ2496 → JVC amp → SP-1 control-room speakers)
   Object.assign(A,{mainBus,mainF,mainM,soloBus,mainToMon,soloToMon,mon,anL,anR,soloAn});
   A.out78=ctx.createMediaStreamDestination();mainM.connect(A.out78);   // OUT 7/8 = MAIN L/R → the ATEM analog audio in (programme sound for the video side)
   A.bus={};for(let k=1;k<=16;k++){const b={sum:ctx.createGain(),fad:ctx.createGain(),mute:ctx.createGain(),solo:ctx.createGain(),an:ctx.createAnalyser()};b.an.fftSize=1024;
@@ -238,14 +238,15 @@ async function startAudio(){if(A){A.ctx.resume();return;}
   const load=async u=>{const r=await fetch(u);return ctx.decodeAudioData(await r.arrayBuffer());};
   for(let i=1;i<=16;i++)chain('in'+i);
   for(const [id,k] of Object.entries(SRC))await setSource(id,k);
-  applyAll();}
+  applyAll();window.dispatchEvent(new Event('m32audio'));}
 function chain(id){const c=A.ctx,n={};
   n.in=c.createGain();                 // source arrives here at "mic level"
   n.phantom=c.createGain();n.pre=c.createGain();n.pol=c.createGain();n.hp=c.createBiquadFilter();n.hp.type='highpass';
   n.gate=c.createGain();n.comp=c.createDynamicsCompressor();n.comp.knee.value=6;n.comp.attack.value=.01;n.comp.release.value=.15;
   n.eq=[0,1,2,3].map(()=>c.createBiquadFilter());n.mute=c.createGain();n.fad=c.createGain();n.pan=c.createStereoPanner();n.st=c.createGain();n.solo=c.createGain();
   n.preAn=c.createAnalyser();n.postAn=c.createAnalyser();n.preAn.fftSize=n.postAn.fftSize=1024;
-  n.in.connect(n.phantom);n.phantom.connect(n.pre);n.pre.connect(n.preAn);n.pre.connect(n.pol);n.pol.connect(n.hp);n.hp.connect(n.gate);n.gate.connect(n.comp);
+  n.insS=c.createGain();n.insR=c.createGain();   // insert point (send / return): the audio rack can patch an outboard processor here
+  n.in.connect(n.phantom);n.phantom.connect(n.pre);n.pre.connect(n.preAn);n.pre.connect(n.pol);n.pol.connect(n.hp);n.hp.connect(n.insS);n.insS.connect(n.insR);n.insR.connect(n.gate);n.gate.connect(n.comp);
   let last=n.comp;n.eq.forEach(f=>{last.connect(f);last=f;});last.connect(n.postAn);last.connect(n.solo);n.solo.connect(A.soloBus);
   last.connect(n.mute);n.mute.connect(n.fad);n.fad.connect(n.pan);n.pan.connect(n.st);n.st.connect(A.mainBus);
   n.mono=c.createGain();n.mono.gain.value=0;n.fad.connect(n.mono);n.mono.connect(A.mono);
@@ -670,7 +671,7 @@ function fit(){if(!root.classList.contains('on'))return;const body=root.querySel
   root.classList.toggle('side',LAY==='side');const b=document.getElementById('mx-lay');if(b)b.textContent=LAY==='side'?'Real layout':'Side by side';}
 addEventListener('resize',fit);
 /* programme sound for the video side (ATEM analog in → embedded in the programme SDI → HyperDeck) */
-window.M32={stream:()=>A&&G.power&&A.out78?A.out78.stream:null,levelDb:()=>A&&G.power?Math.max(peakDb(A.anL),peakDb(A.anR)):-120};
+window.M32={audio:()=>A,stream:()=>A&&G.power&&A.out78?A.out78.stream:null,levelDb:()=>A&&G.power?Math.max(peakDb(A.anL),peakDb(A.anR)):-120};
 window.openMixer=()=>{build();root.classList.add('on');fit();draw();};
 window.closeMixer=()=>{root.classList.remove('on');tip.classList.remove('on');};
 })();

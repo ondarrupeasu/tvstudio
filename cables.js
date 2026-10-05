@@ -8,7 +8,7 @@ const vhWrap=()=>document.getElementById('vh-rearwrap');
 function makeRopes(cfg){let ropes=[],raf=0,sig='';const wrap=cfg.wrap,svg=cfg.svg;
 function centre(sel){const w=wrap(),e=w&&w.querySelector(sel);if(!e)return null;const c=e.querySelector('.vh-bnc')||e,r=c.getBoundingClientRect(),R=w.getBoundingClientRect();return {x:r.left+r.width/2-R.left,y:r.top+r.height/2-R.top};}
 /* same height for every tag; only a tag that would overlap its neighbour (long name) goes one step further */
-function stagger(L){[...new Set(L.filter(c=>!c.b).map(c=>c.hang))].forEach(h=>{const dir=Math.sign(h),row=L.filter(c=>!c.b&&c.hang===h).map(c=>({c,x:(centre(c.a)||{x:0}).x,w:c.tag.length*5+7})).sort((a,b)=>a.x-b.x);   // one row per tag height
+function stagger(L){const key=c=>c.hang+'|'+Math.round(((centre(c.a)||{y:0}).y)/12);[...new Set(L.filter(c=>!c.b).map(key))].forEach(h=>{const dir=Math.sign(+h.split('|')[0]),row=L.filter(c=>!c.b&&key(c)===h).map(c=>({c,x:(centre(c.a)||{x:0}).x,w:c.tag.length*5+7})).sort((a,b)=>a.x-b.x);   // one row per tag height and per panel row
     const R=[];row.forEach(t=>{let lvl=0;while(R[lvl]!=null&&t.x-t.w/2<R[lvl]-1)lvl++;t.c.hang+=dir*lvl*17;R[lvl]=t.x+t.w/2;});});return L;}   // lowest free level
 function build(){const s=svg();if(!s)return;const L=stagger(cfg.list());ropes=L.map(c=>{const A=centre(c.a),B=c.b?centre(c.b):null;if(!A||(c.b&&!B))return null;
     const end=B||{x:A.x-6,y:A.y+c.hang};   // negative hang = the cable leaves upwards (into the space between the rear panels)

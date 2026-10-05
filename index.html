@@ -416,6 +416,29 @@
 #simnav button{background:rgba(22,23,28,.85);border:1px solid var(--ce-line);color:#e6e7ea;border-radius:8px;height:32px;padding:0 10px;font:600 12.5px -apple-system,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
 #simnav button:hover{border-color:#ff6b5a;color:#fff}
 #simnav.inhd{position:static;margin-left:10px}#simnav.invx{top:2px;right:330px}#simnav.invx button{height:22px;border-radius:3px;font-size:11.5px;background:#3a434d;border-color:#3a434d;padding:0 8px}
+.ar-hd{padding-bottom:4px}.ar-hd h2 small{font-size:12px;color:#ff6b5a;margin-left:8px;letter-spacing:.06em}
+.ar-body{flex:1;min-height:0;display:flex;gap:8px;padding:2px 12px 8px}
+.ar-side{width:118px;flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px}
+.ar-flip{width:58px;height:150px;border-radius:12px;background:#1b1d22;border:1px solid #ff6b5a;color:#fff;font-size:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.ar-flip span{font:700 9.5px -apple-system,sans-serif;letter-spacing:.06em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg)}
+.ar-flip:hover{background:#2a1714}.ar-mid{background:#1b1d22;border:1px solid #2c2f36;color:#e6e7ea;border-radius:8px;height:30px;padding:0 10px;font:600 12px -apple-system,sans-serif;cursor:pointer}.ar-mid:hover{border-color:#ff6b5a}
+.ar-stage{flex:1;min-width:0;display:flex;justify-content:center;align-items:flex-start;perspective:1800px;overflow:hidden}
+.ar-rack{position:relative;transform-style:preserve-3d;padding:2px 6px;background:#0f1013;border-left:6px solid #2a2b2f;border-right:6px solid #2a2b2f;border-radius:4px}
+.ar-unit{display:flex;flex-direction:column;align-items:center;margin-bottom:2px}.ar-name{align-self:flex-start;font:700 9.5px -apple-system,sans-serif;letter-spacing:.05em;color:#9aa1ab;height:13px;white-space:nowrap;overflow:hidden}.ar-name span{font-weight:400;margin-left:6px;color:#6f7680}
+.ar-svg{display:block;overflow:visible}.ar-k{cursor:ns-resize}.ar-b{cursor:pointer}.ar-s{cursor:help}
+.ar-black{fill:#17181b}.ar-black2{fill:#222327}.ar-silver{fill:#c3c6cc}.ar-silver2{fill:#aeb1b7}.ar-rear{fill:#1c1d21;stroke:#3a3c42}.ar-ear{fill:#9b9ea4}.ar-hole2{fill:#060607}
+.ar-box{fill:none;stroke:#6b6e75;stroke-width:1}.ar-plate{fill:none;stroke:#9aa1ab}.ar-numbox{fill:none;stroke:#cfd2d7}.ar-label{fill:#d7d8db}.ar-hdr{fill:#0a0a0b}
+.ar-tape{fill:#f2efe4;opacity:.93}.ar-tapet{font:700 8px sans-serif;fill:#333}
+.ar-t,.ar-t5{font:600 7px -apple-system,sans-serif;fill:#d7dade}.ar-t4{font:600 5.6px -apple-system,sans-serif;fill:#c3c7cc}.ar-t6{font:700 9px sans-serif;fill:#e8e9eb}.ar-t6b{font:800 8px sans-serif;fill:#fff}.ar-t7w{font:800 13px sans-serif;fill:#fff}
+.ar-t5d{font:700 6.5px -apple-system,sans-serif;fill:#25272b}.ar-t4d{font:600 5.6px sans-serif;fill:#25272b}.ar-t4w{font:700 5.6px sans-serif;fill:#fff}.ar-t5w{font:700 6.5px sans-serif;fill:#fff}
+.ar-brand{font:italic 700 14px Georgia,serif;fill:#25272b}.ar-sec{font:800 7px sans-serif;fill:#25272b;letter-spacing:.06em}
+.ar-lcd{fill:#0c120c}.ar-lcdt{font:700 9px monospace;fill:#7dff8a;text-anchor:middle}.ar-lcd2{fill:#1a0505}.ar-redt{font:800 26px monospace;fill:#ff3b30;text-anchor:middle}
+.ar-kb{fill:#1c1d20;stroke:#56595f;stroke-width:1.2}.ar-kb2{fill:#2b2d31}.ar-ptr{stroke:#f2f2f2;stroke-width:2.4;stroke-linecap:round}
+.ar-bt{fill:#d6d7da;stroke:#7a7d83}.ar-bt2{fill:#4e5157;stroke:#2c2e33}.ar-btr{fill:#3a3c41;stroke:#8a8d93}.ar-rock{fill:#0f1012;stroke:#5a5d63;stroke-width:1.5}
+.ar-led{fill:#2e3034}.ar-led.on.g{fill:#39e26a}.ar-led.on.r{fill:#ff453a}.ar-led.on.y{fill:#ffd60a}.ar-led.on.a{fill:#ffa21f}
+.ar-xlr{fill:#101012;stroke:#a7aab0;stroke-width:1.5}.ar-xlr2{fill:#2a2b2f}.ar-pin{fill:#c9a94a}.ar-jack{fill:#141416;stroke:#8e9197;stroke-width:1.2}.ar-hole{fill:#000}.ar-rca{fill:#c9a94a;stroke:#6b5a24}.ar-post{fill:#b32d2d;stroke:#300}
+.ar-msg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1b1d22;border:1px solid #ff6b5a;color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40}.ar-msg.on{opacity:1}
+#ob.rear .ar-stage{overflow:visible}
 </style>
 </head>
 <body class="ce-base">
@@ -642,7 +665,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=97"></script>
+<script src="power.js?v=98"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -652,11 +675,11 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=97"></script>
+<script src="desk.js?v=98"></script>
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
-    <div class="pwr-btns"><button id="mx-guidebtn">How to use</button><button id="mx-lay">Real layout</button><button id="mx-photo">Real photo</button></div></div>
+    <div class="pwr-btns"><button id="mx-guidebtn">How to use</button><button id="mx-lay">Real layout</button><button id="mx-photo">Real photo</button><button id="mx-rack" onclick="closeMixer();openOutboard()">Audio rack ▶</button></div></div>
   <button class="close" id="mx-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   <div class="mx-zoom"><span>Zoom:</span><button data-zoom="all">Whole desk</button><button data-zoom="#mxRear">Rear panel</button><button data-zoom="#zCtl">Channel controls</button><button data-zoom="#zScr">Screen &amp; layers</button><button data-zoom="#zStr">SEL · SOLO · MUTE</button><button data-zoom="#zFad">Faders</button><em>or pinch on the trackpad · double-click to zoom in/out · drag to move</em><span class="mx-trp" id="mx-trp" hidden><b>Multitrack player</b><button data-t="start" title="Back to the start">⏮</button><button data-t="pp">❚❚</button><button data-t="song" title="Jump to where the song starts">⏭ Song</button><span class="mx-tbar"><i></i></span><span class="mx-tt"></span></span></div>
   <div class="mx-body"><div id="mx-front"></div><img class="mx-photo" src="img/mesa-audio.jpg" alt="Midas M32R in the control room (photo)"></div>
@@ -687,22 +710,26 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=97"></script>
+<script src="m32r.js?v=98"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=97"></script>
-<script src="constellation.js?v=97"></script>
-<script src="hyperdeck.js?v=97"></script>
-<script src="cables.js?v=97"></script>
+<script src="videohub.js?v=98"></script>
+<script src="constellation.js?v=98"></script>
+<script src="hyperdeck.js?v=98"></script>
+<script src="cables.js?v=98"></script>
 <div class="cr" id="cr"></div>
 <div class="um" id="um"></div>
 <div class="vh ob" id="ob"></div>
-<script src="ccu.js?v=97"></script>
-<script src="atempanel.js?v=97"></script>
-<script src="controlroom.js?v=97"></script>
-<script src="ultimatte.js?v=97"></script>
-<script src="outboard.js?v=97"></script>
+<script src="ccu.js?v=98"></script>
+<script src="atempanel.js?v=98"></script>
+<script src="controlroom.js?v=98"></script>
+<script src="ultimatte.js?v=98"></script>
+<script src="audiorack.js?v=98"></script>
+<script src="ar-basic.js?v=98"></script>
+<script src="ar-jvc.js?v=98"></script>
+<script src="ar-mdx4600.js?v=98"></script>
+<script src="ar-deq2496.js?v=98"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=97"></script>
+<script src="vmix.js?v=98"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
@@ -815,7 +842,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElem
 <div id="simnav" aria-label="Simulators"><button class="sn-p" title="Previous simulator">◀ <span></span></button><button class="sn-n" title="Next simulator"><span></span> ▶</button></div>
 <script>
 /* ◀ ▶ between the map and every simulator (like DMXSimulatoR), in the free top-right corner of each screen */
-(function(){const N=[['','Map'],['pwr','Power','openPower','closePower'],['dsk','Lighting','openDesk','closeDesk'],['mx','Midas','openMixer','closeMixer'],['ob','Audio effects','openOutboard','closeOutboard'],
+(function(){const N=[['','Map'],['pwr','Power','openPower','closePower'],['dsk','Lighting','openDesk','closeDesk'],['mx','Midas','openMixer','closeMixer'],['ob','Audio rack','openOutboard','closeOutboard'],
   ['vh','Video rack','openVideohub','closeVideohub'],['um','Ultimatte','openUltimatte','closeUltimatte'],['cr','Vision','openControlRoom','closeControlRoom'],['vx','vMix','openVmix','closeVmix']];
   const nav=document.getElementById('simnav'),cur=()=>{const i=N.findIndex(n=>n[0]&&document.getElementById(n[0])?.classList.contains('on'));return i<0?0:i;};
   const go=d=>{const i=cur(),j=(i+d+N.length)%N.length;if(N[i][3])window[N[i][3]]?.();if(N[j][2])window[N[j][2]]?.();upd();};
