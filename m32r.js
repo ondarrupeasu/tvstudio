@@ -671,7 +671,9 @@ function fit(){if(!root.classList.contains('on'))return;const body=root.querySel
   root.classList.toggle('side',LAY==='side');const b=document.getElementById('mx-lay');if(b)b.textContent=LAY==='side'?'Real layout':'Side by side';}
 addEventListener('resize',fit);
 /* programme sound for the video side (ATEM analog in → embedded in the programme SDI → HyperDeck) */
-window.M32={audio:()=>A,stream:()=>A&&G.power&&A.out78?A.out78.stream:null,levelDb:()=>A&&G.power?Math.max(peakDb(A.anL),peakDb(A.anR)):-120};
+window.M32={audio:()=>A,
+  /* the multitrack clock of the pack (master): the pack videos in the Videohub follow it, like timecode. null = no pack audio playing */
+  packClock:()=>A&&G.power&&A.packT0!=null&&packIds().some(id=>SRC[id].startsWith('pk:'))?{pos:packPos(),paused:A.packPaused!=null,lat:(A.ctx.outputLatency||0)+(A.ctx.baseLatency||0)}:null,stream:()=>A&&G.power&&A.out78?A.out78.stream:null,levelDb:()=>A&&G.power?Math.max(peakDb(A.anL),peakDb(A.anR)):-120};
 window.openMixer=()=>{build();root.classList.add('on');fit();draw();};
 window.closeMixer=()=>{root.classList.remove('on');tip.classList.remove('on');};
 })();

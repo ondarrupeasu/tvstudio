@@ -210,8 +210,14 @@ function wire(){const tip=document.getElementById('vh-tip'),fs=document.getEleme
     else if(t.classList.contains('at-k'))name='ATEM · '+(t.querySelector('text')?[...t.querySelectorAll('text')].map(x=>x.textContent).join(' '):t.dataset.k);
     tip.innerHTML=(name?`<b>${name}</b>`:'')+`<span>${txt}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});
   root.addEventListener('mouseleave',()=>tip.classList.remove('on'));}
+/* the camera files follow the Midas pack clock (one multitrack clock, like timecode): play / pause / seek on the Midas transport move the pictures too */
+setInterval(()=>{const vs=Object.values(PACK.v);if(!vs.length)return;const k=window.M32&&M32.packClock&&M32.packClock();if(!k)return;
+  vs.forEach(v=>{const L=v.duration;if(!L||!isFinite(L))return;const tg=((k.pos-k.lat)%L+L)%L;
+    if(k.paused){if(!v.paused)v.pause();if(Math.abs(v.currentTime-tg)>.04)v.currentTime=tg;return;}
+    if(v.paused)v.play().catch(()=>{});const d=v.currentTime-tg;if(Math.abs(d)>L-.3)return;   // across the loop point
+    if(Math.abs(d)>.5){v.currentTime=tg+.08;v.playbackRate=1;}else v.playbackRate=Math.abs(d)<.015?1:1-Math.max(-.25,Math.min(.25,d*2));});},200);   /* big jump = seek; small drift = speed nudge (inaudible: the videos are muted) */
 let raf=0;function loop(){raf=requestAnimationFrame(loop);if(!root.classList.contains('on'))return;U.blink++;if(U.video||U.blink%30===0)drawLcd();}
 window.openVideohub=()=>{build();root.classList.add('on');draw();if(!raf)loop();};
 window.closeVideohub=()=>{root.classList.remove('on');document.getElementById('vh-tip')?.classList.remove('on');};
-window.VH={plugMenu,save:()=>{save();draw();window.ATEMR&&ATEMR.redraw();},DEF,state:()=>st,inputLabel:inLab,outputLabel:outLab,frame:(o,c,w,h)=>sigFrame(c,st.routes[o],w,h)};   // for the ATEM / multiview later
+window.VH={pack:()=>PACK.v,plugMenu,save:()=>{save();draw();window.ATEMR&&ATEMR.redraw();},DEF,state:()=>st,inputLabel:inLab,outputLabel:outLab,frame:(o,c,w,h)=>sigFrame(c,st.routes[o],w,h)};   // for the ATEM / multiview later
 })();
