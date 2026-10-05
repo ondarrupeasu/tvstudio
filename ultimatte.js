@@ -122,11 +122,12 @@ function srRear(){const W=1000,H=56,X=f=>f*W,T=(x,t)=>`<text x="${X(x)}" y="52" 
     <g class="um-s" data-s="sr:eth1" data-tip="ETHERNET 1: to the network switch (the Ultimattes are on the same network)."><rect x="${X(.405)-10}" y="13" width="20" height="16" rx="2" class="vh-rj"/></g><g class="um-s" data-s="sr:eth2" data-tip="ETHERNET 2"><rect x="${X(.44)-10}" y="13" width="20" height="16" rx="2" class="vh-rj"/></g>${T(.42,'ETHERNET')}
     <g data-tip="HDMI out: an extra monitor."><rect x="${X(.49)-11}" y="16" width="22" height="9" rx="2" class="vh-rj"/></g>${T(.49,'HDMI OUT')}</svg>`;}
 /* the cables (rope physics shared with the video rack) */
-function cableList(){const L=[{a:'[data-s="u0:eth"]',hang:34,tag:'Network',info:'Ethernet → the rack network switch: the Smart Remote 4 controls this unit through it'},{a:'[data-s="u1:eth"]',hang:34,tag:'Network',info:'Ethernet → the rack network switch'}];
+function cableList(){const H=root.querySelector('.um-rear')?.getBoundingClientRect().height||140,dn=Math.round(.08*H)+1,up=-dn;   // tags sit inside the panel: between a BNC and its name (bottom row) or the SDI OUT line (top row)
+  const L=[{a:'[data-s="u0:eth"]',hang:dn,tag:'Network',info:'Ethernet → the rack network switch: the Smart Remote 4 controls this unit through it'},{a:'[data-s="u1:eth"]',hang:dn,tag:'Network',info:'Ethernet → the rack network switch'}];
   const st=window.VH?VH.state():null;if(!st)return L;const o=d=>st.cabOut.indexOf(d),i=v=>st.cabIn.indexOf(v),src=k=>VH.inputLabel(st.routes[o(k)]);
   [0,1].forEach(j=>{const n=j+1,S=id=>`[data-s="u${j}:${id}"]`;
-    [['fg','CAMERA FG'],['bg','BACKGROUND'],['gm','G MATTE IN'],['hm','H MATTE IN'],['mi','MON IN']].forEach(([k,lab])=>{const q=o('u'+n+k);if(q>=0)L.push({a:S(k==='mi'?'moni':k),hang:34,tag:'Hub OUT '+(q+1),info:`${src('u'+n+k)} → Videohub → OUT ${q+1} → Ultimatte ${n} ${lab}`});});
-    [['','pgm','PGM OUT'],['f','fill','PGM FILL'],['m','matte','PGM MATTE'],['mo','mono','MON OUT'],['l','fgl','CAMERA FG LOOP']].forEach(([k,sock,lab])=>{const q=i('ult'+n+k);if(q>=0)L.push({a:S(sock),hang:-28,tag:'Hub IN '+(q+1),info:`Ultimatte ${n} ${lab} → Videohub IN ${q+1}`});});});
+    [['fg','CAMERA FG'],['bg','BACKGROUND'],['gm','G MATTE IN'],['hm','H MATTE IN'],['mi','MON IN']].forEach(([k,lab])=>{const q=o('u'+n+k);if(q>=0)L.push({a:S(k==='mi'?'moni':k),hang:dn,tag:'Hub OUT '+(q+1),info:`${src('u'+n+k)} → Videohub → OUT ${q+1} → Ultimatte ${n} ${lab}`});});
+    [['','pgm','PGM OUT'],['f','fill','PGM FILL'],['m','matte','PGM MATTE'],['mo','mono','MON OUT'],['l','fgl','CAMERA FG LOOP']].forEach(([k,sock,lab])=>{const q=i('ult'+n+k);if(q>=0)L.push({a:S(sock),hang:up,tag:'Hub IN '+(q+1),info:`Ultimatte ${n} ${lab} → Videohub IN ${q+1}`});});});
   return L;}
 let ropes=null;
 /* ---------- Smart Remote 4 ---------- */
