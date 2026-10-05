@@ -102,7 +102,7 @@ function hdFront(i){const W=475,H=100,X=f=>f*W,Y=f=>f*H,k=(id,fx,fy,l)=>`<g clas
 const bncU=(cx,cy,r=8)=>`<circle cx="${cx}" cy="${cy}" r="${r}" class="vh-bnc"/><circle cx="${cx}" cy="${cy}" r="${r*.62}" class="vh-bnc2"/><circle cx="${cx}" cy="${cy}" r="${r*.18}" class="vh-bnc3"/>`;
 function hdRear(i){const W=475,H=100,X=f=>f*W,Y=f=>f*H,T=(x,y,t)=>`<text x="${X(x)}" y="${Y(y)}" class="um-rt">${t}</text>`;
   const sock=(id,x,y,lab,tip)=>`<g class="um-s" data-s="u${i}:${id}" data-tip="${tip}">${bncU(X(x),Y(y))}</g>`+T(x,y+(y<.5?.2:.22),lab);
-  return `<svg viewBox="0 0 ${W} ${H}" class="vh-svg"><rect x="1" y="1" width="${W-2}" height="${H-2}" rx="6" class="at-face"/>
+  return `<svg viewBox="0 0 ${W} ${H}" class="vh-svg um-rear"><rect x="1" y="1" width="${W-2}" height="${H-2}" rx="6" class="at-face"/>
     <g data-tip="IEC power inlet (100-240 V)."><rect x="${X(.02)}" y="${Y(.15)}" width="${X(.105)}" height="${Y(.65)}" rx="3" class="vh-iec2"/></g>
     <g data-tip="GPIO (DE-15): tally input from a GPI interface."><rect x="${X(.217)-14}" y="${Y(.27)-6}" width="28" height="12" rx="4" class="vh-rj"/></g>${T(.217,.42,'GPIO')}
     <g class="um-s" data-s="u${i}:eth" data-tip="ETHERNET: to the rack network switch — the Smart Remote 4 (and Ultimatte Software Control) control the unit over the network."><rect x="${X(.207)-10}" y="${Y(.68)-8}" width="20" height="16" rx="2" class="vh-rj"/></g>${T(.207,.92,'ETHERNET')}
@@ -126,7 +126,7 @@ function cableList(){const L=[{a:'[data-s="u0:eth"]',hang:34,tag:'Network',info:
   const st=window.VH?VH.state():null;if(!st)return L;const o=d=>st.cabOut.indexOf(d),i=v=>st.cabIn.indexOf(v),src=k=>VH.inputLabel(st.routes[o(k)]);
   [0,1].forEach(j=>{const n=j+1,S=id=>`[data-s="u${j}:${id}"]`;
     [['fg','CAMERA FG'],['bg','BACKGROUND'],['gm','G MATTE IN'],['hm','H MATTE IN'],['mi','MON IN']].forEach(([k,lab])=>{const q=o('u'+n+k);if(q>=0)L.push({a:S(k==='mi'?'moni':k),hang:34,tag:'Hub OUT '+(q+1),info:`${src('u'+n+k)} → Videohub → OUT ${q+1} → Ultimatte ${n} ${lab}`});});
-    [['','pgm','PGM OUT'],['f','fill','PGM FILL'],['m','matte','PGM MATTE'],['mo','mono','MON OUT'],['l','fgl','CAMERA FG LOOP']].forEach(([k,sock,lab])=>{const q=i('ult'+n+k);if(q>=0)L.push({a:S(sock),hang:63,tag:'Hub IN '+(q+1),info:`Ultimatte ${n} ${lab} → Videohub IN ${q+1}`});});});
+    [['','pgm','PGM OUT'],['f','fill','PGM FILL'],['m','matte','PGM MATTE'],['mo','mono','MON OUT'],['l','fgl','CAMERA FG LOOP']].forEach(([k,sock,lab])=>{const q=i('ult'+n+k);if(q>=0)L.push({a:S(sock),hang:-28,tag:'Hub IN '+(q+1),info:`Ultimatte ${n} ${lab} → Videohub IN ${q+1}`});});});
   return L;}
 let ropes=null;
 /* ---------- Smart Remote 4 ---------- */
