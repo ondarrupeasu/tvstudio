@@ -204,7 +204,7 @@ function hdPress(i,k){const u=U[i];if(u.lock&&k!=='lock')return;
 function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.innerHTML=`<div class="pwr-hd"><div><h2>Chroma keying — Ultimatte</h2><div class="kind">2 × Ultimatte 12 HD · Ultimatte Smart Remote 4 (video rack)</div>
     <p><b>FILE CLEAR</b> = Auto Key · the 8 knobs = the 8 controls on the screen · tabs MATTE / FOREGROUND / BACKGROUND · <b>MONITOR OUTPUT</b> = what the monitor shows (Combined Matte to judge the key) · hover anything.</p></div>
-    <div class="pwr-btns"><button id="um-load">Load a chroma video…</button><input type="file" id="um-file" accept="video/*" hidden><button id="um-guidebtn">How to use</button><button id="um-rack">Video rack</button></div></div>
+    <div class="pwr-btns"><button id="um-patch">Patch mode</button><button id="um-load">Load a chroma video…</button><input type="file" id="um-file" accept="video/*" hidden><button id="um-guidebtn">How to use</button><button id="um-rack">Video rack</button></div></div>
     <button class="close" id="um-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     <div class="um-body" id="um-wrap"><div class="um-row"><div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 1 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(0)}</div>${hdRear(0)}</div>
         <div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 2 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(1)}</div>${hdRear(1)}</div></div>
@@ -224,8 +224,23 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       <li>Something outside the green (lights, the edge of the cyc): MATTE IN › Window › <b>Window</b> on and dial the edges in.</li>
       <li>On air, option 1: <b>PGM OUT</b> (IN 12) — route it to an ATEM input on the Videohub and cut to it.</li>
       <li>On air, option 2 (background chosen in the ATEM): <b>PGM FILL</b> (IN 13) + <b>PGM MATTE</b> (IN 14) → ATEM <b>KEY 2</b>, luma, fill IN 13, key IN 14, <b>Pre Mult ON</b>, <b>Invert ON</b> (the matte is black on the presenter). Choose the background on the ATEM, select KEY 2 and AUTO / ON. If the switcher does a linear mix (Pre Mult OFF): SETTINGS › Outputs › <b>Fill Lin Mix Cor</b>.</li></ol></div>
-    <div class="pwr-tip" id="um-tip"></div>`;
+    <div class="mx-plugmenu" id="um-plugmenu"></div><div class="pwr-tip" id="um-tip"></div>`;
   document.getElementById('um-close').onclick=()=>window.closeUltimatte();
+  /* patch mode (admin, like the video rack): click a BNC of an Ultimatte → which Videohub port is it cabled to */
+  const pm=document.getElementById('um-plugmenu');
+  document.getElementById('um-patch').onclick=e=>{const on=!root.classList.contains('patch');if(on&&!confirm('Patch mode (admin): you can re-cable the Ultimattes to the Videohub. Changes are saved in this browser. Continue?'))return;
+    root.classList.toggle('patch',on);e.currentTarget.classList.toggle('on',on);e.currentTarget.textContent=on?'Exit patch mode':'Patch mode';pm.classList.remove('on');if(on)flash('Patch mode: click a BNC on an Ultimatte rear');};
+  root.addEventListener('click',e=>{if(!root.classList.contains('patch')){return;}if(pm.contains(e.target))return;const g=e.target.closest('.um-s');if(!g){pm.classList.remove('on');return;}
+    const [,j,k]=/^u(\d):(\w+)$/.exec(g.dataset.s)||[];const IN={fg:'fg',bg:'bg',gm:'gm',hm:'hm',moni:'mi'},OUT={pgm:'',fill:'f',matte:'m',mono:'mo',fgl:'l'};
+    if(!(k in IN)&&!(k in OUT)){pm.innerHTML=`<div class="mx-srchd"><b>${k==='eth'?'ETHERNET':'REF'}</b></div><p class="mx-snote">${k==='eth'?'Network cable to the rack switch — not a Videohub signal.':'Reference (sync) — not a Videohub signal.'}</p>`;}
+    else{const st=VH.state(),n=+j+1,isIn=k in IN,sig=isIn?'u'+n+IN[k]:'ult'+n+OUT[k],arr=isIn?st.cabOut:st.cabIn,cur=arr.indexOf(sig),lab=g.querySelector('title')?.textContent||k;
+      const name={fg:'CAMERA FG',bg:'BACKGROUND',gm:'G MATTE IN',hm:'H MATTE IN',moni:'MON IN',pgm:'PGM OUT',fill:'PGM FILL',matte:'PGM MATTE',mono:'MON OUT',fgl:'CAMERA FG LOOP'}[k];
+      pm.innerHTML=`<div class="mx-srchd"><b>Ultimatte ${n} · ${name}</b> — ${isIn?'which Videohub SDI OUT feeds it?':'which Videohub SDI IN does it go to?'}</div>`+
+        `<button data-p="-1" class="${cur<0?'on':''}">— not cabled —</button>`+arr.map((x,q)=>`<button data-p="${q}" class="${q===cur?'on':''}">${isIn?'OUT':'IN'} ${q+1} <i>${x==='none'?'free':(isIn?VH.outputLabel(q):VH.inputLabel(q))}</i></button>`).join('')+
+        `<p class="mx-snote">${isIn?'Then choose on the Videohub front panel what that OUT carries (DEST = the OUT, SRC = the input).':'Whatever was plugged into that Videohub IN is unplugged.'}</p>`;
+      pm.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const q=+b.dataset.p;arr.forEach((x,o)=>{if(x===sig)arr[o]='none';});if(q>=0)arr[q]=sig;VH.save();pm.classList.remove('on');
+        flash(q<0?name+' unplugged':`Ultimatte ${n} ${name} ↔ Videohub ${isIn?'OUT':'IN'} ${q+1}`);});}
+    pm.style.left=Math.min(e.clientX,innerWidth-310)+'px';pm.classList.add('on');pm.style.top=Math.max(10,Math.min(e.clientY-40,innerHeight-pm.offsetHeight-10))+'px';});
   const fi=document.getElementById('um-file');document.getElementById('um-load').onclick=()=>fi.click();
   fi.onchange=()=>{const f=fi.files[0];if(!f)return;if(CV.v){CV.v.pause();URL.revokeObjectURL(CV.v.src);}const v=document.createElement('video');v.src=URL.createObjectURL(f);v.loop=true;v.muted=true;v.playsInline=true;v.play().catch(()=>{});CV.v=v;CV.name=f.name;
     document.getElementById('um-load').textContent='Chroma video: '+f.name.slice(0,22);flash('Chroma camera (Videohub IN 11) now plays '+f.name+' — press FILE CLEAR (Auto Key)');fi.value='';};document.getElementById('um-rack').onclick=()=>{window.closeUltimatte();window.openVideohub&&openVideohub();};
