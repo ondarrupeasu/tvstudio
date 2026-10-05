@@ -46,7 +46,8 @@ function src(id,g,w,h){g.fillStyle='#000';g.fillRect(0,0,w,h);
 /* program = background (+transition) → [clean feed 1] → DSK 1 / DSK 2 → FTB */
 const pgmCv=mk(),pvwCv=mk(),cleanCv=mk(),tA=mk(),tB=mk(),fCv=mk(),kCv=mk();
 function dskOver(g,a){if(a<=0)return;const fg=fCv.getContext('2d',{willReadFrequently:true}),kg=kCv.getContext('2d',{willReadFrequently:true});
-  const okF=src(19,fg,CW,CH),okK=src(20,kg,CW,CH);   // DSK 1 = vMix fill IN 19 + key IN 20if(!okF||!okK)return;
+  const okF=src(19,fg,CW,CH),okK=src(20,kg,CW,CH);   /* DSK 1 = vMix fill IN 19 + key IN 20 */
+  if(!okF||!okK)return;
   const fd=fg.getImageData(0,0,CW,CH),kd=kg.getImageData(0,0,CW,CH).data,d=fd.data;
   for(let i=0;i<d.length;i+=4)d[i+3]=(kd[i]*.2126+kd[i+1]*.7152+kd[i+2]*.0722)*a;   // linear key: the key signal's luminance = transparency
   fg.putImageData(fd,0,0);g.drawImage(fCv,0,0);}

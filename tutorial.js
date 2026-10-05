@@ -10,6 +10,20 @@ const key=k=>(k=res(k),document.querySelectorAll(`#cr .ap-k[data-k="${k}"],#cr .
 function reset(){const a=A(),P=PN()&&PN().P;if(!a||!P)return;const S=a.S;
   S.T=null;a.pgm(1);a.pvw(2);a.trans('mix');[1,2,3,4].forEach(n=>{S['key'+n].on=false;S['key'+n].a=0;});['dsk1','dsk2'].forEach(k=>{S[k].on=false;S[k].a=0;S[k].tie=false;});S.ftb.on=false;S.ftb.a=0;
   a.next({bkgd:true,k1:false,k2:false,k3:false,k4:false});a.setOut(2,9);a.setOut(3,10);a.setOut(4,12);a.setOut(9,'pgm');Object.assign(P,{menu:'home',shift:false,key:1,keySel:'fill',aux:0,homeTab:0});PN().draw();}
+/* ---------- tutorial signals (simulator only) ----------
+ * When a lesson needs a signal that is not there (e.g. vMix not running → nothing on IN 19/20), the tutorial generates a
+ * sample one in its place and the card says so. The real signal always wins when it exists. */
+function lowerThird(c,w,h,key){const x=w*.07,y=h*.72,bw=w*.52,bh=h*.15;
+  if(key){c.fillStyle='#000';c.fillRect(0,0,w,h);c.fillStyle='#fff';c.fillRect(x,y,bw,bh);c.fillRect(x,y+bh,bw*.62,h*.06);return;}
+  c.fillStyle='#000';c.fillRect(0,0,w,h);c.fillStyle='#173d7a';c.fillRect(x,y,bw,bh);c.fillStyle='#f39c12';c.fillRect(x,y,w*.012,bh);
+  c.fillStyle='#e9eef6';c.fillRect(x,y+bh,bw*.62,h*.06);
+  c.fillStyle='#fff';c.font=`700 ${Math.round(h*.065)}px system-ui,sans-serif`;c.textBaseline='middle';c.fillText('Ane Etxeberria',x+w*.03,y+bh*.5);
+  c.fillStyle='#173d7a';c.font=`600 ${Math.round(h*.036)}px system-ui,sans-serif`;c.fillText('Presenter · Tartanga TV',x+w*.03,y+bh+h*.03);}
+const SIG={vfill:(c,w,h)=>lowerThird(c,w,h,false),vkey:(c,w,h)=>lowerThird(c,w,h,true)};
+let sigSaved={},sigUsed=false;
+function sigOn(list){sigOff();(list||[]).forEach(k=>{const o=window.VH_SOURCES&&VH_SOURCES[k];sigSaved[k]=o;
+  VH_SOURCES[k]=(c,w,h)=>{if(o&&o(c,w,h)!==false)return;SIG[k](c,w,h);if(!sigUsed){sigUsed=true;render();}};});}
+function sigOff(){for(const k in sigSaved){if(sigSaved[k])VH_SOURCES[k]=sigSaved[k];else delete VH_SOURCES[k];}sigSaved={};sigUsed=false;}
 /* ---------- lessons ---------- */
 const L=[
  {id:'usk',title:'Upstream key on the M/E: picture in picture',intro:'An M/E (mix/effect) is the background (program / preview) plus up to 4 <b>upstream keys</b> on top of it. A key can be a DVE (a box: picture in picture), a LUMA key or a CHROMA key. Upstream keys go <b>with</b> the background: they can be part of the next transition.',
@@ -31,7 +45,7 @@ const L=[
   {t:'Press <b>ON</b> (KEY 1): the green is removed and the presenter stands on the background (Ext 1, on program).',hl:['on1'],check:()=>A().S.key1.on,demo:[{k:'on1'}]},
   {t:'Change the background under the key: on PROGRAM press <b>Ext 2</b>.',hl:['pgm@10'],check:()=>A().S.pgm===10,demo:[{k:'pgm@10'}]},
   {t:'Turn the key off: <b>ON</b> again.',hl:['on1'],check:()=>!A().S.key1.on,demo:[{k:'on1'}]}]},
- {id:'dsk',title:'Downstream key (DSK): the graphics from vMix',intro:'The 2 DSKs come <b>after</b> the M/E: whatever is on program, the DSK stays on top (logos, lower thirds). Here DSK 1 = <b>fill IN 19 + key IN 20</b> = the vMix External output (vMix has to be running with <b>External</b> on to see the graphics).',
+ {id:'dsk',title:'Downstream key (DSK): the graphics from vMix',intro:'The 2 DSKs come <b>after</b> the M/E: whatever is on program, the DSK stays on top (logos, lower thirds). Here DSK 1 = <b>fill IN 19 + key IN 20</b> = the vMix External output (in class, vMix has to be running with <b>External</b> on).',sig:['vfill','vkey'],sigNote:'vMix is not sending anything, so the tutorial puts a sample lower third on IN 19 (fill) / IN 20 (key). Open vMix with External on and its own graphics are used instead.',
   steps:[
   {t:'Press <b>DSK 1 CUT</b>: the graphics go on air at once.',hl:['dcut1'],check:()=>A().S.dsk1.on,demo:[{k:'dcut1'}]},
   {t:'Change the camera with <b>CUT</b> (preview Cam 2 is ready): the DSK stays on top.',hl:['cut'],check:()=>A().S.pgm===2,demo:[{k:'cut'}]},
@@ -67,13 +81,13 @@ async function act(a){const P=PN();if(!P)return;if(a.k){key(a.k).forEach(e=>e.cl
 async function demo(s){for(const a of s.demo){if(stopReq)return;await act(a);await W(380);}}
 function render(){const c=card(),s=cur&&cur.steps[step];if(!c)return;if(!cur){c.classList.remove('on');hl([]);return;}c.classList.add('on');
   const done=step>=cur.steps.length;
-  c.innerHTML=`<div class="tut-hd"><b>${cur.title}</b><button data-t="x" title="Exit the tutorial">✕</button></div>`+
+  c.innerHTML=`<div class="tut-hd"><b>${cur.title}</b><button data-t="x" title="Exit the tutorial">✕</button></div>`+(sigUsed&&cur.sigNote?`<p class="tut-sim">🎓 Simulator only: ${cur.sigNote}</p>`:'')+
     (step===0&&!done?`<p class="tut-intro">${cur.intro}</p>`:'')+
     (done?`<p class="tut-step">✓ Lesson done. ${mode==='do'?'Well done!':''}</p><div class="tut-btns"><button data-t="again">Again</button><button data-t="menu">Other lessons</button></div>`:
     `<div class="tut-prog">${mode==='watch'?'▶ Watching':'✋ Your turn'} · step ${step+1} / ${cur.steps.length}</div><p class="tut-step">${s.t}</p>
      <div class="tut-btns">${mode==='do'?'<button data-t="show">Show me</button>':''}<button data-t="back" ${step?'':'disabled'}>◀</button><button data-t="skip">Skip ▶</button>${mode==='watch'?'<button data-t="pause">'+(playing?'❚❚ Pause':'▶ Play')+'</button>':''}</div>`);
   hl(done?[]:s.hl);}
-function start(l,m){stopReq=true;clearInterval(timer);cur=l;mode=m;step=0;reset();l.setup&&l.setup();PN()&&PN().draw();stopReq=false;render();
+function start(l,m){stopReq=true;clearInterval(timer);cur=l;mode=m;step=0;reset();sigOn(l.sig);l.setup&&l.setup();PN()&&PN().draw();stopReq=false;render();
   timer=setInterval(()=>{if(!cur||step>=cur.steps.length||playing)return;const s=cur.steps[step];try{if(s.check()){hl([]);step++;setTimeout(render,450);}}catch(_){}} ,200);
   if(m==='watch')play();}
 async function play(){if(playing)return;playing=true;render();while(cur&&step<cur.steps.length&&!stopReq&&playing){const s=cur.steps[step];render();await W(1500);if(!playing||stopReq)break;await demo(s);await W(900);if(!playing||stopReq)break;if(step<cur.steps.length)step++;}playing=false;render();}
@@ -84,9 +98,13 @@ function build(){if(document.getElementById('tut-card'))return;const cr=document
   const b=document.createElement('button');b.id='tut-btn';b.textContent='🎓 Tutorials';b.title='Student mode: lessons on the ATEM (watch them or do them)';cr.querySelector('.pwr-btns').prepend(b);b.onclick=menu;
   document.getElementById('tut-menu').addEventListener('click',e=>{const t=e.target;if(t.dataset.t==='close'){t.closest('.tut-menu').classList.remove('on');return;}
     const i=t.dataset.w??t.dataset.d;if(i==null)return;document.getElementById('tut-menu').classList.remove('on');start(L[+i],t.dataset.w!=null?'watch':'do');});
+  /* drag the card by its title bar, so it never hides what the lesson asks you to look at */
+  card().addEventListener('pointerdown',e=>{const hd=e.target.closest('.tut-hd');if(!hd||e.target.closest('button'))return;const c=card(),r=c.getBoundingClientRect(),dx=e.clientX-r.left,dy=e.clientY-r.top;
+    hd.setPointerCapture(e.pointerId);const mv=ev=>{c.style.left=Math.max(0,Math.min(innerWidth-r.width,ev.clientX-dx))+'px';c.style.top=Math.max(0,Math.min(innerHeight-40,ev.clientY-dy))+'px';c.style.bottom='auto';};
+    const up=()=>{hd.removeEventListener('pointermove',mv);hd.removeEventListener('pointerup',up);};hd.addEventListener('pointermove',mv);hd.addEventListener('pointerup',up);});
   card().addEventListener('click',async e=>{const t=e.target.dataset.t;if(!t)return;
-    if(t==='x'){stopReq=true;playing=false;clearInterval(timer);cur=null;render();return;}
-    if(t==='menu'){cur=null;render();menu();return;}if(t==='again'){start(cur,mode);return;}
+    if(t==='x'){stopReq=true;playing=false;clearInterval(timer);cur=null;sigOff();render();return;}
+    if(t==='menu'){cur=null;sigOff();render();menu();return;}if(t==='again'){start(cur,mode);return;}
     if(t==='skip'){step=Math.min(cur.steps.length,step+1);render();return;}if(t==='back'){step=Math.max(0,step-1);render();return;}
     if(t==='pause'){if(playing){playing=false;render();}else play();return;}
     if(t==='show'){const s=cur.steps[step];e.target.disabled=true;await demo(s);}});}
