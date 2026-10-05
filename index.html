@@ -418,11 +418,11 @@
 #simnav.inhd{position:static;margin-left:10px}#simnav.invx{top:2px;right:330px}#simnav.invx button{height:22px;border-radius:3px;font-size:11.5px;background:#3a434d;border-color:#3a434d;padding:0 8px}
 .ar-hd{padding-bottom:4px}.ar-hd h2 small{font-size:12px;color:#ff6b5a;margin-left:8px;letter-spacing:.06em}
 .ar-body{flex:1;min-height:0;display:flex;gap:8px;padding:2px 12px 8px}
-.ar-side{width:118px;flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px}
+.ar-side{width:90px;flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px}
 .ar-flip{width:58px;height:150px;border-radius:12px;background:#1b1d22;border:1px solid #ff6b5a;color:#fff;font-size:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer}
 .ar-flip span{font:700 9.5px -apple-system,sans-serif;letter-spacing:.06em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg)}
 .ar-flip:hover{background:#2a1714}.ar-mid{background:#1b1d22;border:1px solid #2c2f36;color:#e6e7ea;border-radius:8px;height:30px;padding:0 10px;font:600 12px -apple-system,sans-serif;cursor:pointer}.ar-mid:hover{border-color:#ff6b5a}
-.ar-stage{flex:1;min-width:0;display:flex;justify-content:center;align-items:flex-start;perspective:1800px;overflow:hidden}
+.ar-stage{flex:1;min-width:0;display:flex;justify-content:center;align-items:center;gap:12px;perspective:1800px;overflow:hidden}.ar-stage>.ar-rack{align-self:flex-start}.ar-flip{flex:none}
 .ar-rack{position:relative;transform-style:preserve-3d;padding:2px 6px;background:#0f1013;border-left:6px solid #2a2b2f;border-right:6px solid #2a2b2f;border-radius:4px}
 .ar-unit{display:flex;flex-direction:column;align-items:center;margin-bottom:2px}.ar-name{align-self:flex-start;font:700 9.5px -apple-system,sans-serif;letter-spacing:.05em;color:#9aa1ab;height:13px;white-space:nowrap;overflow:hidden}.ar-name span{font-weight:400;margin-left:6px;color:#6f7680}
 .ar-svg{display:block;overflow:visible}.ar-k{cursor:ns-resize}.ar-b{cursor:pointer}.ar-s{cursor:help}
@@ -438,7 +438,7 @@
 .ar-led{fill:#2e3034}.ar-led.on.g{fill:#39e26a}.ar-led.on.r{fill:#ff453a}.ar-led.on.y{fill:#ffd60a}.ar-led.on.a{fill:#ffa21f}
 .ar-xlr{fill:#101012;stroke:#a7aab0;stroke-width:1.5}.ar-xlr2{fill:#2a2b2f}.ar-pin{fill:#c9a94a}.ar-jack{fill:#141416;stroke:#8e9197;stroke-width:1.2}.ar-hole{fill:#000}.ar-rca{fill:#c9a94a;stroke:#6b5a24}.ar-post{fill:#b32d2d;stroke:#300}
 .ar-msg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1b1d22;border:1px solid #ff6b5a;color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40}.ar-msg.on{opacity:1}
-#ob.rear .ar-stage{overflow:visible}
+#ob.rear .ar-stage{overflow:visible}#ob.patch .ar-rack{outline:2px dashed #c2185b;outline-offset:3px}#ob.patch .ar-s{cursor:copy}#ar-plugmenu{position:fixed;z-index:50;max-height:80vh;overflow:auto}#ar-plugmenu .mx-snote{margin:6px 8px 2px;font-weight:700}
 </style>
 </head>
 <body class="ce-base">
@@ -665,7 +665,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=98"></script>
+<script src="power.js?v=99"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -675,7 +675,7 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=98"></script>
+<script src="desk.js?v=99"></script>
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
@@ -710,26 +710,26 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=98"></script>
+<script src="m32r.js?v=99"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=98"></script>
-<script src="constellation.js?v=98"></script>
-<script src="hyperdeck.js?v=98"></script>
-<script src="cables.js?v=98"></script>
+<script src="videohub.js?v=99"></script>
+<script src="constellation.js?v=99"></script>
+<script src="hyperdeck.js?v=99"></script>
+<script src="cables.js?v=99"></script>
 <div class="cr" id="cr"></div>
 <div class="um" id="um"></div>
 <div class="vh ob" id="ob"></div>
-<script src="ccu.js?v=98"></script>
-<script src="atempanel.js?v=98"></script>
-<script src="controlroom.js?v=98"></script>
-<script src="ultimatte.js?v=98"></script>
-<script src="audiorack.js?v=98"></script>
-<script src="ar-basic.js?v=98"></script>
-<script src="ar-jvc.js?v=98"></script>
-<script src="ar-mdx4600.js?v=98"></script>
-<script src="ar-deq2496.js?v=98"></script>
+<script src="ccu.js?v=99"></script>
+<script src="atempanel.js?v=99"></script>
+<script src="controlroom.js?v=99"></script>
+<script src="ultimatte.js?v=99"></script>
+<script src="audiorack.js?v=99"></script>
+<script src="ar-basic.js?v=99"></script>
+<script src="ar-jvc.js?v=99"></script>
+<script src="ar-mdx4600.js?v=99"></script>
+<script src="ar-deq2496.js?v=99"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=98"></script>
+<script src="vmix.js?v=99"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
@@ -773,13 +773,13 @@ const RACK=[
 ];
 // --- Audio rack (next to the audio desk), top→bottom — identified from the photo (4-oct) ---
 const RACK_AUDIO=[
-  {name:"JVC A-X7 — stereo amplifier",prod:"img/producto/jvc-ax7.jpg",link:"https://hifi-wiki.com/index.php/JVC_A-X_7",desc:"Powers the passive monitor speakers. Labelled SP-1 = control-room speakers, SP-2 = studio speakers (SPEAKERS selector 1 / 2 / 1+2).",y:2,h:26.1,x:1,w:96},
-  {name:"Behringer MULTICOM PRO-XL MDX4600 (1)",prod:"img/producto/multicom.jpg",link:"https://www.behringer.com/en/products/0817-ABC",desc:"4 channels of dynamics: expander/gate, compressor/limiter and peak limiter on each.",y:28.6,h:8,x:1,w:96},
-  {name:"Behringer MULTICOM PRO-XL MDX4600 (2)",prod:"img/producto/multicom.jpg",link:"https://www.behringer.com/en/products/0817-ABC",desc:"Another 4 channels of gate + compressor/limiter.",y:36.8,h:8,x:1,w:96},
+  {name:"JVC A-X77 — stereo amplifier",sim:"ob",prod:"img/producto/jvc-ax7.jpg",link:"https://hifi-wiki.com/index.php/JVC_A-X_7",desc:"Powers the passive monitor speakers. Labelled SP-1 = control-room speakers, SP-2 = studio speakers (SPEAKERS selector 1 / 2 / 1+2).",y:2,h:26.1,x:1,w:96},
+  {name:"Behringer MULTICOM PRO-XL MDX4600 (1)",sim:"ob",prod:"img/producto/multicom.jpg",link:"https://www.behringer.com/en/products/0817-ABC",desc:"4 channels of dynamics: expander/gate, compressor/limiter and peak limiter on each.",y:28.6,h:8,x:1,w:96},
+  {name:"Behringer MULTICOM PRO-XL MDX4600 (2)",sim:"ob",prod:"img/producto/multicom.jpg",link:"https://www.behringer.com/en/products/0817-ABC",desc:"Another 4 channels of gate + compressor/limiter.",y:36.8,h:8,x:1,w:96},
   {name:"TC Electronic M350 — effects",sim:"ob",prod:"img/producto/m350.jpg",link:"https://www.yumpu.com/en/document/view/27078053/m350-manual-english-tc-electronic",desc:"Dual-engine effects: reverb + delay/chorus at the same time (discontinued — link = manual). Labelled “AUX 1 y 2”: fed by aux sends 1-2 of the Midas.",y:44.9,h:7.8,x:1,w:96},
   {name:"Behringer VIRTUALIZER PRO DSP2024P — effects",sim:"ob",prod:"img/producto/virtualizer.jpg",link:"https://www.behringer.com/en/products/0828-AAB",desc:"24-bit multi-effects (reverbs, delays, modulation). Labelled “AUX 3 y 4”: fed by aux sends 3-4.",y:53,h:7.8,x:1,w:96},
-  {name:"img Stage Line LS-280 — line splitter",prod:"img/producto/splitter.jpg",link:"https://www.img-stageline.com/products/audio-tools/line-combiner-line-splitter/ls-280-sw/",desc:"Stereo line distributor: one ST-L/ST-R input to 8 outputs with their own level (sections A 1-4, B 5-8). Outputs labelled PGM and VU: it shares the programme sound out to several destinations. (Older unit; the picture shows today's version.)",y:61,h:7.8,x:1,w:96},
-  {name:"Behringer ULTRA-CURVE PRO DEQ2496",prod:"img/producto/deq2496.jpg",link:"https://www.behringer.com/en/products/0821-AAD",desc:"Mastering / room processor: graphic + parametric EQ, feedback destroyer, dynamics and a real-time analyser (RTA).",y:69,h:7.8,x:1,w:96}
+  {name:"img Stage Line LS-280 — line splitter",sim:"ob",prod:"img/producto/splitter.jpg",link:"https://www.img-stageline.com/products/audio-tools/line-combiner-line-splitter/ls-280-sw/",desc:"Line splitter: 2 mono inputs (A = ST-L, B = ST-R) to 8 outputs (A → 1-4, B → 5-8; LINK = A to all 8) with their own level (sections A 1-4, B 5-8). Outputs labelled PGM and VU: it shares the programme sound out to several destinations. (Older unit; the picture shows today's version.)",y:61,h:7.8,x:1,w:96},
+  {name:"Behringer ULTRA-CURVE PRO DEQ2496",sim:"ob",prod:"img/producto/deq2496.jpg",link:"https://www.behringer.com/en/products/0821-AAD",desc:"Mastering / room processor: graphic + parametric EQ, feedback destroyer, dynamics and a real-time analyser (RTA).",y:69,h:7.8,x:1,w:96}
 ];
 const RACKS={rack:{units:RACK,img:"img/rack-v2.jpg",title:"Video rack",kind:"The signal chain"},rackaudio:{units:RACK_AUDIO,img:"img/rack-audio-v2.jpg",title:"Audio rack",kind:"Outboard next to the audio desk"}};
 const rackStage=document.getElementById('rackstage'),racktip=document.getElementById('racktip');
