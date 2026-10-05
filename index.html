@@ -215,7 +215,7 @@
   .um{position:fixed;inset:0;z-index:19;background:#0b0c0f;display:none;flex-direction:column}.um.on{display:flex}.um .pwr-hd{padding:8px 16px 6px;align-items:center}.um .pwr-hd p{font-size:11.5px}.um .pwr-btns button{padding:6px 10px;font-size:12px}
   .um-body{flex:1;min-height:0;overflow:auto;padding:4px 12px 0;display:flex;flex-direction:column;gap:4px;position:relative}.um-row{display:flex;gap:2%;justify-content:center}.um-unit{width:40%;display:flex;flex-direction:column;gap:4px}
   .um-hdw,.um-srf{position:relative}.um-sw{width:42%;margin:10px auto 0}.um-rt{font-size:5px;font-weight:600;fill:#c9ccd1;text-anchor:middle}.um-s{cursor:help}.um-s.hl .vh-bnc,.um-s.hl rect{stroke:#ffcf5a;stroke-width:3}
-  .um-lcd{position:absolute;left:64.4%;top:9%;width:22.4%;height:81%;pointer-events:none}.um-row2{display:flex;gap:14px;align-items:flex-start;justify-content:center;margin-top:34px}.um-srw{width:47%;display:flex;flex-direction:column;gap:4px}.um-monw{flex:1;max-width:480px;margin-top:18px}
+  .um-lcd{position:absolute;left:64.4%;top:9%;width:22.4%;height:81%;pointer-events:none}.um-row2{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-top:34px}.um-srw{width:64.5%;display:flex;flex-direction:column;gap:4px}.um-monw{flex:1;max-width:440px;margin-top:18px}
   #um-touch{position:absolute;left:37.5%;top:10%;width:50.1%;height:75%;cursor:pointer}#um-mon{width:100%;aspect-ratio:16/9;background:#000;border:6px solid #15161a;border-radius:6px;display:block}.um-note{font-size:11.5px;color:var(--ce-muted)}
   .um-k{cursor:pointer}.um-k rect{fill:#1f2125;stroke:#000}.um-kt{font-size:7px;font-weight:700;fill:#e8e9eb;text-anchor:middle}.um-k:hover rect{stroke:var(--ce-accent);stroke-width:1.5}.um-k.green rect{fill:#1e8449}.um-k.blue rect{fill:#2e6fd6}.um-k.red rect{fill:#c0392b}.um-k.amber rect{fill:#c77a12}
   .um-sr rect{fill:#c9cdd2}.um-sr .um-kt{fill:#111}.um-name{font-size:13px;font-weight:700;fill:#fff}.um-tape{font-size:9px;fill:#d8c79a}.um-logo{font-size:30px;font-style:italic;font-weight:700;fill:#fff;text-anchor:middle}.um-st{font-size:12px;font-weight:700;fill:#e8e9eb;text-anchor:middle}.um-srk{cursor:ns-resize}
@@ -638,7 +638,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=88"></script>
+<script src="power.js?v=89"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -648,7 +648,7 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=88"></script>
+<script src="desk.js?v=89"></script>
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
@@ -683,22 +683,22 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=88"></script>
+<script src="m32r.js?v=89"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=88"></script>
-<script src="constellation.js?v=88"></script>
-<script src="hyperdeck.js?v=88"></script>
-<script src="cables.js?v=88"></script>
+<script src="videohub.js?v=89"></script>
+<script src="constellation.js?v=89"></script>
+<script src="hyperdeck.js?v=89"></script>
+<script src="cables.js?v=89"></script>
 <div class="cr" id="cr"></div>
 <div class="um" id="um"></div>
 <div class="vh ob" id="ob"></div>
-<script src="ccu.js?v=88"></script>
-<script src="atempanel.js?v=88"></script>
-<script src="controlroom.js?v=88"></script>
-<script src="ultimatte.js?v=88"></script>
-<script src="outboard.js?v=88"></script>
+<script src="ccu.js?v=89"></script>
+<script src="atempanel.js?v=89"></script>
+<script src="controlroom.js?v=89"></script>
+<script src="ultimatte.js?v=89"></script>
+<script src="outboard.js?v=89"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=88"></script>
+<script src="vmix.js?v=89"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
