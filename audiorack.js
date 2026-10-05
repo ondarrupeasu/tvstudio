@@ -111,6 +111,8 @@ function setK(d,k,v,reset){const o=d.knobs[k];if(!o)return;let nv;if(reset)nv=o.
   else nv=Math.max(o.min,Math.min(o.max,d.st[k]+v*(o.step||(o.max-o.min)/100)));if(nv===d.st[k])return;d.st[k]=nv;d.change&&d.change(k);draw();showTip(d,k);}
 function showTip(d,k){const o=d.knobs[k],t=$('#ar-tip');if(!o||!t||!t.classList.contains('on'))return;const val=o.fmt?o.fmt(d.st[k]):(Math.round(d.st[k]*10)/10)+(o.unit||'');t.querySelector('b').textContent=(o.name||k)+': '+val;}
 let flipping=false;
+/* for the tutorials (tut-ob.js) */
+AR.api={side:()=>side,flip:()=>flip()};
 function flip(){if(flipping)return;flipping=true;const rk=$('#ar-rack');rk.style.transition='transform .2s ease-in';rk.style.transform='rotateY(90deg)';
   setTimeout(()=>{side=side==='front'?'rear':'front';rk.style.transition='none';rk.style.transform='rotateY(-90deg)';render();
     setTimeout(()=>{rk.style.transition='transform .2s ease-out';rk.style.transform='rotateY(0)';setTimeout(()=>{flipping=false;ropes&&ropes.refresh();},230);},20);},200);}
