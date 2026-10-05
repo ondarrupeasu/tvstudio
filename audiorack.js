@@ -112,7 +112,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';make();
   root.innerHTML=`<div class="pwr-hd ar-hd"><div><h2>Audio rack <small id="ar-side"></small></h2><div class="kind">JVC A-X77 · 2× Behringer MDX4600 · TC Electronic M350 · Behringer DSP2024P · img Stage Line LS-280 · Behringer DEQ2496 — cabling assumed</div></div>
     <div class="pwr-btns"><button id="ar-patch">Patch mode</button><button id="ar-def" hidden>Default cabling</button><button id="ar-guidebtn">How to use</button></div></div>
     <button class="close" id="ar-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-    <div class="ar-body" id="ar-body"><div class="ar-side l"><button class="ar-mid" id="ar-midas" title="Go to the Midas">◀ Midas</button></div>
+    <div class="ar-body" id="ar-body"><div class="ar-side l"><button class="ar-jump l" id="ar-midas" title="Go to the Midas">◀ Midas</button></div>
       <div class="ar-stage"><button class="ar-flip" data-flip title="Turn the rack round">⟲<span>turn round</span></button><div class="ar-rack" id="ar-rack"></div><button class="ar-flip" data-flip title="Turn the rack round">⟲<span>turn round</span></button></div><div class="ar-side r"></div></div>
     <div class="ar-msg" id="ar-msg"></div>
     <div class="mx-src mx-guide" id="ar-guide"><div class="mx-srchd"><b>The audio rack</b> <button id="ar-guideclose" aria-label="Close">✕</button></div><ol class="mx-steps">
