@@ -63,15 +63,16 @@ const L=[
   {t:'Turn <b>knob 1</b> to <b>SDI Out 3</b> (BKG 1 → Ultimatte 1).',hl:['knob0'],check:()=>PN().P.aux===2,demo:[{knob:0,d:1,n:2}]},
   {t:'With the select row choose <b>Ext 2</b>. Look at <b>Ult 1</b> on the multiview: the presenter is now in the warm studio.',hl:['sel@10'],check:()=>A().st().outs[2]===10,demo:[{k:'sel@10'}]},
   {t:'Put the news set back: <b>Ext 1</b>.',hl:['sel@9'],check:()=>A().st().outs[2]===9,demo:[{k:'sel@9'}]}]},
- {id:'loop',title:'Re-entry: an ATEM signal back into the ATEM',intro:'Internal sources (program, preview, clean feed, colours, bars, media players…) can be chosen on any bus or output <b>without a cable</b>. The multiview is the exception: to put it on air it has to leave the ATEM and come back in. That is what the sheet\'s <b>OUT 10 → IN 11</b> cable can do.',
+ {id:'loop',title:'Re-entry: the multiview back into the ATEM (and why not on air)',intro:'Internal sources (program, preview, clean feed, colours, bars, media players…) can be chosen on any bus or output <b>without a cable</b>. The multiview is the exception: to use it as a source it has to leave the ATEM and come back in — the sheet\'s <b>OUT 10 → IN 11</b> cable. But careful: the multiview shows the programme, so putting it on air makes a <b>tunnel</b> (the multiview inside itself, like a camera pointed at its own monitor).',
+  outro:'So the multiview is <b>not for program</b>. To record or stream it you don\'t even need the loop: on Inhar\'s sheet MV 1 already reaches the Videohub on its own (<b>IN 19</b>). Route <b>Videohub OUT 18 (HyperDeck) ← IN 19</b> to record it, or OUT 10 (vMix streaming) to stream it.',
   steps:[
   {t:'Press <b>AUX</b>.',hl:['sys_AUX'],check:()=>PN().P.menu==='aux',demo:[{k:'sys_AUX'}]},
-  {t:'<b>Knob 1</b> → <b>SDI Out 10</b>.',hl:['knob0'],check:()=>PN().P.aux===9,demo:[{knob:0,d:-1,n:3}]},
-  {t:'<b>Knob 2</b> (internal sources) → <b>Multiview 1</b>.',hl:['knob1'],check:()=>A().st().outs[9]==='mv1',demo:[{knob:1,d:1,n:3}]},
-  {t:'IN 11 ("Loop") is on the second page of buttons: press <b>SHIFT</b>…',hl:['shift2'],check:()=>PN().P.shift,demo:[{k:'shift2'}]},
-  {t:'…and <b>button 1</b> on PREVIEW (= IN 11).',hl:['pvw0'],check:()=>A().S.pvw===11,demo:[{k:'pvw0'}]},
-  {t:'<b>CUT</b>: the multiview is on air (a split screen with every camera).',hl:['cut'],check:()=>A().S.pgm===11,demo:[{k:'cut'}]},
-  {t:'Back to Cam 1: <b>SHIFT</b> off and <b>Cam 1</b> on PROGRAM.',hl:['shift2','pgm@1'],check:()=>A().S.pgm===1,demo:[{k:'shift2'},{k:'pgm@1'}]}]}];
+  {t:'<b>Knob 1</b> → <b>SDI Out 10</b> (the output cabled back to IN 11).',hl:['knob0'],check:()=>PN().P.aux===9,demo:[{knob:0,d:-1,n:3}]},
+  {t:'<b>Knob 2</b> (internal sources) → <b>Multiview 1</b>. Now IN 11 ("Loop") carries the multiview.',hl:['knob1'],check:()=>A().st().outs[9]==='mv1',demo:[{knob:1,d:1,n:3}]},
+  {t:'IN 11 is on the second page of buttons: press <b>SHIFT</b>…',hl:['shift2'],check:()=>PN().P.shift,demo:[{k:'shift2'}]},
+  {t:'…and <b>button 1</b> on PREVIEW (= IN 11). Only on <b>preview</b>, never on air: look at the preview window of the multiview — the multiview inside itself, smaller and smaller (the tunnel).',hl:['pvw0'],check:()=>A().S.pvw===11,demo:[{k:'pvw0'}]},
+  {t:'That is why it does not go to program. Take it out of preview: <b>SHIFT</b> off…',hl:['shift2'],check:()=>!PN().P.shift,demo:[{k:'shift2'}]},
+  {t:'…and <b>Cam 2</b> on PREVIEW.',hl:['pvw@2'],check:()=>A().S.pvw===2,demo:[{k:'pvw@2'}]}]}];
 /* ---------- engine ---------- */
 let cur=null,step=0,mode='do',timer=null,playing=false,stopReq=false;
 const card=()=>document.getElementById('tut-card');
@@ -83,7 +84,7 @@ function render(){const c=card(),s=cur&&cur.steps[step];if(!c)return;if(!cur){c.
   const done=step>=cur.steps.length;
   c.innerHTML=`<div class="tut-hd"><b>${cur.title}</b><button data-t="x" title="Exit the tutorial">✕</button></div>`+(sigUsed&&cur.sigNote?`<p class="tut-sim">🎓 Simulator only: ${cur.sigNote}</p>`:'')+
     (step===0&&!done?`<p class="tut-intro">${cur.intro}</p>`:'')+
-    (done?`<p class="tut-step">✓ Lesson done. ${mode==='do'?'Well done!':''}</p><div class="tut-btns"><button data-t="again">Again</button><button data-t="menu">Other lessons</button></div>`:
+    (done?`<p class="tut-step">✓ Lesson done. ${mode==='do'?'Well done!':''}</p>${cur.outro?`<p class="tut-intro">${cur.outro}</p>`:''}<div class="tut-btns"><button data-t="again">Again</button><button data-t="menu">Other lessons</button></div>`:
     `<div class="tut-prog">${mode==='watch'?'▶ Watching':'✋ Your turn'} · step ${step+1} / ${cur.steps.length}</div><p class="tut-step">${s.t}</p>
      <div class="tut-btns">${mode==='do'?'<button data-t="show">Show me</button>':''}<button data-t="back" ${step?'':'disabled'}>◀</button><button data-t="skip">Skip ▶</button>${mode==='watch'?'<button data-t="pause">'+(playing?'❚❚ Pause':'▶ Play')+'</button>':''}</div>`);
   hl(done?[]:s.hl);}
