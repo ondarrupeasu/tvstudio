@@ -41,7 +41,7 @@ function svg(){let s=`<svg viewBox="${VB.join(' ')}" class="cr-svg" id="ap-svg">
   s+=`<rect x="${X(.903)}" y="${Y(.66)}" width="4" height="${Y(.05)}" class="ap-guard"/><rect x="${X(.955)-4}" y="${Y(.66)}" width="4" height="${Y(.05)}" class="ap-guard"/>`+key('ftb',X(.928),Y(.685),36,38,'FTB','ap-w','FTB: fade the whole programme to black (blinks red); press again to come back.');
   return s+`</svg><canvas class="ap-lcd" width="400" height="216" style="left:${pc(X(.369),VB[0],VB[2])};top:${pc(Y(.094),VB[1],VB[3])};width:${pc(X(.261),0,VB[2])};height:${pc(Y(.139),0,VB[3])}"></canvas>`;}
 /* ---------- state → panel ---------- */
-const OUTS=12,INT=['pgm','pvw','clean1','bars','black','col1','col2','mp1','mp2'];
+const OUTS=12,INT=['pgm','pvw','clean1','mv1','bars','black','col1','col2','mp1','mp2'];
 function setK(id,cls,on){const g=document.querySelector(`#ap-svg .ap-k[data-k="${id}"]`);if(g)g.classList.toggle(cls,!!on);}
 function draw(){const a=A();if(!a)return;const S=a.S,st=a.st(),off=P.shift?10:0,now=performance.now();
   for(let n=0;n<10;n++){const v=btnSrc(n,P.shift);setK('pgm'+n,'red',S.pgm===v||(S.T&&S.pvw===v));setK('pvw'+n,'green',st.mode==='pp'&&S.pvw===v&&!S.T);setK('sel'+n,'white',(P.menu==='aux'&&st.outs[P.aux]===v)||(P.menu==='keyers'&&a.key(P.key).fill===v)||(P.menu==='settings'&&P.mapBtn===n+(P.shift?10:0)));
@@ -138,5 +138,5 @@ function mount(el){el.innerHTML=`<div class="cr-wrap ap-wrap">${svg()}</div>`;co
     const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);};addEventListener('pointermove',mv);addEventListener('pointerup',up);});
   s.addEventListener('wheel',e=>{const kn=e.target.closest('.ap-knob');if(!kn)return;e.preventDefault();knob(+kn.dataset.k.slice(4),e.deltaY<0?1:-1);draw();},{passive:false});
   draw();}
-window.APANEL={mount,draw};
+window.APANEL={mount,draw,src:(i,sh)=>btnSrc(i,sh),press:k=>{press(k);draw();},knob:(i,d)=>{knob(i,d);draw();},P};   // press / knob / P: used by the tutorials (demo + checks)
 })();
