@@ -236,8 +236,8 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     if(!(k in IN)&&!(k in OUT)){pm.innerHTML=`<div class="mx-srchd"><b>${k==='eth'?'ETHERNET':'REF'}</b></div><p class="mx-snote">${k==='eth'?'Network cable to the rack switch — not a Videohub signal.':'Reference (sync) — not a Videohub signal.'}</p>`;}
     else{const st=VH.state(),n=+j+1,isIn=k in IN,sig=isIn?'u'+n+IN[k]:'ult'+n+OUT[k],arr=isIn?st.cabOut:st.cabIn,cur=arr.indexOf(sig),lab=g.querySelector('title')?.textContent||k;
       const name={fg:'CAMERA FG',bg:'BACKGROUND',gm:'G MATTE IN',hm:'H MATTE IN',moni:'MON IN',pgm:'PGM OUT',fill:'PGM FILL',matte:'PGM MATTE',mono:'MON OUT',fgl:'CAMERA FG LOOP'}[k];
-      pm.innerHTML=`<div class="mx-srchd"><b>Ultimatte ${n} · ${name}</b> — ${isIn?'which Videohub SDI OUT feeds it?':'which Videohub SDI IN does it go to?'}</div>`+
-        `<button data-p="-1" class="${cur<0?'on':''}">— not cabled —</button>`+arr.map((x,q)=>`<button data-p="${q}" class="${q===cur?'on':''}">${isIn?'OUT':'IN'} ${q+1} <i>${x==='none'?'free':(isIn?VH.outputLabel(q):VH.inputLabel(q))}</i></button>`).join('')+
+      pm.innerHTML=`<div class="mx-srchd"><b>Ultimatte ${n} · ${name}</b> — ${isIn?'it comes from a Videohub SDI OUT: which one?':'it goes to a Videohub SDI IN: which one?'}</div>`+
+        `<button data-p="-1" class="${cur<0?'on':''}">— not cabled —</button>`+arr.map((x,q)=>`<button data-p="${q}" class="${q===cur?'on':''}">Videohub ${isIn?'OUT':'IN'} ${q+1} <i>${x==='none'?'free':(isIn?'now → ':'now ← ')+(isIn?VH.outputLabel(q):VH.inputLabel(q))}</i></button>`).join('')+
         `<p class="mx-snote">${isIn?'Then choose on the Videohub front panel what that OUT carries (DEST = the OUT, SRC = the input).':'Whatever was plugged into that Videohub IN is unplugged.'}</p>`;
       pm.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const q=+b.dataset.p;arr.forEach((x,o)=>{if(x===sig)arr[o]='none';});if(q>=0)arr[q]=sig;VH.save();pm.classList.remove('on');
         flash(q<0?name+' unplugged':`Ultimatte ${n} ${name} ↔ Videohub ${isIn?'OUT':'IN'} ${q+1}`);});}

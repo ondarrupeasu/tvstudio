@@ -49,20 +49,20 @@ function msg(t){const d=document.getElementById('vh-diag');if(d)d.innerHTML=`<sp
 function mark(){document.querySelectorAll('#vh-rearwrap .psel').forEach(e=>e.classList.remove('psel'));if(sel)document.querySelector(`#vh-rearwrap .${sel[0]==='h'?'vh':'at'}-sock[data-s="${sel.slice(1)}"]`)?.classList.add('psel');}
 function wire(){if(wired)return;wired=true;const root=document.getElementById('vh');
   document.getElementById('vh-patch').onclick=e=>{const on=!root.classList.contains('patch');if(on&&!confirm('Patch mode (admin): you can re-cable the rear panels. Changes are saved in this browser. Continue?'))return;
-    root.classList.toggle('patch',on);e.currentTarget.classList.toggle('on',on);e.currentTarget.textContent=on?'Exit patch mode':'Patch mode';sel=null;mark();if(on)msg('Click a free socket and then the other end to run a cable (router OUT → ATEM IN, or ATEM OUT → router IN), in either order · click a plugged socket to unplug it · click a router socket twice for cameras, vMix and other devices.');else VH.save();};
+    root.classList.toggle('patch',on);e.currentTarget.classList.toggle('on',on);e.currentTarget.textContent=on?'Exit patch mode':'Patch mode';sel=null;mark();if(on)msg('Click a free socket and then the other end to run a cable (Videohub OUT → ATEM IN, or ATEM OUT → Videohub IN), in either order · click a plugged socket to unplug it · click a Videohub socket twice for cameras, vMix and other devices.');else VH.save();};
   document.getElementById('vh-exp').onclick=()=>{const st=VH.state(),b=new Blob([JSON.stringify({tvstudio:'video-rack-cabling',v:1,cabIn:st.cabIn,cabOut:st.cabOut},null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='tvstudio-video-cabling.json';a.click();};
   const fi=document.getElementById('vh-impfile');document.getElementById('vh-imp').onclick=()=>fi.click();
   fi.onchange=async()=>{try{const d=JSON.parse(await fi.files[0].text());if(!Array.isArray(d.cabIn)||!Array.isArray(d.cabOut))throw 0;const st=VH.state();st.cabIn=d.cabIn;st.cabOut=d.cabOut;VH.save();msg('Cabling imported.');}catch(_){alert('That file is not a cabling file.');}fi.value='';};
   document.getElementById('vh-def').onclick=()=>{if(!confirm('Put back the default (Tartanga) cabling?'))return;const st=VH.state();st.cabIn=[...VH.DEF.cabIn];st.cabOut=[...VH.DEF.cabOut];VH.save();msg('Default cabling restored.');};
-  const nm=k=>({hi:'router IN ',ho:'router OUT ',ai:'ATEM IN ',ao:'ATEM OUT ',am:'ATEM MULTIVIEW '}[k.slice(0,2)]+(+k.slice(2)+1));
+  const nm=k=>({hi:'Videohub IN ',ho:'Videohub OUT ',ai:'ATEM IN ',ao:'ATEM OUT ',am:'ATEM MULTIVIEW '}[k.slice(0,2)]+(+k.slice(2)+1));
   const plugged=k=>{const st=VH.state(),t=k.slice(0,2),n=+k.slice(2);return t==='hi'?st.cabIn[n]!=='none':t==='ho'?st.cabOut[n]!=='none':t==='ai'?st.cabOut.includes('atem'+(n+1)):t==='ao'?st.cabIn.some(v=>v==='ao'+(n+1)||(n===0&&v==='atem')):true;};
   function unplug(k){const st=VH.state(),t=k.slice(0,2),n=+k.slice(2);
     if(t==='hi')st.cabIn[n]='none';else if(t==='ho')st.cabOut[n]='none';
     else if(t==='ai')st.cabOut.forEach((v,i)=>{if(v==='atem'+(n+1))st.cabOut[i]='none';});
     else if(t==='ao')st.cabIn.forEach((v,i)=>{if(v==='ao'+(n+1)||(n===0&&v==='atem'))st.cabIn[i]='none';});}
   function connect(x,y){const st=VH.state(),p={[x.slice(0,2)]:+x.slice(2),[y.slice(0,2)]:+y.slice(2)};
-    if('ho' in p&&'ai' in p){unplug('ai'+p.ai);st.cabOut[p.ho]='atem'+(p.ai+1);return `Cable: router OUT ${p.ho+1} → ATEM IN ${p.ai+1}.`;}
-    if('ao' in p&&'hi' in p){unplug('ao'+p.ao);st.cabIn[p.hi]='ao'+(p.ao+1);return `Cable: ATEM OUT ${p.ao+1} → router IN ${p.hi+1}.`;}
+    if('ho' in p&&'ai' in p){unplug('ai'+p.ai);st.cabOut[p.ho]='atem'+(p.ai+1);return `Cable: Videohub OUT ${p.ho+1} → ATEM IN ${p.ai+1}.`;}
+    if('ao' in p&&'hi' in p){unplug('ao'+p.ao);st.cabIn[p.hi]='ao'+(p.ao+1);return `Cable: ATEM OUT ${p.ao+1} → Videohub IN ${p.hi+1}.`;}
     return null;}
   vhWrap().addEventListener('click',e=>{if(!root.classList.contains('patch'))return;const g=e.target.closest('.vh-sock,.at-sock');if(!g)return;e.stopPropagation();
     const k=(g.classList.contains('vh-sock')?'h':'a')+g.dataset.s;

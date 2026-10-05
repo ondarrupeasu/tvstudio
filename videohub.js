@@ -71,7 +71,7 @@ function bnc(cx,cy,r=13){return `<circle cx="${cx}" cy="${cy}" r="${r}" class="v
 function rear(){let s=`<svg viewBox="0 0 ${PW} ${PH+14}" class="vh-svg" id="vh-rsvg"><rect x="1" y="1" width="${PW-2}" height="${PH-2}" rx="7" class="vh-face vh-rface"/>`;
   [[0.021],[0.981]].forEach(([c])=>[0.15,0.85].forEach(y=>s+=`<rect x="${X(c)-9}" y="${Y(y)-5}" width="18" height="10" rx="5" class="vh-hole"/>`));
   s+=`<rect x="${X(0.042)}" y="4" width="${X(0.921)}" height="${PH-8}" rx="3" class="vh-rin"/>`;
-  s+=`<g data-tip="IEC power inlet (90-240 V AC, one internal supply). No power switch: the router is always on; routes survive a power cut."><rect x="${X(0.05)}" y="${Y(0.1)}" width="${X(0.064)}" height="${Y(0.8)}" rx="3" class="vh-iec"/><rect x="${X(0.058)}" y="${Y(0.18)}" width="${X(0.048)}" height="${Y(0.38)}" rx="4" class="vh-iec2"/><rect x="${X(0.06)}" y="${Y(0.62)}" width="${X(0.044)}" height="${Y(0.2)}" rx="2" class="vh-iec2"/></g>`;
+  s+=`<g data-tip="IEC power inlet (90-240 V AC, one internal supply). No power switch: the Videohub is always on; routes survive a power cut."><rect x="${X(0.05)}" y="${Y(0.1)}" width="${X(0.064)}" height="${Y(0.8)}" rx="3" class="vh-iec"/><rect x="${X(0.058)}" y="${Y(0.18)}" width="${X(0.048)}" height="${Y(0.38)}" rx="4" class="vh-iec2"/><rect x="${X(0.06)}" y="${Y(0.62)}" width="${X(0.044)}" height="${Y(0.2)}" rx="2" class="vh-iec2"/></g>`;
   s+=`<g data-tip="REF IN: reference (black burst / tri-sync).">${bnc(X(0.138),Y(0.25),12)}<text x="${X(0.138)}" y="${Y(0.5)}" class="vh-rt">REF IN</text></g>`;
   s+=`<g data-tip="RS-422 CNTRL: crosspoint control from a third-party controller."><rect x="${X(0.171)-11}" y="${Y(0.25)-10}" width="22" height="18" rx="2" class="vh-rj"/><text x="${X(0.171)}" y="${Y(0.5)}" class="vh-rt">RS-422</text><text x="${X(0.171)}" y="${Y(0.5)+6}" class="vh-rt">CNTRL</text></g>`;
   s+=`<g data-tip="ETHERNET: Videohub Control / Setup software and remote panels (port 9990)."><rect x="${X(0.138)-17}" y="${Y(0.66)-11}" width="34" height="22" rx="2" class="vh-rj"/><text x="${X(0.138)}" y="${Y(0.92)}" class="vh-rt">ETHERNET</text></g>`;
@@ -95,16 +95,16 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
   <div class="mx-plugmenu" id="vh-plugmenu"></div>
   <div class="mx-src mx-guide" id="vh-guide"><div class="mx-srchd"><b>How to use the Smart Videohub</b> <button id="vh-guideclose" aria-label="Close">✕</button></div>
     <ol class="mx-steps">
-      <li>The router is a <b>matrix</b>: 20 SDI inputs (sources: cameras, vMix, ATEM programme…) and 20 SDI outputs (destinations: ATEM inputs, vMix, recorder, monitors). Each output carries exactly one input; one input can feed many outputs.</li>
+      <li>The Videohub is a router, a <b>matrix</b>: 20 SDI inputs (sources: cameras, vMix, ATEM programme…) and 20 SDI outputs (destinations: ATEM inputs, vMix, recorder, monitors). Each output carries exactly one input; one input can feed many outputs.</li>
       <li><b>Pick the destination:</b> press <b>DEST</b> and then a numbered key (1-20), or turn the knob to scroll destinations by name. The screen shows it in blue with the source it is carrying now.</li>
       <li><b>Pick the source:</b> press <b>SRC</b> and then a numbered key, or turn the knob.</li>
       <li><b>TAKE</b> flashes red: press it to make the change. <b>CLEAR</b> discards it.</li>
       <li><b>VIDEO</b>: with SRC or DEST, shows that signal as live video on the little screen — check it before you TAKE. Press VIDEO again for the labels.</li>
       <li><b>Lock</b> a destination so nobody changes it by mistake: select it and <b>hold DEST 2 s</b> (a padlock appears). Same again to unlock.</li>
       <li><b>MENU</b>: <i>network</i> (IP address, subnet, gateway) and <i>use take</i> (off = the source switches as soon as you pick it). Knob to move, TAKE to select / confirm, MENU to go back.</li>
-      <li><b>Rear panel:</b> the cables stay where they are — routing happens <b>inside</b> the router. Hover a BNC to see what is cabled there. Cabled for now: IN 1-8 = cameras 1-8 (the multicam pack), IN 9-10 = vMix fill / key, and OUT 1-10 feed ATEM inputs 1-10.</li>
+      <li><b>Rear panel:</b> the cables stay where they are — routing happens <b>inside</b> the Videohub. Hover a BNC to see what is cabled there. Cabled for now: IN 1-8 = cameras 1-8 (the multicam pack), IN 9-10 = vMix fill / key, and OUT 1-10 feed ATEM inputs 1-10.</li>
       <li>Cameras show a test image; <b>Load the pack folder</b> (multicam pack, CAM1-8) to see the real footage.</li>
-      <li><b>ATEM Constellation</b> (the switcher, under the router): its inputs come from the router outputs (OUT 1-10 → ATEM IN 1-10). Press a source key = <b>preview</b> (green); <b>CUT</b> or <b>AUTO</b> = it goes <b>on air</b> (red). MIX / WIPE / DIP / DVE choose the AUTO transition.</li>
+      <li><b>ATEM Constellation</b> (the switcher, under the Videohub): its inputs come from the Videohub outputs (OUT 1-10 → ATEM IN 1-10). Press a source key = <b>preview</b> (green); <b>CUT</b> or <b>AUTO</b> = it goes <b>on air</b> (red). MIX / WIPE / DIP / DVE choose the AUTO transition.</li>
       <li><b>DSK 1 MIX</b> keys the vMix graphics over the programme (fill on IN 9, key on IN 10). In vMix turn on <b>External</b> with Alpha Channel <i>Straight</i> or <i>Premultiplied</i> so the fill and key arrive.</li>
       <li><b>FTB</b> fades everything to black. <b>MENU</b> → Outputs assigns what each of the 12 SDI outputs carries; Transitions = rate; Settings = cut-bus mode. <b>LOCK</b>: hold 2 s to lock the panel, 1 s to unlock.</li>
       <li>The <b>control-room monitor</b> at the bottom is the ATEM's MULTIVIEW 1: preview and programme on top, inputs 1-8 below with red / green tally. <i>Open on a second screen</i> puts it in its own window.</li>
@@ -171,7 +171,7 @@ function press(id){U.msg='';
   else if(id.startsWith('n'))pickNum(+id.slice(1));}
 /* ---------- rear plugging ---------- */
 function plugMenu(s,ev){const m=document.getElementById('vh-plugmenu'),d=s[0],k=+s.slice(1),L=d==='i'?SRCS:DSTS,cur=d==='i'?st.cabIn[k]:st.cabOut[k];
-  m.innerHTML=`<div class="mx-srchd"><b>${d==='i'?'SDI IN':'SDI OUT'} ${k+1}</b> — ${d==='i'?'what is cabled into it?':'what does it feed?'}</div>`+
+  m.innerHTML=`<div class="mx-srchd"><b>Videohub ${d==='i'?'SDI IN':'SDI OUT'} ${k+1}</b> — ${d==='i'?'what is cabled into it?':'what does it feed?'}</div>`+
     Object.entries(L).map(([v,l])=>`<button data-v="${v}" class="${v===cur?'on':''}">${l}${d==='i'&&SRCL[v]?` <i>${SRCL[v]}</i>`:''}${d==='i'&&/^cam\d$/.test(v)?(PACK.v[+v.slice(3)]?' <i>— pack video loaded ✓</i>':' <i>— test image (load the pack for video)</i>'):''}</button>`).join('')+
     (d==='i'?'<p class="mx-snote">vMix fill / key arrive while vMix External is on; ATEM PGM = ATEM SDI OUT 1.</p>':'<p class="mx-snote">To cable it to an ATEM input you can also click this OUT and then the ATEM input on its rear panel.</p>');
   m.style.left=Math.min(ev.clientX,innerWidth-300)+'px';m.style.top=Math.max(10,Math.min(ev.clientY-40,innerHeight-m.offsetHeight-10))+'px';m.classList.add('on');
@@ -202,7 +202,7 @@ function wire(){const tip=document.getElementById('vh-tip'),fs=document.getEleme
   root.addEventListener('click',e=>{const m=document.getElementById('vh-plugmenu');if(!m.contains(e.target)&&!e.target.closest('.vh-sock'))m.classList.remove('on');});
   root.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip],.vh-sock');if(!t){tip.classList.remove('on');return;}
     let name='',txt=t.dataset.tip||'';
-    if(t.classList.contains('vh-sock')){const d=t.dataset.s[0],k=+t.dataset.s.slice(1);name=(d==='i'?'SDI IN ':'SDI OUT ')+(k+1);
+    if(t.classList.contains('vh-sock')){const d=t.dataset.s[0],k=+t.dataset.s.slice(1);name='Videohub '+(d==='i'?'SDI IN ':'SDI OUT ')+(k+1);
       txt=d==='i'?`Cabled: ${st.cabIn[k]==='none'?'not known yet':SRCS[st.cabIn[k]]}${SRCL[st.cabIn[k]]?' ('+SRCL[st.cabIn[k]]+')':''}. Feeds: ${st.routes.map((r,o)=>r===k&&st.cabOut[o]!=='none'?'OUT '+(o+1):null).filter(Boolean).join(', ')||'no used output'}. `
         :`Feeds: ${st.cabOut[k]==='none'?'not known yet':DSTS[st.cabOut[k]]}. Carrying IN ${st.routes[k]+1} (${inLab(st.routes[k])}).`;}
     else if(t.classList.contains('vh-k'))name=(t.dataset.k.startsWith('n')?'Key '+t.dataset.k.slice(1):t.dataset.k.toUpperCase());
