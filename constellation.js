@@ -4,14 +4,14 @@
  * and the MULTIVIEW output shows the control-room monitor. Not affiliated with Blackmagic Design. */
 (function(){
 const PW=1080,PH=100,X=f=>f*PW,Y=f=>f*PH,CW=480,CH=270;
-const ST_KEY='atem-state';
+const ST_KEY='atem-state2';
 const SRCN={bars:'Color Bars',black:'Black',mp1:'Media Player 1',mp2:'Media Player 2',col1:'Color 1',col2:'Color 2',pgm:'Program',pvw:'Preview',clean1:'Clean Feed 1',mv1:'Multiview 1'};
-const DEF={outs:['pgm','pvw','pgm','black','black','black','black','black','black','black','black','black'],mode:'pp',rate:25,dskRate:25,ftbRate:25,ip:[192,168,11,50],
-  keys:[{type:'dve',fill:2,key:null,size:.35,x:.58,y:-.55},{type:'luma',fill:13,key:14,size:.35,x:-.58,y:-.55,pm:true,clip:0,gain:0,inv:true},{type:'chroma',fill:1,key:null,size:1,x:0,y:0},{type:'dve',fill:3,key:null,size:.35,x:-.58,y:.55}]};
+const DEF={outs:['pgm','pvw',9,10,12,'black','black','black','pgm','pgm','pgm','pgm'],   /* Inhar's sheet: 1 PGM → hub IN 9, 2 AUX → hub IN 8, 3-5 BKG 1-3 = Ext 1-3 → Ultimatte 1-3 BG, 9 vectorscope, 10 → IN 11 (loop), 11 de-embedder, 12 control TV */mode:'pp',rate:25,dskRate:25,ftbRate:25,ip:[192,168,11,50],
+  keys:[{type:'dve',fill:2,key:null,size:.35,x:.58,y:-.55},{type:'luma',fill:13,key:14,size:.35,x:-.58,y:-.55,pm:false,clip:0,gain:0,inv:false},{type:'chroma',fill:1,key:null,size:1,x:0,y:0},{type:'dve',fill:3,key:null,size:.35,x:-.58,y:.55}]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(ST_KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
 if(!st.keys)st.keys=JSON.parse(JSON.stringify(DEF.keys));
 st.keys.forEach((k,i)=>{if(k.clip==null)Object.assign(k,{pm:false,clip:15,gain:50,inv:false});});   // luma key: Pre Multiplied Key, Clip, Gain, Invert Key
-if(st.keys[1].type==='luma'&&st.keys[1].fill===9&&st.keys[1].key===10)Object.assign(st.keys[1],DEF.keys[1]);   // key 2 now = Ultimatte 1 PGM FILL / PGM MATTE (IN 13 / 14)
+if(st.keys[1].type==='luma'&&st.keys[1].fill===9&&st.keys[1].key===10)Object.assign(st.keys[1],DEF.keys[1]);   // key 2 = luma with the HyperDeck fill / key (IN 13 / 14)
 /* media pool (stills for the 2 media players), colour generators, DVE key border */
 if(!st.mp)st.mp=[0,1];if(!st.col)st.col=[{h:215,s:.75,l:.35},{h:0,s:0,l:.08}];if(!st.border)st.border={w:3,h:0,s:0,l:1};
 const STILLS=['TV Studio logo','Coming up next','Technical difficulties','Lower-third test','Grey card'];
@@ -26,14 +26,19 @@ function still(i,g,w,h,tag){const gr=g.createLinearGradient(0,0,w,h);g.textAlign
 const save=()=>{try{localStorage.setItem(ST_KEY,JSON.stringify(st));}catch(_){}};
 const S={pgm:1,pvw:2,trans:'mix',T:null,ftb:{on:false,a:0},key1:{on:false,a:0},key2:{on:false,a:0},key3:{on:false,a:0},key4:{on:false,a:0},dsk1:{on:false,a:0,tie:false,cut:false},dsk2:{on:false,a:0,tie:false,cut:false},next:{bkgd:true,k1:false,k2:false,k3:false,k4:false},locked:false,lockFlash:0,
   menu:null,master:0,audioSel:null,msg:''};
-const inName=n=>'Camera '+n;   // ATEM default input names
+const INAMES={1:'Cam 1',2:'Cam 2',3:'Cam 3',4:'Cam 4',5:'VTR',6:'Ult 1',7:'Ult 2',8:'Ult 3',9:'Ext 1',10:'Ext 2',11:'Loop',12:'Ext 3',13:'HD Fill',14:'HD Key',15:'DL Ext 4',19:'vMix Fill',20:'vMix Key'};
+const inName=n=>INAMES[n]||'Camera '+n;   // input names after Inhar's ATEM sheet
 const srcLabel=id=>typeof id==='number'?inName(id):SRCN[id]||id;
 /* ---------- signals ---------- */
 const mk=(w=CW,h=CH)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 const hubOutFor=n=>window.VH?VH.state().cabOut.indexOf('atem'+n):-1;
 function bars(g,w,h){['#c0c0c0','#c0c000','#00c0c0','#00c000','#c000c0','#c00000','#0000c0'].forEach((c,i)=>{g.fillStyle=c;g.fillRect(i*w/7,0,w/7+1,h*.75);});g.fillStyle='#101010';g.fillRect(0,h*.75,w,h*.25);}
+let srcDepth=0;
 function src(id,g,w,h){g.fillStyle='#000';g.fillRect(0,0,w,h);
-  if(typeof id==='number'){const o=hubOutFor(id);return o>=0&&VH.frame(o,g,w,h)!==false;}
+  if(typeof id==='number'){const o=hubOutFor(id);if(o>=0)return VH.frame(o,g,w,h)!==false;
+    const d=window.VH&&VH.state().atemIn&&VH.state().atemIn[id];if(!d)return false;   // straight into the ATEM (DeckLink playouts, HyperDeck, vMix fill/key, the OUT 10 loop)
+    const ao=/^ao(\d+)$/.exec(d);if(ao){if(srcDepth>2)return false;srcDepth++;try{return outFrame(st.outs[+ao[1]-1],g,w,h)!==false;}finally{srcDepth--;}}
+    const f=window.VH_SOURCES&&VH_SOURCES[d];return f?f(g,w,h)!==false:false;}
   if(id==='bars'){bars(g,w,h);return true;}
   if(id==='mp1'||id==='mp2'){still(st.mp[id==='mp1'?0:1],g,w,h,id==='mp1'?'MP 1':'MP 2');return true;}
   if(id==='col1'||id==='col2'){const c=st.col[id==='col1'?0:1];g.fillStyle=`hsl(${c.h},${c.s*100}%,${c.l*100}%)`;g.fillRect(0,0,w,h);return true;}
@@ -41,7 +46,7 @@ function src(id,g,w,h){g.fillStyle='#000';g.fillRect(0,0,w,h);
 /* program = background (+transition) → [clean feed 1] → DSK 1 / DSK 2 → FTB */
 const pgmCv=mk(),pvwCv=mk(),cleanCv=mk(),tA=mk(),tB=mk(),fCv=mk(),kCv=mk();
 function dskOver(g,a){if(a<=0)return;const fg=fCv.getContext('2d',{willReadFrequently:true}),kg=kCv.getContext('2d',{willReadFrequently:true});
-  const okF=src(9,fg,CW,CH),okK=src(10,kg,CW,CH);if(!okF||!okK)return;
+  const okF=src(19,fg,CW,CH),okK=src(20,kg,CW,CH);   // DSK 1 = vMix fill IN 19 + key IN 20if(!okF||!okK)return;
   const fd=fg.getImageData(0,0,CW,CH),kd=kg.getImageData(0,0,CW,CH).data,d=fd.data;
   for(let i=0;i<d.length;i+=4)d[i+3]=(kd[i]*.2126+kd[i+1]*.7152+kd[i+2]*.0722)*a;   // linear key: the key signal's luminance = transparency
   fg.putImageData(fd,0,0);g.drawImage(fCv,0,0);}
@@ -95,7 +100,7 @@ function front(){let s=`<svg viewBox="0 0 ${PW} ${PH}" class="vh-svg" id="at-fsv
   s+=`<rect x="${X(0.2155)}" y="${Y(0.151)}" width="${X(0.3207)}" height="${Y(0.693)}" rx="4" class="at-frame"/>`;
   for(let n=1;n<=20;n++){const c=(n-1)%10;s+=kBig('s'+n,0.2315+c*0.0321,n<=10?0.325:0.671,n,`Source ${n} (${inName(n)}): press = PREVIEW (green). In cut-bus mode it goes straight to PROGRAM.`);}
   s+=`<rect x="${X(0.558)}" y="${Y(0.151)}" width="${X(0.032)}" height="${Y(0.693)}" rx="4" class="at-frame"/>`+kBig('cut',0.574,0.325,'CUT','CUT: preview and program swap instantly.')+kBig('auto',0.574,0.671,'AUTO','AUTO: runs the selected transition (MIX, DIP, WIPE, DVE) at its rate.');
-  [['key1',0.6275,0.223,'KEY 1|MIX','KEY 1 MIX: upstream key 1 on/off with a mix (not set up here).'],['dsk1',0.6529,0.223,'DSK 1|MIX','DSK 1 MIX: downstream key 1 on/off — here the vMix graphics (fill IN 9 + key IN 10).'],['dsk2',0.6792,0.223,'DSK2|MIX','DSK 2 MIX: downstream key 2 (not set up here).'],['ftb',0.7046,0.223,'FTB','FTB: fade the whole programme to black (blinks while black).'],
+  [['key1',0.6275,0.223,'KEY 1|MIX','KEY 1 MIX: upstream key 1 on/off with a mix (not set up here).'],['dsk1',0.6529,0.223,'DSK 1|MIX','DSK 1 MIX: downstream key 1 on/off — here the vMix graphics (fill IN 19 + key IN 20).'],['dsk2',0.6792,0.223,'DSK2|MIX','DSK 2 MIX: downstream key 2 (not set up here).'],['ftb',0.7046,0.223,'FTB','FTB: fade the whole programme to black (blinks while black).'],
    ['bars',0.6275,0.5,'BARS','BARS: colour bars as a source.'],['black',0.6529,0.5,'BLACK','BLACK as a source.'],['mp1',0.6792,0.5,'MP 1','MP 1: media player 1 (a still) as a source.'],['mp2',0.7046,0.5,'MP 2','MP 2: media player 2 as a source.'],
    ['tmix',0.6275,0.782,'MIX','Transition type: MIX (cross-dissolve).'],['twipe',0.6529,0.782,'WIPE','Transition type: WIPE.'],['tdip',0.6792,0.782,'DIP','Transition type: DIP (through black).'],['tdve',0.7046,0.782,'DVE','Transition type: DVE (push).']].forEach(([id,x,y,l,t])=>s+=kSmall(id,x,y,l,t));
   s+=`<rect x="${X(0.740)}" y="${Y(0.085)}" width="${X(0.1)}" height="${Y(0.825)}" rx="2" class="vh-lcdb"/>`;

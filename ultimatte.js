@@ -29,7 +29,7 @@ const MENUS={
 const TABS=Object.keys(MENUS),MONS=['Program','Foreground Input','Background Input','Combined Matte','Internal Matte','Fill Out'];
 const ALLK=Object.values(MENUS).flatMap(m=>Object.values(m).filter(Boolean).flatMap(g=>g.k)),ALLF=Object.values(MENUS).flatMap(m=>Object.values(m).filter(Boolean).flatMap(g=>g.f)).filter(f=>f.type==='toggle');
 const defV=()=>Object.fromEntries(ALLK.map(k=>[k.id,k.def])),defF=()=>Object.fromEntries(ALLF.map(f=>[f.id,f.def]));
-const U=[1,2].map(n=>({n,v:defV(),f:defF(),backing:[40,170,60],ch:1,mon:0,preset:0,quick:{},lock:false,menu:null,
+const U=[1,2,3].map(n=>({n,v:defV(),f:defF(),backing:[40,170,60],ch:1,mon:0,preset:0,quick:{},lock:false,menu:null,
   out:mk(),monCv:mk(),fillCv:mk(),matteCv:mk(),fg:mk(),bg:mk(),gm:mk(),hm:mk(),mi:mk(),loop:mk(),plate:null,dly:[],online:true}));
 const R={unit:0,tab:'MATTE',grp:Object.fromEntries(TABS.map(t=>[t,Object.keys(MENUS[t])[0]])),alt:false,msg:'',mt:0};
 const knobsOf=()=>{const g=MENUS[R.tab][R.grp[R.tab]];return g?g.k:[];};
@@ -53,8 +53,10 @@ function grab(dest,c){const o=hubOutFor(dest);if(o<0||!window.VH)return false;co
 const px=c=>c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,CW,CH);
 /* one pass per frame: internal matte (+ garbage / window / holdout = combined matte), spill, colour, composite;
    outputs PGM OUT, PGM FILL, PGM MATTE, MON OUT (+ cascade), CAMERA FG LOOP */
+function grabBG(u){const n=u.n;if(hubOutFor('u'+n+'bg')>=0)return grab('u'+n+'bg',u.bg);const D=window.VH&&VH.atemDirect,k=D?+Object.keys(D.out).find(o=>D.out[o]==='u'+n+'bg'):0;
+  if(!k||!window.ATEMR)return false;const g=u.bg.getContext('2d',{willReadFrequently:true});g.fillStyle='#000';g.fillRect(0,0,CW,CH);return ATEMR.outFrame(k-1,g,CW,CH)!==false;}
 function process(u){const now=performance.now();if(depth||now-(u.t||0)<35)return;u.t=now;depth++;try{
-  const v=u.v,f_=u.f,n=u.n;u.okF=grab('u'+n+'fg',u.fg);if(!f_.bfreeze||!u.okB)u.okB=grab('u'+n+'bg',u.bg);
+  const v=u.v,f_=u.f,n=u.n;u.okF=grab('u'+n+'fg',u.fg);if(!f_.bfreeze||!u.okB)u.okB=grabBG(u);
   u.okG=f_.gmin&&grab('u'+n+'gm',u.gm);u.okH=f_.hmin&&grab('u'+n+'hm',u.hm);
   const lg=u.loop.getContext('2d');lg.clearRect(0,0,CW,CH);lg.drawImage(u.fg,0,0);   // CAMERA FG LOOP = the camera, untouched
   const og=u.out.getContext('2d'),mg=u.monCv.getContext('2d'),fgc=u.fillCv.getContext('2d'),mtc=u.matteCv.getContext('2d');
@@ -125,7 +127,8 @@ function srRear(){const W=1000,H=56,X=f=>f*W,T=(x,t)=>`<text x="${X(x)}" y="52" 
 function cableList(){const H=root.querySelector('.um-rear')?.getBoundingClientRect().height||140,dn=Math.round(.06*H),up=-dn;   // tags sit inside the panel: between a BNC and its name (bottom row) or the SDI OUT line (top row)
   const L=[{a:'[data-s="u0:eth"]',hang:dn,tag:'Network',info:'Ethernet → the rack network switch: the Smart Remote 4 controls this unit through it'},{a:'[data-s="u1:eth"]',hang:dn,tag:'Network',info:'Ethernet → the rack network switch'}];
   const st=window.VH?VH.state():null;if(!st)return L;const o=d=>st.cabOut.indexOf(d),i=v=>st.cabIn.indexOf(v),src=k=>VH.inputLabel(st.routes[o(k)]);
-  [0,1].forEach(j=>{const n=j+1,S=id=>`[data-s="u${j}:${id}"]`;
+  [0,1,2].forEach(j=>{const n=j+1,S=id=>`[data-s="u${j}:${id}"]`;
+    if(o('u'+n+'bg')<0){const D=VH.atemDirect,k=D?+Object.keys(D.out).find(x=>D.out[x]==='u'+n+'bg'):0;if(k)L.push({a:S('bg'),hang:dn,tag:'ATEM OUT '+k,info:`ATEM SDI OUT ${k} = BKG ${n} (${window.ATEMR?ATEMR.outLabel(k-1):''}) → Ultimatte ${n} BACKGROUND, straight from the ATEM (Inhar's sheet)`});}
     [['fg','CAMERA FG'],['bg','BACKGROUND'],['gm','G MATTE IN'],['hm','H MATTE IN'],['mi','MON IN']].forEach(([k,lab])=>{const q=o('u'+n+k);if(q>=0)L.push({a:S(k==='mi'?'moni':k),hang:dn,tag:'Hub OUT '+(q+1),info:`${src('u'+n+k)} → Videohub → OUT ${q+1} → Ultimatte ${n} ${lab}`});});
     [['','pgm','PGM OUT'],['f','fill','PGM FILL'],['m','matte','PGM MATTE'],['mo','mono','MON OUT'],['l','fgl','CAMERA FG LOOP']].forEach(([k,sock,lab])=>{const q=i('ult'+n+k);if(q>=0)L.push({a:S(sock),hang:up,tag:'Hub IN '+(q+1),info:`Ultimatte ${n} ${lab} → Videohub IN ${q+1}`});});});
   return L;}
@@ -146,7 +149,7 @@ function sr4(){const W=1000,H=406,X=f=>f*W,Y=f=>f*H,b=(id,fx,fy,l,tip,w=30,h=22)
 function drawHdLcd(i){const u=U[i],c=root.querySelector(`.um-lcd[data-u="${i}"]`);if(!c)return;const g=c.getContext('2d'),w=240,h=180;g.fillStyle='#000';g.fillRect(0,0,w,h);
   if(u.menu){g.fillStyle='#eef1f4';g.fillRect(0,0,w,h);g.fillStyle='#2b6fd6';g.fillRect(0,0,w,26);g.fillStyle='#fff';g.font='700 13px sans-serif';g.fillText(['Matte Status','Input Status','Network'][u.menu.p],8,18);g.fillStyle='#222';g.font='600 12px sans-serif';
     if(u.menu.p===0){g.fillText('Screen Reference Color: '+['Red','Green','Blue'][u.ch??1],8,52);g.fillText('Auto Key  ⟲  (SET)',8,76);}else if(u.menu.p===1){[['Reference','OK'],['Foreground',u.okF],['Background',u.okB],['Garbage Matte',hubOutFor('u'+u.n+'gm')>=0],['Holdout Matte',hubOutFor('u'+u.n+'hm')>=0],['Monitor',hubOutFor('u'+u.n+'mi')>=0]].forEach(([k,ok],j)=>g.fillText(k+': '+(ok?'OK':'No Input'),8,48+j*17));}
-    else{g.fillText('IP Address: 192.168.11.'+(60+i),8,52);g.fillText('Default: 192.168.10.220',8,72);}g.fillStyle='#666';g.font='600 10px sans-serif';g.fillText('Knob = page · SET = action · MENU = exit',8,h-10);return;}
+    else{g.fillText('IP Address: 192.168.11.'+(61+i),8,52);g.fillText('Default: 192.168.10.220',8,72);}g.fillStyle='#666';g.font='600 10px sans-serif';g.fillText('Knob = page · SET = action · MENU = exit',8,h-10);return;}
   g.drawImage(u.out,0,0,w,135);g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,0,w,20);g.fillStyle='#fff';g.font='600 11px sans-serif';g.fillText('Ultimatte 12 HD '+(i+1),6,14);g.textAlign='right';g.fillText('1080i50',w-6,14);g.textAlign='left';
   g.fillStyle='#000';g.fillRect(0,135,w,45);g.fillStyle=u.okF?'#fff':'#ffb02e';g.font='800 20px sans-serif';g.fillText(u.okF?'STANDBY':'No Cam',8,166);g.font='600 10px sans-serif';g.fillStyle='#8b949e';g.fillText(R.msg&&R.unit===i?R.msg:'',110,166);
   root.querySelectorAll(`.um-k[data-u="${i}"]`).forEach(k=>{const id=k.dataset.k;k.classList.toggle('green',/^p\d$/.test(id)&&!!u.quick[+id[1]]&&u.preset!==+id[1]);k.classList.toggle('blue',/^p\d$/.test(id)&&u.preset===+id[1]);k.classList.toggle('red',id==='lock'&&u.lock);});}
@@ -174,10 +177,10 @@ function drawTouch(){const c=document.getElementById('um-touch');if(!c)return;co
     'Matte Inputs':'G MATTE / H MATTE connectors on the rear (cable them on the Videohub)',Window:'Turn Window on, then dial the edges in (a rough garbage matte)',System:'Backing colour · Monitor Cascade (MON OUT → MON IN of the next unit)',Inputs:'Delays the camera to match a late background',Outputs:'PGM FILL / PGM MATTE for a linear key in the ATEM: Fill Lin Mix Cor on'};
   g.fillText(HINT[R.grp[R.tab]]||'',150,232);if(R.msg){g.fillStyle='#ffcf5a';g.font='700 13px sans-serif';g.fillText(R.msg,150,262);}
   g.fillStyle='#fff';g.font='700 12px sans-serif';g.fillText('MONITOR OUTPUT',150,288);MONS.forEach((m,i)=>{const b=cell(TL.mon,i);g.fillStyle=u.mon===i?'#1f8a85':'#262c33';g.fillRect(b.x,b.y,b.w,b.h);g.fillStyle='#fff';g.font='600 12px sans-serif';g.fillText(m,b.x+10,b.y+b.h/2);});
-  for(let k=0;k<8;k++){const x=150+k*62,y=h-34;g.fillStyle=k===R.unit?'#2e6fd6':k<2?'#1e8449':'#2a2f35';g.fillRect(x,y,56,24);g.fillStyle='#fff';g.font='700 11px sans-serif';g.fillText(String(k+1),x+24,y+12);}
+  for(let k=0;k<8;k++){const x=150+k*62,y=h-34;g.fillStyle=k===R.unit?'#2e6fd6':k<3?'#1e8449':'#2a2f35';g.fillRect(x,y,56,24);g.fillStyle='#fff';g.font='700 11px sans-serif';g.fillText(String(k+1),x+24,y+12);}
   g.fillStyle='#c9d1d9';g.font='600 11px sans-serif';g.fillText('Preset: '+(u.preset?'Quick '+u.preset+(u.dirty?' *':''):'Ultimatte Defaults')+'   ·   Ultimatte 12 HD '+(R.unit+1)+'   ·   Backing: ',150,h-50);g.fillStyle=`rgb(${u.backing.map(Math.round)})`;g.fillRect(575,h-58,16,16);
   root.querySelectorAll('.um-sr').forEach(e=>{const k=e.dataset.k;e.classList.toggle('blue',k==='unit'+R.unit);e.classList.toggle('amber',k==='alt'&&R.alt);});
-  root.querySelectorAll('.um-un').forEach(e=>{const i=+e.dataset.un;e.setAttribute('fill',i<2?'#36d36e':'#555');});}
+  root.querySelectorAll('.um-un').forEach(e=>{const i=+e.dataset.un;e.setAttribute('fill',i<3?'#36d36e':'#555');});}
 function drawMon(){const c=document.getElementById('um-mon');if(!c)return;const u=U[R.unit];c.getContext('2d').drawImage(u.monCv,0,0,c.width,c.height);const l=document.getElementById('um-monl');if(l)l.textContent=`Ultimatte ${R.unit+1} · MON OUT: ${MONS[u.mon]}`;}
 function flash(t){R.msg=t;clearTimeout(R.mt);R.mt=setTimeout(()=>{R.msg='';},2500);}
 /* ---------- interaction ---------- */
@@ -185,7 +188,7 @@ function setVal(n,d,reset){const u=U[R.unit],p=knobsOf()[n];if(!p)return;u.v[p.i
 const snap=u=>JSON.parse(JSON.stringify({v:u.v,f:u.f,backing:u.backing,ch:u.ch}));
 function loadQuick(u,n){Object.assign(u,JSON.parse(JSON.stringify(u.quick[n])));u.preset=n;u.dirty=false;}
 function srPress(k){const u=U[R.unit];
-  if(k.startsWith('unit')){const i=+k.slice(4);if(i<2)R.unit=i;else flash('Unit '+(i+1)+': no Ultimatte here');return;}
+  if(k.startsWith('unit')){const i=+k.slice(4);if(i<3)R.unit=i;else flash('Unit '+(i+1)+': no Ultimatte here');return;}
   if(k==='alt'){R.alt=!R.alt;return;}if(k==='fileclear'){autoKey(u);if(R.alt){u.v=defV();u.f=defF();R.alt=false;}return;}
   const m=/^ql(\d)$/.exec(k);if(m){const n=+m[1];if(R.alt){u.quick[n]=snap(u);R.alt=false;u.preset=n;u.dirty=false;flash('Quick preset '+n+' saved');}else if(u.quick[n]){loadQuick(u,n);flash('Quick preset '+n+' loaded');}else flash('Quick preset '+n+' is empty (ALT + QUICK LOAD saves it)');}}
 function fnPress(u,F){const reset=ids=>ids.forEach(id=>u.v[id]=ALLK.find(k=>k.id===id).def);u.dirty=true;
@@ -198,22 +201,21 @@ function fnPress(u,F){const reset=ids=>ids.forEach(id=>u.v[id]=ALLK.find(k=>k.id
 function touch(x,y){const u=U[R.unit];if(y<40){const i=Math.floor((x-150)/84);if(i>=0&&i<TABS.length)R.tab=TABS[i];return;}if(y>=48&&y<=68&&x>=375&&x<=460){autoKey(u);return;}
   const G=MENUS[R.tab],gn=Object.keys(G);let j=hit(TL.grp,gn.length,x,y);if(j>=0){if(G[gn[j]])R.grp[R.tab]=gn[j];else{R.grp[R.tab]=gn[j];flash(gn[j]+': not simulated');}return;}
   const grp=G[R.grp[R.tab]];j=grp?hit(TL.fn,grp.f.length,x,y):-1;if(j>=0){fnPress(u,grp.f[j]);return;}
-  j=hit(TL.mon,6,x,y);if(j>=0){u.mon=j;return;}if(y>=466){const k=Math.floor((x-150)/62);if(k>=0&&k<2)R.unit=k;}}
+  j=hit(TL.mon,6,x,y);if(j>=0){u.mon=j;return;}if(y>=466){const k=Math.floor((x-150)/62);if(k>=0&&k<3)R.unit=k;}}
 function hdPress(i,k){const u=U[i];if(u.lock&&k!=='lock')return;
   if(/^p\d$/.test(k)){const n=+k[1];if(u.quick[n])loadQuick(u,n);else{R.unit=i;flash('Preset '+n+' empty (save it from the Smart Remote: ALT + QUICK LOAD)');}return;}
   if(k==='menu'){u.menu=u.menu?null:{p:0};return;}if(k==='set'&&u.menu){if(u.menu.p===0)autoKey(u);return;}}
 function build(){if(root.dataset.built)return;root.dataset.built='1';
-  root.innerHTML=`<div class="pwr-hd"><div><h2>Chroma keying — Ultimatte</h2><div class="kind">2 × Ultimatte 12 HD · Ultimatte Smart Remote 4 (video rack)</div>
+  root.innerHTML=`<div class="pwr-hd"><div><h2>Chroma keying — Ultimatte</h2><div class="kind">3 × Ultimatte 12 HD (one per chroma camera, IP .61 / .62 / .63) · Ultimatte Smart Remote 4</div>
     <p><b>FILE CLEAR</b> = Auto Key · the 8 knobs = the 8 controls on the screen · tabs MATTE / FOREGROUND / BACKGROUND · <b>MONITOR OUTPUT</b> = what the monitor shows (Combined Matte to judge the key) · hover anything.</p></div>
     <div class="pwr-btns"><button id="um-patch">Patch mode</button><button id="um-load">Load a chroma video…</button><input type="file" id="um-file" accept="video/*" hidden><button id="um-guidebtn">How to use</button><button id="um-rack">Video rack</button></div></div>
     <button class="close" id="um-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-    <div class="um-body" id="um-wrap"><div class="um-row"><div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 1 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(0)}</div>${hdRear(0)}</div>
-        <div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · 2 <span>— front · rear below</span></div><div class="um-hdw">${hdFront(1)}</div>${hdRear(1)}</div></div>
+    <div class="um-body" id="um-wrap"><div class="um-row"><button class="ar-flip um-flip" data-flip title="Turn the Ultimattes round (front ↔ rear)">⟲<span>turn round</span></button><div class="um-units" id="um-units"></div><button class="ar-flip um-flip" data-flip title="Turn the Ultimattes round (front ↔ rear)">⟲<span>turn round</span></button></div>
       <div class="um-row2"><div class="um-srw"><div class="vh-lab">SMART REMOTE 4 <span>— controls the Ultimattes over Ethernet (rack network switch) · its HDMI OUT copies the touch screen to a monitor</span></div><div class="um-srf">${sr4()}</div></div><div class="um-monw"><div class="vh-lab" id="um-monl"></div><canvas id="um-mon" width="640" height="360"></canvas>
         <p class="um-note">Hover a cable to see where it goes · the whole signal path is in <b>How to use</b>.</p></div></div><svg class="vh-cables" id="um-cables"></svg></div>
     <div class="mx-src mx-guide" id="um-guide"><div class="mx-srchd"><b>How to key with the Ultimatte</b> <button id="um-guideclose" aria-label="Close">✕</button></div><ol class="mx-steps">
-      <li>Unit 1: <b>chroma camera → Videohub IN 11 → OUT 15 → CAMERA FG</b> · <b>CAM 3 → OUT 16 → BACKGROUND</b> · <b>PGM OUT → IN 12</b> · <b>PGM FILL → IN 13</b> and <b>PGM MATTE → IN 14</b> → ATEM IN 13 / 14 (KEY 2, luma). Unit 2 (assumed): FG = IN 11, BG = CAM 4, PGM → IN 15. Hover a cable.</li>
-      <li>Your own footage: <b>Load a chroma video…</b> (a clip shot on green or blue). It replaces the test chroma camera on Videohub IN 11, so it goes Videohub → Ultimatte like a real camera. For a blue screen: SETTINGS › Blue, then Auto Key.</li>
+      <li>As on Inhar's sheet, for each unit n (1-3): <b>CAM n → Videohub IN n → OUT 14+n → CAMERA FG</b> · <b>ATEM OUT 2+n (BKG n = Ext n) → BACKGROUND</b> · <b>PGM OUT → Videohub IN 14+n → OUT 5+n → ATEM IN 5+n</b> (Ult 1-3 on ATEM 6-8).</li>
+      <li>Your own footage: <b>Load a chroma video…</b> (a clip shot on green or blue). It replaces the picture of the chroma cameras (CAM 1-3 while the multicam pack is not loaded), so it goes Videohub → Ultimatte like a real camera. For a blue screen: SETTINGS › Blue, then Auto Key.</li>
       <li><b>FILE CLEAR</b> (or ⟲ auto key on the screen): the Ultimatte samples the green and makes the key.</li>
       <li><b>MONITOR OUTPUT › Combined Matte</b>: the presenter must be solid <b>black</b>, the green <b>white</b>. Raise <b>Matte Density</b> until no grey is left inside the presenter.</li>
       <li><b>Clean Up</b> removes the wrinkles of the cyc (little by little), <b>Shadow Level</b> keeps the floor shadow on the background, <b>Black Gloss</b> removes green reflections in dark areas.</li>
@@ -223,14 +225,15 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       <li>On the screen: a <b>main menu</b> tab, then a <b>GROUP</b> (the 8 knobs change), then the <b>FUNCTIONS</b> (on / off and actions). Grey = not simulated.</li>
       <li>Wrinkled screen and a fixed camera: MATTE › Matte Process › <b>Screen Capture</b> with the set empty, presenter back, <b>Screen Correct</b>.</li>
       <li>Something outside the green (lights, the edge of the cyc): MATTE IN › Window › <b>Window</b> on and dial the edges in.</li>
-      <li>On air, option 1: <b>PGM OUT</b> (IN 12) — route it to an ATEM input on the Videohub and cut to it.</li>
+      <li>On air: the keyed pictures are on ATEM IN 6, 7, 8 (Ult 1, 2, 3) — cut to them on the ATEM. The background of each one is chosen on the ATEM: AUX outputs 3, 4, 5.</li>
       <li>On air, option 2 (background chosen in the ATEM): <b>PGM FILL</b> (IN 13) + <b>PGM MATTE</b> (IN 14) → ATEM <b>KEY 2</b>, luma, fill IN 13, key IN 14, <b>Pre Mult ON</b>, <b>Invert ON</b> (the matte is black on the presenter). Choose the background on the ATEM, select KEY 2 and AUTO / ON. If the switcher does a linear mix (Pre Mult OFF): SETTINGS › Outputs › <b>Fill Lin Mix Cor</b>.</li></ol></div>
     <div class="mx-plugmenu" id="um-plugmenu"></div><div class="pwr-tip" id="um-tip"></div>`;
   document.getElementById('um-close').onclick=()=>window.closeUltimatte();
+  root.querySelectorAll('[data-flip]').forEach(b=>b.onclick=flipUnits);
   /* patch mode (admin, like the video rack): click a BNC of an Ultimatte → which Videohub port is it cabled to */
   const pm=document.getElementById('um-plugmenu');
   document.getElementById('um-patch').onclick=e=>{const on=!root.classList.contains('patch');if(on&&!confirm('Patch mode (admin): you can re-cable the Ultimattes to the Videohub. Changes are saved in this browser. Continue?'))return;
-    root.classList.toggle('patch',on);e.currentTarget.classList.toggle('on',on);e.currentTarget.textContent=on?'Exit patch mode':'Patch mode';pm.classList.remove('on');if(on)flash('Patch mode: click a BNC on an Ultimatte rear');};
+    root.classList.toggle('patch',on);e.currentTarget.classList.toggle('on',on);e.currentTarget.textContent=on?'Exit patch mode':'Patch mode';pm.classList.remove('on');if(on&&side==='front')flipUnits();if(on)flash('Patch mode: click a BNC on an Ultimatte rear');};
   root.addEventListener('click',e=>{if(!root.classList.contains('patch')){return;}if(pm.contains(e.target))return;const g=e.target.closest('.um-s');if(!g){pm.classList.remove('on');return;}
     const [,j,k]=/^u(\d):(\w+)$/.exec(g.dataset.s)||[];const IN={fg:'fg',bg:'bg',gm:'gm',hm:'hm',moni:'mi'},OUT={pgm:'',fill:'f',matte:'m',mono:'mo',fgl:'l'};
     if(!(k in IN)&&!(k in OUT)){pm.innerHTML=`<div class="mx-srchd"><b>${k==='eth'?'ETHERNET':'REF'}</b></div><p class="mx-snote">${k==='eth'?'Network cable to the rack switch — not a Videohub signal.':'Reference (sync) — not a Videohub signal.'}</p>`;}
@@ -244,7 +247,7 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     pm.style.left=Math.min(e.clientX,innerWidth-310)+'px';pm.classList.add('on');pm.style.top=Math.max(10,Math.min(e.clientY-40,innerHeight-pm.offsetHeight-10))+'px';});
   const fi=document.getElementById('um-file');document.getElementById('um-load').onclick=()=>fi.click();
   fi.onchange=()=>{const f=fi.files[0];if(!f)return;if(CV.v){CV.v.pause();URL.revokeObjectURL(CV.v.src);}const v=document.createElement('video');v.src=URL.createObjectURL(f);v.loop=true;v.muted=true;v.playsInline=true;v.play().catch(()=>{});CV.v=v;CV.name=f.name;
-    document.getElementById('um-load').textContent='Chroma video: '+f.name.slice(0,22);flash('Chroma camera (Videohub IN 11) now plays '+f.name+' — press FILE CLEAR (Auto Key)');fi.value='';};document.getElementById('um-rack').onclick=()=>{window.closeUltimatte();window.openVideohub&&openVideohub();};
+    document.getElementById('um-load').textContent='Chroma video: '+f.name.slice(0,22);flash('The chroma cameras now play '+f.name+' — press FILE CLEAR (Auto Key)');fi.value='';};document.getElementById('um-rack').onclick=()=>{window.closeUltimatte();window.openVideohub&&openVideohub();};
   const gd=document.getElementById('um-guide');document.getElementById('um-guidebtn').onclick=()=>gd.classList.toggle('on');document.getElementById('um-guideclose').onclick=()=>gd.classList.remove('on');
   root.addEventListener('pointerdown',e=>{const k=e.target.closest('.um-k');if(k){e.preventDefault();if(k.dataset.u!=null)hdPress(+k.dataset.u,k.dataset.k);else srPress(k.dataset.k);
       if(k.dataset.k==='lock'){const u=U[+k.dataset.u],t0=performance.now(),tm=setInterval(()=>{const t=performance.now()-t0;if(!u.lock&&t>=1000){u.lock=true;clearInterval(tm);}else if(u.lock&&t>=2000){u.lock=false;clearInterval(tm);}},50);addEventListener('pointerup',()=>clearInterval(tm),{once:true});}return;}
@@ -253,15 +256,20 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
     if(e.target.id==='um-touch'){const r=e.target.getBoundingClientRect();touch((e.clientX-r.left)/r.width*800,(e.clientY-r.top)/r.height*500);}});
   root.addEventListener('wheel',e=>{const kn=e.target.closest('.um-srk');if(!kn)return;e.preventDefault();setVal(+kn.dataset.n,e.deltaY<0?1:-1);},{passive:false});
   const tip=document.getElementById('um-tip');root.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip]');if(!t){tip.classList.remove('on');return;}tip.innerHTML=`<span>${t.dataset.tip}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');});}
-let last=0,running=false;function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on'))return;if(now-last<60)return;last=now;U.forEach(u=>process(u));drawHdLcd(0);drawHdLcd(1);drawTouch();drawMon();}
+let side='front',flipping=false;
+function renderUnits(){const el=document.getElementById('um-units');if(!el)return;el.innerHTML=U.map((u,i)=>`<div class="um-unit"><div class="vh-lab">ULTIMATTE 12 HD · ${i+1} <span>— CAM ${i+1} · ${side==='front'?'front':'rear (seen from behind)'}</span></div>${side==='front'?`<div class="um-hdw">${hdFront(i)}</div>`:hdRear(i)}</div>`).join('');
+  root.classList.toggle('rear',side==='rear');fit();ropes&&ropes.refresh();}
+function flipUnits(){if(flipping)return;flipping=true;const el=document.getElementById('um-units');el.style.transition='transform .2s ease-in';el.style.transform='rotateX(90deg)';
+  setTimeout(()=>{side=side==='front'?'rear':'front';renderUnits();el.style.transition='none';el.style.transform='rotateX(-90deg)';setTimeout(()=>{el.style.transition='transform .2s ease-out';el.style.transform='rotateX(0)';setTimeout(()=>{flipping=false;ropes&&ropes.refresh();},230);},20);},200);}
+let last=0,running=false;function loop(now){requestAnimationFrame(loop);if(!root.classList.contains('on'))return;if(now-last<60)return;last=now;U.forEach(u=>process(u));if(side==='front')U.forEach((u,i)=>drawHdLcd(i));drawTouch();drawMon();}
 /* the remote takes all the room left: as wide as the row allows (minus the monitor) and as tall as the window allows */
 function fit(){const sw=root.querySelector('.um-srw'),row=root.querySelector('.um-row2'),body=document.getElementById('um-wrap');if(!sw||!row||!root.classList.contains('on'))return;
-  const r0=root.querySelector('.um-row').getBoundingClientRect(),uw=Math.min(r0.width*.495,(body.clientHeight*.47-30)*4.75/2);   // the two units: at most ~47 % of the height
+  const r0=root.querySelector('.um-row').getBoundingClientRect(),n=U.length,uw=Math.min((r0.width-2*70-(n-1)*10)/n,(body.clientHeight*.3-20)*4.75);   // one row: every unit as wide as the row allows
   root.querySelectorAll('.um-unit').forEach(u=>u.style.width=uw+'px');
   const mon=root.querySelector('.um-monw'),lab=sw.querySelector('.vh-lab'),r=row.getBoundingClientRect(),bottom=body.getBoundingClientRect().bottom-12;
   const avH=bottom-r.top;mon.style.width=Math.min(r.width*.26,(avH-18-40)*16/9)+'px';   // monitor: as big as the height allows
   const availW=r.width-mon.getBoundingClientRect().width-14,availH=bottom-r.top-(lab?lab.getBoundingClientRect().height+4:0);sw.style.width=Math.max(320,Math.min(availW,availH*1000/406))+'px';}
 addEventListener('resize',fit);
-window.openUltimatte=()=>{build();root.classList.add('on');requestAnimationFrame(fit);if(!ropes&&window.ROPES){ropes=ROPES({wrap:()=>document.getElementById('um-wrap'),svg:()=>document.getElementById('um-cables'),list:cableList,active:()=>root.classList.contains('on'),sig:()=>window.VH?JSON.stringify([VH.state().cabIn,VH.state().cabOut]):''});}ropes&&ropes.start();if(window.VH&&!document.getElementById('vh')?.dataset.built){openVideohub();closeVideohub();}if(!running){running=true;requestAnimationFrame(loop);}};
+window.openUltimatte=()=>{build();root.classList.add('on');renderUnits();requestAnimationFrame(fit);if(!ropes&&window.ROPES){ropes=ROPES({wrap:()=>document.getElementById('um-wrap'),svg:()=>document.getElementById('um-cables'),list:cableList,active:()=>root.classList.contains('on')&&side==='rear'&&!flipping,sig:()=>side+(window.VH?JSON.stringify([VH.state().cabIn,VH.state().cabOut]):'')});}ropes&&ropes.start();if(window.VH&&!document.getElementById('vh')?.dataset.built){openVideohub();closeVideohub();}if(!running){running=true;requestAnimationFrame(loop);}};
 window.closeUltimatte=()=>{root.classList.remove('on');document.getElementById('um-tip')?.classList.remove('on');};
 })();

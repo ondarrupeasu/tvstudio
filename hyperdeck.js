@@ -1,7 +1,7 @@
 /* Blackmagic HyperDeck Studio HD Pro — rack recorder / player (docs/hyperdeck-spec.md).
  * REC really records what arrives on the selected input (MediaRecorder) as clips on "SSD 1"; PLAY / SKIP / REW / F FWD,
  * loop (PLAY again), search dial (JOG / STL / SCR), INPUT = SDI ↔ HDMI, MENU (record input, network), REM.
- * Cabling (assumed until confirmed): SDI IN ← ATEM SDI OUT 1 (programme). Not affiliated with Blackmagic Design. */
+ * Cabling (Inhar's sheet): SDI IN ← Videohub OUT 18 "SSD Recorder input" (PGM); SDI OUT A / B = fill / key → ATEM IN 13 / 14. Not affiliated with Blackmagic Design. */
 (function(){
 const PW=1080,PH=100,X=f=>f*PW,Y=f=>f*PH,CW=480,CH=270;
 const H={spk:true,input:'sdi',state:'stop',clips:[],cur:-1,loop:false,speed:1,dial:'jog',rem:false,rec:null,recT0:0,menu:null,ip:[192,168,11,20],msg:'',rewT:null};
@@ -9,7 +9,8 @@ const mk=(w=CW,h=CH)=>{const c=document.createElement('canvas');c.width=w;c.heig
 const inCv=mk(),outCv=mk(),vid=document.createElement('video');vid.playsInline=true;vid.muted=true;
 /* what arrives on the inputs */
 function inputFrame(g,w,h){g.fillStyle='#000';g.fillRect(0,0,w,h);
-  if(H.input!=='sdi'||!window.ATEMR)return false;g.drawImage(ATEMR.program(),0,0,w,h);return true;}   // SDI IN ← ATEM SDI OUT 1 (assumed)
+  if(H.input!=='sdi')return false;const o=window.VH?VH.state().cabOut.indexOf('hdk'):-1;if(o>=0)return VH.frame(o,g,w,h)!==false;   // SDI IN ← Videohub OUT 18 "SSD Recorder input" (Inhar's sheet: PGM)
+  if(!window.ATEMR)return false;g.drawImage(ATEMR.program(),0,0,w,h);return true;}
 /* SDI OUT A/B: input passthrough while recording / stopped, the clip while playing */
 function outFrame(g,w,h){if(H.state!=='stop'&&H.state!=='rec'&&vid.readyState>=2){g.drawImage(vid,0,0,w,h);return true;}return inputFrame(g,w,h);}
 window.VH_SOURCES=window.VH_SOURCES||{};VH_SOURCES.hdk=(g,w,h)=>outFrame(g,w,h);
@@ -112,7 +113,7 @@ function mount(){const f=document.getElementById('hd-front'),r=document.getEleme
   kn.addEventListener('pointerup',()=>{y0=null;});kn.addEventListener('wheel',e=>{e.preventDefault();dial(e.deltaY>0?-1:1);draw();},{passive:false});
   const root=document.getElementById('vh'),tip=document.getElementById('vh-tip');
   root.addEventListener('mousemove',e=>{const s=e.target.closest('.hd-sock');if(!s)return;const k=s.dataset.s;
-    const t={in:['SDI IN','Assumed for now: fed by ATEM SDI OUT 1 (programme) — to be confirmed in Tartanga.'],loop:['SDI LOOP OUT','A copy of the SDI input.'],outA:['SDI OUT A','Plays the clip (or passes the input through while recording / stopped). Cabling not known yet.'],outB:['SDI OUT B','Same as A (key signal only with ProRes 4444 clips).'],mon:['MONITOR OUT','3G-SDI with overlays for a monitor.']}[k];
+    const t={in:['SDI IN','From Videohub OUT 18 "SSD Recorder input" — the programme (Inhar\'s sheet).'],loop:['SDI LOOP OUT','A copy of the SDI input.'],outA:['SDI OUT A','Plays the clip (or passes the input through while recording / stopped). Cabling not known yet.'],outB:['SDI OUT B','Same as A (key signal only with ProRes 4444 clips).'],mon:['MONITOR OUT','3G-SDI with overlays for a monitor.']}[k];
     tip.innerHTML=`<b>${t[0]}</b><span>${t[1]}</span>`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.classList.add('on');e.stopPropagation();},true);
   list();draw();}
 let last=0;

@@ -554,7 +554,7 @@ function drawFill(f){extScene(f,false);const g=f.getContext('2d');g.globalCompos
   if(ftbA>.002){g.fillStyle=`rgba(0,0,0,${ftbA})`;g.fillRect(0,0,f.width,f.height);}}
 function drawKey(k){if(EXT.alpha!=='None'){gl.blendFunc(gl.ONE,gl.ONE);extScene(k,true);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);}else{const kg=k.getContext('2d');kg.fillStyle='#000';kg.fillRect(0,0,k.width,k.height);}}
 function renderExternal(){const w=V.extWin,d=w.document;const f=d.getElementById('fill'),k=d.getElementById('key');if(!f)return;drawFill(f);drawKey(k);}
-/* the DeckLink SDI outputs are cabled to the Videohub (IN 9 = fill, IN 10 = key): only while External is ON */
+/* the DeckLink fill / key outputs go straight to ATEM IN 19 / 20 (Inhar's sheet): only while External is ON */
 const hubF=mkCanvas(W/2,H/2),hubK=mkCanvas(W/2,H/2);window.VH_SOURCES=window.VH_SOURCES||{};
 VH_SOURCES.vfill=(c,w,h)=>{if(!V.ext)return false;drawFill(hubF);c.drawImage(hubF,0,0,w,h);};
 VH_SOURCES.vkey=(c,w,h)=>{if(!V.ext)return false;drawKey(hubK);c.drawImage(hubK,0,0,w,h);};

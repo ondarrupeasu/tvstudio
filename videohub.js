@@ -6,24 +6,27 @@
 (function(){
 const root=document.getElementById('vh');if(!root)return;
 const N=20,PW=1080,PH=100;                    // panel drawing units (1 RU ≈ 10.8 : 1)
-const KEY='vh-state7';
+const KEY='vh-state8';
 /* ---------- what can be cabled ---------- */
 const SRCS={none:'— nothing —',cam1:'CAM 1',cam2:'CAM 2',cam3:'CAM 3',cam4:'CAM 4',cam5:'CAM 5',cam6:'CAM 6',cam7:'CAM 7',cam8:'CAM 8',
   vfill:'vMix FILL',vkey:'vMix KEY',atem:'ATEM PGM',hdk:'HyperDeck',gscam:'Chroma camera (test)',ult1:'Ultimatte 1 PGM',ult2:'Ultimatte 2 PGM',
+  ult3:'Ultimatte 3 PGM',vtr:'VTR (PC VTR)',dl4:'vMix 2 · DeckLink 4 (External 4)',prompter:'Prompter',mv1:'ATEM MULTIVIEW 1',mv2:'ATEM MULTIVIEW 2',cam4x:'Patch 4 (Cam 4) — "MAL": no signal',
   ult1f:'Ultimatte 1 FILL',ult1m:'Ultimatte 1 MATTE',ult1mo:'Ultimatte 1 MON OUT',ult1l:'Ultimatte 1 FG LOOP',ult2f:'Ultimatte 2 FILL',ult2m:'Ultimatte 2 MATTE',ult2mo:'Ultimatte 2 MON OUT',ult2l:'Ultimatte 2 FG LOOP'};
-const SRCL={vfill:'vMix PC · DeckLink SDI 1 (Fill)',vkey:'vMix PC · DeckLink SDI 2 (Key)',atem:'ATEM Constellation · Program out',hdk:'HyperDeck Studio HD Pro · SDI out'};
+const SRCL={vtr:'PC VTR · playback',dl4:'2nd vMix · DeckLink 4 out (External 4)',prompter:'teleprompter feed (patch 13)',mv1:'ATEM MULTIVIEW 1 out',mv2:'ATEM MULTIVIEW 2 out',cam4x:'the cam 4 line marked "MAL" on Inhar\'s sheet',vfill:'vMix PC · DeckLink SDI 1 (Fill)',vkey:'vMix PC · DeckLink SDI 2 (Key)',atem:'ATEM Constellation · Program out',hdk:'HyperDeck Studio HD Pro · SDI out'};
 const DSTS={none:'— nothing —',atem1:'ATEM IN 1',atem2:'ATEM IN 2',atem3:'ATEM IN 3',atem4:'ATEM IN 4',atem5:'ATEM IN 5',atem6:'ATEM IN 6',atem7:'ATEM IN 7',atem8:'ATEM IN 8',atem9:'ATEM IN 9',atem10:'ATEM IN 10',atem11:'ATEM IN 11',atem12:'ATEM IN 12',atem13:'ATEM IN 13',atem14:'ATEM IN 14',atem15:'ATEM IN 15',atem16:'ATEM IN 16',atem17:'ATEM IN 17',atem18:'ATEM IN 18',atem19:'ATEM IN 19',atem20:'ATEM IN 20',
-  vmix:'vMix IN',vmix1:'vMix DeckLink SDI 1',vmix2:'vMix DeckLink SDI 2',vmix3:'vMix DeckLink SDI 3',vmix4:'vMix DeckLink SDI 4',u1fg:'Ultimatte 1 FG',u1bg:'Ultimatte 1 BG',u2fg:'Ultimatte 2 FG',u2bg:'Ultimatte 2 BG',u1gm:'Ultimatte 1 G MATTE',u1hm:'Ultimatte 1 H MATTE',u1mi:'Ultimatte 1 MON IN',u2gm:'Ultimatte 2 G MATTE',u2hm:'Ultimatte 2 H MATTE',u2mi:'Ultimatte 2 MON IN',hdk:'HyperDeck REC',mon:'Monitor wall',ult1:'Ultimatte 1',ult2:'Ultimatte 2'};
-/* proposed cabling (to be confirmed with the real room) */
-/* working cabling (Alex, 4-oct): IN/OUT 1-8 = the 8 cameras of the multicam pack, 9-10 = vMix fill/key → ATEM IN 1-10;
-   OUT 11-14 → the DeckLink inputs of the vMix PC (routed to CAM 1-4 by default). */
-/* Ultimatte 1 also sends PGM FILL / PGM MATTE (IN 13 / 14 → OUT 17 / 18 → ATEM IN 13 / 14, linear key); Ultimatte 2: OUT 19 / 20 = FG / BG, PGM → IN 15 (assumed) */
-const DEF={cabIn:['cam1','cam2','cam3','cam4','cam5','cam6','cam7','cam8','vfill','vkey','gscam','ult1','ult1f','ult1m','ult2',...Array(5).fill('none')],
-  cabOut:['atem1','atem2','atem3','atem4','atem5','atem6','atem7','atem8','atem9','atem10','vmix1','vmix2','vmix3','vmix4','u1fg','u1bg','atem13','atem14','u2fg','u2bg'],
-  routes:[0,1,2,3,4,5,6,7,8,9,0,1,2,3,10,2,12,13,10,3],locks:Array(N).fill(false),useTake:true,net:[[192,168,11,50],[255,255,255,0],[192,168,11,1]]};
+  vmix:'vMix IN',vmix1:'vMix DeckLink SDI 1 (streaming)',vmix2:'vMix DeckLink SDI 2',vmix3:'vMix DeckLink SDI 3',vmix4:'vMix DeckLink SDI 4',u1fg:'Ultimatte 1 FG',u3fg:'Ultimatte 3 FG',patch11:'Patch → plató 11 (PGM)',patch12:'Patch → plató 12 (AUX)',mon1:'MON 1 (control room)',mon2:'MON 2 (control room)',u1bg:'Ultimatte 1 BG',u2fg:'Ultimatte 2 FG',u2bg:'Ultimatte 2 BG',u1gm:'Ultimatte 1 G MATTE',u1hm:'Ultimatte 1 H MATTE',u1mi:'Ultimatte 1 MON IN',u2gm:'Ultimatte 2 G MATTE',u2hm:'Ultimatte 2 H MATTE',u2mi:'Ultimatte 2 MON IN',hdk:'HyperDeck REC',mon:'Monitor wall',ult1:'Ultimatte 1',ult2:'Ultimatte 2'};
+/* Tartanga — Inhar's sheets "MATRIX 20X20" + "ATEM 2 M/E Constellation HD" (2024, with the hand-written changes): IN = what is cabled,
+   OUT = what it feeds, routes = the SIGNAL column (Cam 4 comes from IN 10: the patch-4 line on IN 4 is marked "MAL") */
+const DEF={cabIn:['cam1','cam2','cam3','cam4x','vtr','dl4','none','ao2','ao1','cam4','none','cam5','prompter','none','ult1','ult2','ult3','none','mv1','mv2'],
+  cabOut:['atem1','atem2','atem3','atem4','atem5','atem6','atem7','atem8','atem15','vmix1','patch11','patch12','none','none','u1fg','u2fg','u3fg','hdk','mon1','mon2'],
+  routes:[0,1,2,9,4,14,15,16,5,8,8,7,0,0,0,1,2,8,18,19],locks:Array(N).fill(false),useTake:true,net:[[192,168,11,50],[255,255,255,0],[192,168,11,1]]};
 let st;try{st=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(localStorage.getItem(KEY))||{});}catch(_){st=JSON.parse(JSON.stringify(DEF));}
-try{const old=!localStorage.getItem(KEY)&&JSON.parse(localStorage.getItem('vh-state6'));   // keep a patch made with the previous version, add the new Ultimatte cables where free
-  if(old){Object.assign(st,old);[12,13,14].forEach(i=>{if(st.cabIn[i]==='none')st.cabIn[i]=DEF.cabIn[i];});[16,17,18,19].forEach(i=>{if(st.cabOut[i]==='none'){st.cabOut[i]=DEF.cabOut[i];st.routes[i]=DEF.routes[i];}});}}catch(_){}
+/* what goes straight into / out of the ATEM without the Videohub (Inhar's ATEM sheet) */
+const ATEM_DIRECT={in:{9:'dl3',10:'dl1',11:'ao10',12:'dl2',13:'hdfill',14:'hdkey',19:'vfill',20:'vkey'},out:{3:'u1bg',4:'u2bg',5:'u3bg',9:'Vectorscope',10:'ATEM IN 11 (loop)',11:'De-embedder → audio PGM (2 XLR → Midas)',12:'Control-room TV'}};
+if(!st.atemIn)st.atemIn=JSON.parse(JSON.stringify(ATEM_DIRECT.in));
+/* the 8-camera multicam pack: CAM 1-8 on IN 1-8 → ATEM IN 1-8, the rest of the room moved to the free ports */
+const PACK8={cabIn:['cam1','cam2','cam3','cam4','cam5','cam6','cam7','cam8','ao1','vtr','dl4','prompter','ao2','none','ult1','ult2','ult3','none','mv1','mv2'],
+  cabOut:DEF.cabOut.slice(),routes:[0,1,2,3,4,5,6,7,10,8,8,12,0,0,0,1,2,8,18,19]};
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(_){}};   // routes survive a power cut (real: "power fail protection")
 const inLab=i=>{const v=st.cabIn[i],m=/^ao(\d+)$/.exec(v);return v==='none'?'Input '+(i+1):m?'ATEM OUT '+m[1]:SRCS[v];};
 const outLab=o=>st.cabOut[o]==='none'?'Output '+(o+1):DSTS[st.cabOut[o]];
@@ -39,6 +42,8 @@ function camFrame(c,n,w,h,t){const cc=window.CCU;
   if(camTmp.width!==w||camTmp.height!==h){camTmp.width=w;camTmp.height=h;}camRaw(camTmp.getContext('2d'),n,w,h,t);c.save();c.filter=f;c.drawImage(camTmp,0,0,w,h);c.restore();return true;}
 function camRaw(c,n,w,h,t){const v=PACK.v[n];
   if(v&&v.readyState>=2){c.drawImage(v,0,0,w,h);return true;}
+  if(n<=3&&window.VH_SOURCES&&VH_SOURCES.gscam&&st.chromaCams!==false){const z=[1,1.35,1.9][n-1];c.save();c.translate(w/2,h*(n===3?.36:.5));c.scale(z,z);c.translate(-w/2,-h*(n===3?.36:.5));VH_SOURCES.gscam(c,w,h);c.restore();   // no pack: the chroma set
+    c.fillStyle='rgba(0,0,0,.5)';c.fillRect(0,0,w*.18,h*.09);c.fillStyle='#fff';c.font=`700 ${h*.06}px sans-serif`;c.textAlign='left';c.fillText('CAM '+n,w*.015,h*.065);return true;}
   const g=c.createLinearGradient(0,0,w,h);g.addColorStop(0,['#264653','#2a9d8f','#8a5a44','#6d597a','#355070','#7f5539','#3d5a80','#5f0f40'][n-1]);g.addColorStop(1,'#111');
   c.fillStyle=g;c.fillRect(0,0,w,h);c.fillStyle='rgba(255,255,255,.85)';c.font=`800 ${h*.2}px sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillText('CAM '+n,w/2,h*.45);
   c.font=`600 ${h*.07}px sans-serif`;c.fillText('simulated camera · load the pack for real images',w/2,h*.7);
@@ -84,7 +89,7 @@ function rear(){let s=`<svg viewBox="0 0 ${PW} ${PH+14}" class="vh-svg" id="vh-r
 function build(){if(root.dataset.built)return;root.dataset.built='1';
   root.innerHTML=`<div class="pwr-hd"><div><h2>Video rack</h2><div class="kind">Smart Videohub 20×20 (router) · ATEM 2 M/E Constellation HD (switcher)</div>
     <p><b>Videohub:</b> DEST + number = where · SRC + number = which signal · TAKE confirms · <b>ATEM:</b> a number = preview (green) · CUT / AUTO = on air (red) · hover anything to learn what it does.</p></div>
-    <div class="pwr-btns"><button id="vh-patch" title="Admin: re-cable the rear panels and save the room cabling">Patch mode</button><span class="vh-pbtns"><button id="vh-exp">Export cabling</button><button id="vh-imp">Import</button><button id="vh-def">Default cabling</button></span><button id="vh-mvbtn">Multiview on a 2nd screen ↗</button><button id="vh-guidebtn">How to use</button><a class="vh-dl" href="https://apps.cinemafilmak.com/tvstudio/tvstudio-multicam-pack.zip" title="Multicam pack: 8 synced cameras (CAM1-8.mp4). Download, unzip, then Load the pack folder.">⬇ Download the pack (107 MB)</a><button id="vh-pack">Load the pack folder</button><button id="vh-reset">Reset routes</button></div></div>
+    <div class="pwr-btns"><button id="vh-patch" title="Admin: re-cable the rear panels and save the room cabling">Patch mode</button><span class="vh-pbtns"><button id="vh-exp">Export cabling</button><button id="vh-imp">Import</button><button id="vh-def">Default cabling</button></span><button id="vh-mvbtn" title="Multiview on a 2nd screen">Multiview ↗</button><button id="vh-guidebtn">How to use</button><a class="vh-dl" href="https://apps.cinemafilmak.com/tvstudio/tvstudio-multicam-pack.zip" title="Multicam pack: 8 synced cameras (CAM1-8.mp4). Download, unzip, then Load the pack folder.">⬇ Pack (107 MB)</a><button id="vh-pack" title="Load the unzipped multicam pack folder (CAM1-8)">Load pack</button><select id="vh-preset" title="Which cabling the room has: the real one (Inhar's sheets) or the 8-camera multicam pack on IN 1-8 → ATEM 1-8"><option value="tartanga">Tartanga (Inhar)</option><option value="pack8">8-camera pack</option></select><button id="vh-vtr" title="PC VTR: choose the clip it plays into the Videohub (IN 5)">VTR clip…</button><input type="file" id="vh-vtrfile" accept="video/*" hidden><button id="vh-reset" title="Put the routes back as on the sheet">Reset routes</button></div></div>
   <button class="close" id="vh-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   <div class="vh-body"><div class="vh-units">
     <div class="vh-lab">SMART VIDEOHUB 20×20 <span>— front · rear below ↓</span></div><div class="vh-front">${front()}<canvas id="vh-lcd" width="320" height="240"></canvas></div>
@@ -102,9 +107,9 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';
       <li><b>VIDEO</b>: with SRC or DEST, shows that signal as live video on the little screen — check it before you TAKE. Press VIDEO again for the labels.</li>
       <li><b>Lock</b> a destination so nobody changes it by mistake: select it and <b>hold DEST 2 s</b> (a padlock appears). Same again to unlock.</li>
       <li><b>MENU</b>: <i>network</i> (IP address, subnet, gateway) and <i>use take</i> (off = the source switches as soon as you pick it). Knob to move, TAKE to select / confirm, MENU to go back.</li>
-      <li><b>Rear panel:</b> the cables stay where they are — routing happens <b>inside</b> the Videohub. Hover a BNC to see what is cabled there. Cabled for now: IN 1-8 = cameras 1-8 (the multicam pack), IN 9-10 = vMix fill / key, and OUT 1-10 feed ATEM inputs 1-10.</li>
+      <li><b>Rear panel:</b> the cables stay where they are — routing happens <b>inside</b> the Videohub. Hover a BNC to see what is cabled there. Cabled as on <b>Inhar's sheets</b> (selector <b>Tartanga</b>): IN 1-3 cams, 4 cam 4 line "MAL" (cam 4 comes in on IN 10), 5 VTR, 6 vMix 2 DeckLink 4, 8 ATEM AUX, 9 ATEM PGM, 12 cam 5, 13 prompter, 15-17 Ultimatte 1-3, 19-20 multiview; OUT 1-8 → ATEM IN 1-8, 9 → ATEM IN 15, 10 → vMix (streaming), 11-12 → plató patch, 15-17 → Ultimatte FG, 18 → HyperDeck, 19-20 → MON 1-2. The selector <b>8-camera pack</b> puts the pack's CAM 1-8 on IN 1-8 → ATEM IN 1-8.</li>
       <li>Cameras show a test image; <b>⬇ Download the pack</b> (107 MB, unzip it) and then <b>Load the pack folder</b> (CAM1-8) to see the real footage.</li>
-      <li><b>ATEM Constellation</b> (the switcher, under the Videohub): its inputs come from the Videohub outputs (OUT 1-10 → ATEM IN 1-10). Press a source key = <b>preview</b> (green); <b>CUT</b> or <b>AUTO</b> = it goes <b>on air</b> (red). MIX / WIPE / DIP / DVE choose the AUTO transition.</li>
+      <li><b>ATEM Constellation</b> (the switcher, under the Videohub): ATEM IN 1-8 and 15 come from the Videohub; IN 9, 10, 12 (DeckLink playouts Ext 1-3), 13-14 (HyperDeck fill / key), 19-20 (vMix fill / key) are cabled straight, and its OUT 10 loops back into its IN 11 (as on the sheet). Press a source key = <b>preview</b> (green); <b>CUT</b> or <b>AUTO</b> = it goes <b>on air</b> (red). MIX / WIPE / DIP / DVE choose the AUTO transition.</li>
       <li><b>DSK 1 MIX</b> keys the vMix graphics over the programme (fill on IN 9, key on IN 10). In vMix turn on <b>External</b> with Alpha Channel <i>Straight</i> or <i>Premultiplied</i> so the fill and key arrive.</li>
       <li><b>FTB</b> fades everything to black. <b>MENU</b> → Outputs assigns what each of the 12 SDI outputs carries; Transitions = rate; Settings = cut-bus mode. <b>LOCK</b>: hold 2 s to lock the panel, 1 s to unlock.</li>
       <li>The <b>control-room monitor</b> at the bottom is the ATEM's MULTIVIEW 1: preview and programme on top, inputs 1-8 below with red / green tally. <i>Open on a second screen</i> puts it in its own window.</li>
@@ -188,7 +193,11 @@ function wire(){const tip=document.getElementById('vh-tip'),fs=document.getEleme
 
   const gd=document.getElementById('vh-guide');document.getElementById('vh-guidebtn').onclick=()=>gd.classList.toggle('on');document.getElementById('vh-guideclose').onclick=()=>gd.classList.remove('on');
   const pd=document.getElementById('vh-packdir');document.getElementById('vh-pack').onclick=()=>pd.click();pd.onchange=()=>{loadPack(pd.files);pd.value='';};
-  document.getElementById('vh-reset').onclick=()=>{if(!confirm('Put every output back on its own input (OUT n ← IN n)?'))return;st=JSON.parse(JSON.stringify(DEF));save();U.pend=null;draw();};
+  const PRE={tartanga:DEF,pack8:PACK8},ps=document.getElementById('vh-preset');ps.value=st.preset||'tartanga';
+  const applyPreset=k=>{const P=PRE[k];st.cabIn=[...P.cabIn];st.cabOut=[...P.cabOut];st.routes=[...P.routes];st.atemIn=JSON.parse(JSON.stringify(ATEM_DIRECT.in));st.preset=k;save();U.pend=null;draw();window.ATEMR&&ATEMR.redraw();};
+  ps.onchange=()=>{if(!confirm(ps.value==='pack8'?'Re-cable for the 8-camera pack (CAM 1-8 on Videohub IN 1-8 → ATEM IN 1-8)?':'Put back the Tartanga cabling (Inhar\'s sheets)?')){ps.value=st.preset||'tartanga';return;}applyPreset(ps.value);};
+  document.getElementById('vh-reset').onclick=()=>{if(!confirm('Put the routes back as on the sheet (keeps the cables)?'))return;st.routes=[...(PRE[st.preset||'tartanga']).routes];save();U.pend=null;draw();window.ATEMR&&ATEMR.redraw();};
+  const vf=document.getElementById('vh-vtrfile');document.getElementById('vh-vtr').onclick=()=>vf.click();vf.onchange=()=>{const f=vf.files[0];if(!f)return;if(VTR.v){VTR.v.pause();URL.revokeObjectURL(VTR.v.src);}const v=document.createElement('video');v.src=URL.createObjectURL(f);v.muted=true;v.loop=true;v.playsInline=true;v.play().catch(()=>{});VTR.v=v;VTR.name=f.name;U.msg='VTR plays '+f.name;vf.value='';draw();};
   fs.addEventListener('pointerdown',e=>{const k=e.target.closest('.vh-k');if(!k)return;e.preventDefault();const id=k.dataset.k;if(id==='blank')return;
     k.classList.add('down');const up=()=>{k.classList.remove('down');clearTimeout(U.holdT);removeEventListener('pointerup',up);};addEventListener('pointerup',up);
     press(id);if(id==='dest'&&!U.menu){U.holdT=setTimeout(()=>{st.locks[U.dest]=!st.locks[U.dest];save();U.pend=null;U.msg=st.locks[U.dest]?'Locked':'Unlocked';draw();},2000);}draw();});
@@ -219,5 +228,20 @@ setInterval(()=>{const vs=Object.values(PACK.v);if(!vs.length)return;const k=win
 let raf=0;function loop(){raf=requestAnimationFrame(loop);if(!root.classList.contains('on'))return;U.blink++;if(U.video||U.blink%30===0)drawLcd();}
 window.openVideohub=()=>{build();root.classList.add('on');draw();if(!raf)loop();};
 window.closeVideohub=()=>{root.classList.remove('on');document.getElementById('vh-tip')?.classList.remove('on');};
-window.VH={pack:()=>PACK.v,plugMenu,save:()=>{save();draw();window.ATEMR&&ATEMR.redraw();},DEF,state:()=>st,inputLabel:inLab,outputLabel:outLab,frame:(o,c,w,h)=>sigFrame(c,st.routes[o],w,h)};   // for the ATEM / multiview later
+/* ---------- the other signals of the room (Inhar's sheets) ---------- */
+const VTR={v:null,name:''};
+const slate=(c,w,h,bg,title,sub)=>{c.fillStyle=bg;c.fillRect(0,0,w,h);c.fillStyle='#fff';c.textAlign='center';c.font=`800 ${h*.11}px sans-serif`;c.fillText(title,w/2,h*.46);c.font=`600 ${h*.055}px sans-serif`;c.fillStyle='rgba(255,255,255,.75)';c.fillText(sub,w/2,h*.58);};
+const tc=t=>{const s=Math.floor(t/1000);return [Math.floor(s/3600),Math.floor(s/60)%60,s%60,Math.floor(t/40)%25].map(x=>String(x).padStart(2,'0')).join(':');};
+function bgSet(c,w,h,k){const g=c.createLinearGradient(0,0,0,h);   // the backgrounds the DeckLink playouts send (virtual-set style)
+  const P=[['#0b2a5c','#3a7bd5','EXT 1 — news set'],['#3b1f0e','#d98c3a','EXT 2 — warm studio'],['#101820','#5f6b7a','EXT 3 — city']][k];g.addColorStop(0,P[0]);g.addColorStop(1,P[1]);c.fillStyle=g;c.fillRect(0,0,w,h);
+  c.fillStyle='rgba(255,255,255,.12)';for(let i=0;i<9;i++){const bw=w*(.05+((i*37)%5)/60),bh=h*(.2+((i*53)%7)/14);c.fillRect(i*w/9+w*.01,h*.85-bh,bw,bh);}
+  c.fillStyle='rgba(0,0,0,.35)';c.fillRect(0,h*.85,w,h*.15);c.fillStyle='rgba(255,255,255,.8)';c.font=`700 ${h*.045}px sans-serif`;c.textAlign='left';c.fillText(P[2],w*.02,h*.95);}
+Object.assign(window.VH_SOURCES=window.VH_SOURCES||{},{
+  vtr:(c,w,h)=>{if(VTR.v&&VTR.v.readyState>=2){c.drawImage(VTR.v,0,0,w,h);return;}slate(c,w,h,'#202833','VTR','PC VTR · no clip loaded ("VTR clip…") · '+tc(performance.now()));},
+  dl3:(c,w,h)=>bgSet(c,w,h,0),dl1:(c,w,h)=>bgSet(c,w,h,1),dl2:(c,w,h)=>bgSet(c,w,h,2),
+  dl4:(c,w,h)=>slate(c,w,h,'#2b1640','vMix 2','DeckLink 4 · External 4'),
+  prompter:(c,w,h)=>{c.fillStyle='#000';c.fillRect(0,0,w,h);c.fillStyle='#fff';c.font=`600 ${h*.07}px sans-serif`;c.textAlign='left';const L=['Good evening and welcome','to the Tartanga news.','Tonight: the studio','has a new chroma set…','Our first story comes','from the control room.'],y0=h-((performance.now()/40)%(h*1.6));L.forEach((l,i)=>c.fillText(l,w*.08,y0+i*h*.1));},
+  mv1:(c,w,h)=>{const a=window.ATEMR&&ATEMR.api;if(!a)return false;c.drawImage(a.multiview(),0,0,w,h);},mv2:(c,w,h)=>{const a=window.ATEMR&&ATEMR.api;if(!a)return false;c.drawImage(a.multiview(),0,0,w,h);},
+  hdfill:(c,w,h)=>VH_SOURCES.hdk?VH_SOURCES.hdk(c,w,h):false,hdkey:(c,w,h)=>{if(!VH_SOURCES.hdk||VH_SOURCES.hdk(c,w,h)===false)return false;c.fillStyle='#fff';c.fillRect(0,0,w,h);}});
+window.VH={pack:()=>PACK.v,atemDirect:ATEM_DIRECT,srcInfo:v=>SRCL[v]||SRCS[v],plugMenu,save:()=>{save();draw();window.ATEMR&&ATEMR.redraw();},DEF,state:()=>st,inputLabel:inLab,outputLabel:outLab,frame:(o,c,w,h)=>sigFrame(c,st.routes[o],w,h)};   // for the ATEM / multiview later
 })();
