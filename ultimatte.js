@@ -271,5 +271,7 @@ function fit(){const sw=root.querySelector('.um-srw'),row=root.querySelector('.u
   const availW=r.width-mon.getBoundingClientRect().width-14,availH=bottom-r.top-(lab?lab.getBoundingClientRect().height+4:0);sw.style.width=Math.max(320,Math.min(availW,availH*1000/406))+'px';}
 addEventListener('resize',fit);
 window.openUltimatte=()=>{build();root.classList.add('on');renderUnits();requestAnimationFrame(fit);if(!ropes&&window.ROPES){ropes=ROPES({wrap:()=>document.getElementById('um-wrap'),svg:()=>document.getElementById('um-cables'),list:cableList,active:()=>root.classList.contains('on')&&side==='rear'&&!flipping,sig:()=>side+(window.VH?JSON.stringify([VH.state().cabIn,VH.state().cabOut]):'')});}ropes&&ropes.start();if(window.VH&&!document.getElementById('vh')?.dataset.built){openVideohub();closeVideohub();}if(!running){running=true;requestAnimationFrame(loop);}};
+/* for the tutorials (tut-um.js): live state + the same actions as the controls */
+window.ULT={U,R,MENUS,TABS,MONS,TL,knobsOf,srPress,touch,setVal,fnPress,autoKey,defV,defF};
 window.closeUltimatte=()=>{root.classList.remove('on');document.getElementById('um-tip')?.classList.remove('on');};
 })();

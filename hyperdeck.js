@@ -121,5 +121,5 @@ const shown=()=>document.getElementById('vh')?.classList.contains('on')||documen
 function loop(now){requestAnimationFrame(loop);if(!shown()&&H.state!=='rec')return;if(now-last<40)return;last=now;
   if(shown()){drawLcd();if(H.state==='play'||H.state==='rec')setK('ssd1','rec',H.state==='rec');}}
 requestAnimationFrame(loop);
-window.HDR={mount};
+window.HDR={mount,state:H,press:k=>{press(k);draw();},dial:d=>{dial(d);draw();}};
 })();

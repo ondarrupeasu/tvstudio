@@ -688,6 +688,8 @@ function savePreset(as){let name=V.preset||'Preset';if(as||!V.preset){const n=pr
   try{localStorage.setItem('vx-last',JSON.stringify(d));}catch(_){}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,1)],{type:'application/json'}));a.download=name.replace(/[^\w\- ]+/g,'_')+'.vmixsim.json';a.click();draw();}
 function openPreset(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=async()=>{try{loadPreset(JSON.parse(await i.files[0].text()));}catch(_){alertBox('Open','Could not read that file.');}};i.click();}
 function seed(){if(V.inputs.length)return;barsInput();colourInput('Colour','#0b3d91');titleInput('classic');titleInput('news');V.pgm=V.inputs[0];V.pv=V.inputs[1];}
+/* for the tutorials (tut-vx.js): live state + the same actions as the controls */
+window.VMIX={V,EXT,STR,byId,draw,cut,doTrans,toggleOverlay,titleEditor,drawTitle,act:a=>{act(a,root.querySelector(`[data-a="${a}"]`));draw();}};
 window.openVmix=()=>{build();ensureAudio();seed();root.classList.add('on');draw();};
 window.closeVmix=()=>{root.classList.remove('on');closeModal();$('#vx-pop')?.classList.remove('on');};
 requestAnimationFrame(loop);

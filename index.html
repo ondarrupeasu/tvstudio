@@ -451,7 +451,10 @@
 .tut-sim{font-size:12px;line-height:1.4;margin:4px 0 8px;padding:6px 8px;border-radius:6px;background:#3a2f12;color:#ffd98a}.tut-intro{color:#b9bec6;line-height:1.45;margin:4px 0 10px}.tut-step{font-size:14px;line-height:1.45;margin:6px 0 10px}.tut-prog{font-size:11px;font-weight:700;letter-spacing:.06em;color:#ffcf5a;text-transform:uppercase}
 .tut-btns{display:flex;gap:6px;flex-wrap:wrap}.tut-btns button,.tut-l button{background:#1f2228;border:1px solid #2c2f36;color:#e6e7ea;border-radius:7px;padding:5px 10px;font:600 12px inherit;cursor:pointer}.tut-btns button:hover,.tut-l button:hover{border-color:#ff6b5a}.tut-btns button:disabled{opacity:.4}
 .tut-l{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #23262c}.tut-l span{flex:1}
-#tut-btn{border-color:#ff6b5a!important}
+.tut-btn{border-color:#ff6b5a!important}.tut-zone{display:none;position:fixed;z-index:59;pointer-events:none;border-radius:4px}.tut-zone.tut-hl{display:block}
+.tut-sub{margin:10px 0 2px;font-size:11px;font-weight:700;letter-spacing:.06em;color:#ffcf5a;text-transform:uppercase}
+:not(svg *).tut-hl{outline:3px solid #ffcf5a!important;outline-offset:2px;animation:tuto 1s ease-in-out infinite}@keyframes tuto{50%{outline-color:rgba(255,207,90,.25)}}
+.tut-hl path,.tut-hl ellipse,.tut-hl polygon{stroke:#ffcf5a!important;stroke-width:4px!important;animation:tutp 1s ease-in-out infinite}
 .tut-hl rect,.tut-hl circle{stroke:#ffcf5a!important;stroke-width:4px!important;animation:tutp 1s ease-in-out infinite}@keyframes tutp{50%{stroke-opacity:.25}}
 </style>
 </head>
@@ -679,7 +682,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=108"></script>
+<script src="power.js?v=109"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -689,7 +692,7 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=108"></script>
+<script src="desk.js?v=109"></script>
 <div class="mx" id="mx"><button class="ar-jump r" onclick="closeMixer();openOutboard()" title="Go to the audio rack">Audio rack ▶</button>
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
@@ -724,27 +727,35 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=108"></script>
+<script src="m32r.js?v=109"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=108"></script>
-<script src="constellation.js?v=108"></script>
-<script src="hyperdeck.js?v=108"></script>
-<script src="cables.js?v=108"></script>
+<script src="videohub.js?v=109"></script>
+<script src="constellation.js?v=109"></script>
+<script src="hyperdeck.js?v=109"></script>
+<script src="cables.js?v=109"></script>
 <div class="cr" id="cr"></div>
 <div class="um" id="um"></div>
 <div class="vh ob" id="ob"></div>
-<script src="ccu.js?v=108"></script>
-<script src="atempanel.js?v=108"></script>
-<script src="controlroom.js?v=108"></script>
-<script src="tutorial.js?v=108"></script>
-<script src="ultimatte.js?v=108"></script>
-<script src="audiorack.js?v=108"></script>
-<script src="ar-basic.js?v=108"></script>
-<script src="ar-jvc.js?v=108"></script>
-<script src="ar-mdx4600.js?v=108"></script>
-<script src="ar-deq2496.js?v=108"></script>
+<script src="ccu.js?v=109"></script>
+<script src="atempanel.js?v=109"></script>
+<script src="controlroom.js?v=109"></script>
+<script src="tutorial.js?v=109"></script>
+<script src="tut-atem.js?v=109"></script>
+<script src="tut-ccu.js?v=109"></script>
+<script src="tut-m32.js?v=109"></script>
+<script src="tut-um.js?v=109"></script>
+<script src="tut-vh.js?v=109"></script>
+<script src="tut-hd.js?v=109"></script>
+<script src="tut-vx.js?v=109"></script>
+<script src="tut-pwr.js?v=109"></script>
+<script src="ultimatte.js?v=109"></script>
+<script src="audiorack.js?v=109"></script>
+<script src="ar-basic.js?v=109"></script>
+<script src="ar-jvc.js?v=109"></script>
+<script src="ar-mdx4600.js?v=109"></script>
+<script src="ar-deq2496.js?v=109"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=108"></script>
+<script src="vmix.js?v=109"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');

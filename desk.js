@@ -352,6 +352,8 @@ function fit(){if(!root.classList.contains('on')||matchMedia('(max-width:900px)'
   const h=body.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-6,w=main.clientWidth;
   const W=Math.floor(Math.min(w,h*1000/810));['dsk-back','dsk-front'].forEach(id=>document.getElementById(id).style.width=W+'px');}
 addEventListener('resize',fit);
+/* for the tutorials (tut-pwr.js): live state + the same actions as the controls */
+window.DESK={D,setF:(id,t)=>{setF(id,t);render();},press:(id,down)=>{press(id,down);render();},power(v){if(D.power!==!!v)root.querySelector('.dk-power')?.dispatchEvent(new MouseEvent('click',{bubbles:true}));}};
 window.openDesk=()=>{build();root.classList.add('on');render();fit();};
 window.closeDesk=()=>{root.classList.remove('on');tip.classList.remove('on');};
 })();

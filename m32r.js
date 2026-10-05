@@ -674,6 +674,10 @@ addEventListener('resize',fit);
 window.M32={audio:()=>A,
   /* the multitrack clock of the pack (master): the pack videos in the Videohub follow it, like timecode. null = no pack audio playing */
   packClock:()=>A&&G.power&&A.packT0!=null&&packIds().some(id=>SRC[id].startsWith('pk:'))?{pos:packPos(),paused:A.packPaused!=null,lat:(A.ctx.outputLatency||0)+(A.ctx.baseLatency||0)}:null,stream:()=>A&&G.power&&A.out78?A.out78.stream:null,levelDb:()=>A&&G.power?Math.max(peakDb(A.anL),peakDb(A.anR)):-120};
+/* for the tutorials (tutorial.js / tut-m32.js): live state + the same actions as the controls */
+Object.assign(window.M32,{S,P,G,SRC,lev,f2db,stripId,press:id=>press(id),knob:(id,d)=>knobSet(id,d),fader:(id,v)=>{S[id].fader=Math.max(0,Math.min(1,v));applyAll();draw();},
+  source:(id,kind)=>setSource(id,kind),peak:(id,w)=>A&&G.power&&A.ch[id]?peakDb(A.ch[id][w==='post'?'postAn':'preAn']):-120,booting:()=>!!G.boot,apply:()=>{Object.keys(P).forEach(id=>{try{applyCh(id);}catch(_){}});applyAll();applyMain();draw();},
+  power:v=>{if(!!G.power!==!!v)rear.querySelector('.mx-power').dispatchEvent(new MouseEvent('click',{bubbles:true}));},draw:()=>draw()});
 window.openMixer=()=>{build();root.classList.add('on');fit();draw();};
 window.closeMixer=()=>{root.classList.remove('on');tip.classList.remove('on');};
 })();

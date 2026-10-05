@@ -144,7 +144,7 @@ document.getElementById('pw-allon').addEventListener('click',()=>setAll(true));
 document.getElementById('pw-alloff').addEventListener('click',()=>setAll(false));
 document.getElementById('pw-photo').addEventListener('click',e=>{const on=root.classList.toggle('photos');e.currentTarget.textContent=on?'Recreation':'Real photos';});
 document.getElementById('pw-close').addEventListener('click',()=>window.closePower());
-window.PWR=state;
+window.PWR=state;window.PWR_API={state,set(k,v){state[k]=!!v;render();}};   // for the tutorials (tut-pwr.js)
 window.openPower=()=>{build();root.classList.add('on');};
 window.closePower=()=>{root.classList.remove('on');tip.classList.remove('on');};
 })();

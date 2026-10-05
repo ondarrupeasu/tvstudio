@@ -146,5 +146,5 @@ function mount(el){el.innerHTML=`<div class="cr-wrap cc-wrap">${panel()}</div>`;
   svg.addEventListener('wheel',e=>{const w=e.target.closest('.cc-w'),j=e.target.closest('.cc-joy');if(!w&&!j)return;e.preventDefault();const s=+(w||j).dataset.s,d=e.deltaY<0?1:-1;
     if(j){const t=STRIPS[s];if(t.lock||t.irisLock)return;CAMS[t.cam].mb=Math.max(-5,Math.min(5,CAMS[t.cam].mb+d*.1));}else turn(s,w.dataset.k,d);draw();},{passive:false});
   draw();}
-window.CCUP={mount,draw};
+window.CCUP={mount,draw,strips:STRIPS,press:(s,k)=>{press(s,k);draw();},turn:(s,k,d)=>{turn(s,k,d);draw();},exposure,tally,fstop};
 })();
