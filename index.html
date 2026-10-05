@@ -412,6 +412,10 @@
   .vx-lays{display:grid;grid-template-columns:1fr 1fr;gap:8px}.vx-lay{border:1px solid #3a434d;padding:6px;display:flex;flex-direction:column;gap:3px}.vx-sl{display:grid!important;grid-template-columns:90px 1fr}.vx-kp{display:flex;gap:4px;align-items:center;margin-top:6px;flex-wrap:wrap}
   .vx-big{width:100%;display:block;cursor:pointer}.vx-te label{display:grid!important;grid-template-columns:110px 1fr}.vx-cd label span{width:18px;height:18px;display:inline-block}
   .vx-tip{position:absolute;z-index:9;pointer-events:none;background:rgba(10,11,13,.95);border:1px solid var(--ce-accent);color:#fff;font-size:12px;padding:5px 9px;max-width:280px;transform:translate(14px,14px);opacity:0}.vx-tip.on{opacity:1}
+#simnav{position:fixed;top:14px;right:62px;z-index:1000;display:flex;gap:4px}
+#simnav button{background:rgba(22,23,28,.85);border:1px solid var(--ce-line);color:#e6e7ea;border-radius:8px;height:32px;padding:0 10px;font:600 12.5px -apple-system,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+#simnav button:hover{border-color:#ff6b5a;color:#fff}
+#simnav.inhd{position:static;margin-left:10px}#simnav.invx{top:2px;right:330px}#simnav.invx button{height:22px;border-radius:3px;font-size:11.5px;background:#3a434d;border-color:#3a434d;padding:0 8px}
 </style>
 </head>
 <body class="ce-base">
@@ -638,7 +642,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=96"></script>
+<script src="power.js?v=97"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -648,7 +652,7 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=96"></script>
+<script src="desk.js?v=97"></script>
 <div class="mx" id="mx">
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
@@ -683,22 +687,22 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=96"></script>
+<script src="m32r.js?v=97"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=96"></script>
-<script src="constellation.js?v=96"></script>
-<script src="hyperdeck.js?v=96"></script>
-<script src="cables.js?v=96"></script>
+<script src="videohub.js?v=97"></script>
+<script src="constellation.js?v=97"></script>
+<script src="hyperdeck.js?v=97"></script>
+<script src="cables.js?v=97"></script>
 <div class="cr" id="cr"></div>
 <div class="um" id="um"></div>
 <div class="vh ob" id="ob"></div>
-<script src="ccu.js?v=96"></script>
-<script src="atempanel.js?v=96"></script>
-<script src="controlroom.js?v=96"></script>
-<script src="ultimatte.js?v=96"></script>
-<script src="outboard.js?v=96"></script>
+<script src="ccu.js?v=97"></script>
+<script src="atempanel.js?v=97"></script>
+<script src="controlroom.js?v=97"></script>
+<script src="ultimatte.js?v=97"></script>
+<script src="outboard.js?v=97"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=96"></script>
+<script src="vmix.js?v=97"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');
@@ -808,5 +812,17 @@ scrim.addEventListener('click',close);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pwr').classList.contains('on'))closePower();else{close();closeDesk();closeMixer();}}});
 </script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
+<div id="simnav" aria-label="Simulators"><button class="sn-p" title="Previous simulator">◀ <span></span></button><button class="sn-n" title="Next simulator"><span></span> ▶</button></div>
+<script>
+/* ◀ ▶ between the map and every simulator (like DMXSimulatoR), in the free top-right corner of each screen */
+(function(){const N=[['','Map'],['pwr','Power','openPower','closePower'],['dsk','Lighting','openDesk','closeDesk'],['mx','Midas','openMixer','closeMixer'],['ob','Audio effects','openOutboard','closeOutboard'],
+  ['vh','Video rack','openVideohub','closeVideohub'],['um','Ultimatte','openUltimatte','closeUltimatte'],['cr','Vision','openControlRoom','closeControlRoom'],['vx','vMix','openVmix','closeVmix']];
+  const nav=document.getElementById('simnav'),cur=()=>{const i=N.findIndex(n=>n[0]&&document.getElementById(n[0])?.classList.contains('on'));return i<0?0:i;};
+  const go=d=>{const i=cur(),j=(i+d+N.length)%N.length;if(N[i][3])window[N[i][3]]?.();if(N[j][2])window[N[j][2]]?.();upd();};
+  function upd(){const i=cur(),ov=N[i][0]&&document.getElementById(N[i][0]),host=ov&&ov.querySelector('.pwr-hd .pwr-btns');   // inside each simulator's own button row, so it never covers anything
+    if(host){if(nav.parentNode!==host)host.appendChild(nav);}else if(nav.parentNode!==document.body)document.body.appendChild(nav);nav.classList.toggle('inhd',!!host);nav.querySelector('.sn-p span').textContent=N[(i-1+N.length)%N.length][1];nav.querySelector('.sn-n span').textContent=N[(i+1)%N.length][1];nav.classList.toggle('invx',N[i][0]==='vx');}
+  nav.querySelector('.sn-p').onclick=()=>go(-1);nav.querySelector('.sn-n').onclick=()=>go(1);
+  let q=0;new MutationObserver(()=>{if(!q){q=1;requestAnimationFrame(()=>{q=0;upd();});}}).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});upd();})();
+</script>
 </body>
 </html>
