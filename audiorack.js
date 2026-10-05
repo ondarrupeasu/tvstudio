@@ -28,7 +28,8 @@ const XI={'spk:ctrl':['Speakers control','the control-room speakers — what you
   'midas:aret1':['Midas AUX IN 1','effect return 1'],'midas:aret2':['Midas AUX IN 2','effect return 2'],'midas:aret3':['Midas AUX IN 3','effect return 3'],'midas:aret4':['Midas AUX IN 4','effect return 4']};
 const xLab=x=>(XO[x]||XI[x]||[x])[0],xInfo=x=>(XO[x]||XI[x]||[x,x])[1];
 /* socket direction from its id: in… / aux L-R = input, out… / sp1-2 = output; TRS twins (inj / outj) and the rest are drawn only */
-const dirOf=s=>{const k=s.split(':')[1]||'';if(/^(inj|outj)/.test(k))return null;if(/^in/.test(k)||/^aux[LR]$/.test(k))return 'in';if(/^out/.test(k)||/^sp\d$/.test(k))return 'out';return null;};
+const dirOf=s=>{const [id,k='']=s.split(':'),P=DEV[id]&&DEV[id].ports;if(P)return P.in.includes(k)?'in':P.out.includes(k)?'out':null;   // a unit can list its audio sockets in d.ports
+  if(/^(inj|outj)/.test(k))return null;if(/^in/.test(k)||/^aux[LR]$/.test(k))return 'in';if(/^out/.test(k)||/^sp\d$/.test(k))return 'out';return null;};
 /* ---------- helpers for the device modules ---------- */
 const knobPtr=(cx,cy,r)=>`<line class="ar-ptr" x1="${cx}" y1="${cy-r*.88}" x2="${cx}" y2="${cy-r*.35}"/>`;
 const AR=window.AR={W,UH,
@@ -53,23 +54,27 @@ const AR=window.AR={W,UH,
   peakDb(an){if(!an)return -120;const b=an._b||(an._b=new Float32Array(an.fftSize));an.getFloatTimeDomainData(b);let m=0;for(const v of b)m=Math.max(m,Math.abs(v));return 20*Math.log10(Math.max(1e-6,m));},
   flash(t){const m=$('#ar-msg');if(!m)return;m.textContent=t;m.classList.add('on');clearTimeout(m._t);m._t=setTimeout(()=>m.classList.remove('on'),2600);}};
 /* ---------- instances ---------- */
-function make(){RACK.forEach(([id,t])=>{if(DEV[id]||!TYPES[t])return;const d={id,st:{}};Object.assign(d,TYPES[t](d,AR));d._socks=new Set((d.rear().match(/data-s="[^"]+"/g)||[]).map(m=>m.slice(8,-1)).filter(s=>dirOf(s)));d.knobs=d.knobs||{};Object.entries(d.knobs).forEach(([k,o])=>{if(d.st[k]==null)d.st[k]=o.def;});DEV[id]=d;});}
+function make(){RACK.forEach(([id,t])=>{if(DEV[id]||!TYPES[t])return;const d={id,st:{}};Object.assign(d,TYPES[t](d,AR));DEV[id]=d;d._socks=new Set((d.rear().match(/data-s="[^"]+"/g)||[]).map(m=>m.slice(8,-1)).filter(s=>dirOf(s)));d.knobs=d.knobs||{};Object.entries(d.knobs).forEach(([k,o])=>{if(d.st[k]==null)d.st[k]=o.def;});DEV[id]=d;});}
 /* ---------- audio: the cables carry the Midas signal through the units ---------- */
 let EXT=null;
 function extNodes(A){const c=A.ctx,sp=n=>{const s=c.createChannelSplitter(2);n.connect(s);const L=c.createGain(),R=c.createGain();s.connect(L,0);s.connect(R,1);return [L,R];};
   const [monL,monR]=sp(A.spk),[mainL,mainR]=sp(A.mainM),ctrl=c.createGain(),stud=c.createGain(),atem=c.createChannelMerger(2),vu=c.createChannelMerger(2);ctrl.connect(c.destination);atem.connect(A.out78);
   const studAn=c.createAnalyser(),vuAn=c.createAnalyser();stud.connect(studAn);vu.connect(vuAn);
-  return {out:{'midas:monL':monL,'midas:monR':monR,'midas:mainL':mainL,'midas:mainR':mainR,'midas:ins1S':A.ch.in1.insS,'midas:ins2S':A.ch.in2.insS},
-    in:{'spk:ctrl':ctrl,'spk:stud':stud,'atem:L':[atem,0],'atem:R':[atem,1],'vu:L':[vu,0],'vu:R':[vu,1],'midas:ins1R':A.ch.in1.insR,'midas:ins2R':A.ch.in2.insR},studAn,vuAn};}
+  const O=A.ob,stA=c.createChannelSplitter(2),vuA=c.createChannelSplitter(2);stud.connect(stA);vu.connect(vuA);const sAn=[0,1].map(i=>{const a=c.createAnalyser();a.fftSize=1024;stA.connect(a,i);return a;}),vAn=[0,1].map(i=>{const a=c.createAnalyser();a.fftSize=1024;vuA.connect(a,i);return a;});
+  const studMon=c.createGain();studMon.gain.value=0;stud.connect(studMon);studMon.connect(c.destination);   // simulator: listen to the studio speakers
+  return {out:{'midas:monL':monL,'midas:monR':monR,'midas:mainL':mainL,'midas:mainR':mainR,'midas:ins1S':A.ch.in1.insS,'midas:ins2S':A.ch.in2.insS,'midas:aux1':O.m350.snd[0],'midas:aux2':O.m350.snd[1],'midas:aux3':O.virt.snd[0],'midas:aux4':O.virt.snd[1]},
+    in:{'spk:ctrl':ctrl,'spk:stud':stud,'atem:L':[atem,0],'atem:R':[atem,1],'vu:L':[vu,0],'vu:R':[vu,1],'midas:ins1R':A.ch.in1.insR,'midas:ins2R':A.ch.in2.insR,'midas:aret1':O.m350.ret[0],'midas:aret2':O.m350.ret[1],'midas:aret3':O.virt.ret[0],'midas:aret4':O.virt.ret[1]},sAn,vAn,ctrl,studMon};}
 let LINKS=[],DEFS=null;
 function wire(){const A=window.M32&&M32.audio&&M32.audio();if(!A)return;AR.ctx=A.ctx;make();
   if(!EXT){EXT=extNodes(A);EXT_REF.x=EXT;Object.values(DEV).forEach(d=>{d.io=d.audio?d.audio(A.ctx):{in:{},out:{}};});
-    DEFS={spk:[A.spk,A.ctx.destination],atem:[A.mainM,A.out78],ins1:[A.ch.in1.insS,A.ch.in1.insR],ins2:[A.ch.in2.insS,A.ch.in2.insR]};}
+    const O=A.ob;   /* default paths of the Midas: [from, to, the cable ends that take them over] */
+    DEFS=[[A.spk,A.ctx.destination,['spk:ctrl']],[A.mainM,A.out78,['atem:L','atem:R']],[A.ch.in1.insS,A.ch.in1.insR,['midas:ins1S','midas:ins1R']],[A.ch.in2.insS,A.ch.in2.insR,['midas:ins2S','midas:ins2R']],
+      [O.m350.snd[0],O.m350.inL,['midas:aux1','m350:inL']],[O.m350.snd[1],O.m350.inR,['midas:aux2','m350:inR']],[O.m350.outL,O.m350.ret[0],['midas:aret1','m350:outL']],[O.m350.outR,O.m350.ret[1],['midas:aret2','m350:outR']],
+      [O.virt.snd[0],O.virt.inL,['midas:aux3','virt:in1']],[O.virt.snd[1],O.virt.inR,['midas:aux4','virt:in2']],[O.virt.outL,O.virt.ret[0],['midas:aret3','virt:out1']],[O.virt.outR,O.virt.ret[1],['midas:aret4','virt:out2']]];}
   LINKS.forEach(([o,i,ch])=>{try{ch==null?o.disconnect(i):o.disconnect(i,0,ch);}catch(_){}});LINKS=[];
   /* the default paths of the Midas stay, unless a cable takes them over */
-  const used=new Set(CAB.filter(c=>c.x&&DEV[c.a.split(':')[0]]&&DEV[c.a.split(':')[0]].io).map(c=>c.x));
-  const def=(k,on)=>{const [o,i]=DEFS[k];try{o.disconnect(i);}catch(_){}if(on)o.connect(i);};
-  def('spk',!used.has('spk:ctrl'));def('atem',!used.has('atem:L')&&!used.has('atem:R'));def('ins1',!(used.has('midas:ins1S')||used.has('midas:ins1R')));def('ins2',!(used.has('midas:ins2S')||used.has('midas:ins2R')));
+  const used=new Set(CAB.filter(c=>DEV[c.a.split(':')[0]]&&DEV[c.a.split(':')[0]].io).flatMap(c=>[c.a,c.b,c.x].filter(Boolean)));
+  DEFS.forEach(([o,i,ends])=>{try{o.disconnect(i);}catch(_){}if(!ends.some(e=>used.has(e)))o.connect(i);});
   const node=(ep,dir)=>{const [id,s]=ep.split(':');if(DEV[id])return DEV[id].io&&DEV[id].io[dir][s];return EXT[dir][ep];};
   const link=(o,i)=>{if(!o||!i)return;if(Array.isArray(i)){o.connect(i[0],0,i[1]);LINKS.push([o,i[0],i[1]]);}else{o.connect(i);LINKS.push([o,i,null]);}};
   CAB.forEach(c=>{if(c.b){link(node(c.a,'out'),node(c.b,'in'));link(node(c.b,'out'),node(c.a,'in'));}
@@ -84,7 +89,8 @@ function render(){make();const rk=$('#ar-rack');rk.innerHTML=RACK.map(([id])=>DE
 function fit(){const rk=$('#ar-rack'),body=$('#ar-body');if(!rk||!body)return;const totRU=RACK.reduce((s,[id])=>s+(DEV[id]?DEV[id].ru:0),0),n=RACK.length;
   const H=body.clientHeight-10-n*3,Wd=body.clientWidth-2*96-2*74;rk.style.width=Math.max(500,Math.min(Wd,H/totRU*W/UH))+'px';}
 addEventListener('resize',()=>{if(root.classList.contains('on'))fit();});
-function draw(){Object.values(DEV).forEach(d=>{Object.entries(d.knobs).forEach(([k,o])=>{root.querySelectorAll(`.ar-k[data-d="${d.id}"][data-k="${k}"]`).forEach(g=>{const v=d.st[k],f=o.steps?o.steps.indexOf(v)/(o.steps.length-1):(v-o.min)/(o.max-o.min),a=(o.a0??-135)+f*((o.a1??135)-(o.a0??-135));
+function meters(){if(!EXT)return;[['s',EXT.sAn],['v',EXT.vAn]].forEach(([k,an])=>an.forEach((a,i)=>{const e=root.querySelector(`.ar-bars i[data-m="${k}${i}"]`);if(!e)return;const db=AR.peakDb(a),f=Math.max(0,Math.min(1,(db+60)/60));e.style.setProperty('--h',(f*100).toFixed(0)+'%');e.classList.toggle('pk',db>-3);}));}
+function draw(){meters();Object.values(DEV).forEach(d=>{Object.entries(d.knobs).forEach(([k,o])=>{root.querySelectorAll(`.ar-k[data-d="${d.id}"][data-k="${k}"]`).forEach(g=>{const v=d.st[k],f=o.steps?o.steps.indexOf(v)/(o.steps.length-1):(v-o.min)/(o.max-o.min),a=(o.a0??-135)+f*((o.a1??135)-(o.a0??-135));
     g.querySelector('.ar-ptr')?.setAttribute('transform',`rotate(${a.toFixed(1)} ${g.dataset.cx} ${g.dataset.cy})`);});});d.draw&&d.draw(side);});}
 /* ---------- cables on the rear ---------- */
 let ropes=null;
@@ -113,7 +119,10 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';make();
     <div class="pwr-btns"><button id="ar-patch">Patch mode</button><button id="ar-def" hidden>Default cabling</button><button id="ar-guidebtn">How to use</button></div></div>
     <button class="close" id="ar-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     <div class="ar-body" id="ar-body"><div class="ar-side l"><button class="ar-jump l" id="ar-midas" title="Go to the Midas">◀ Midas</button></div>
-      <div class="ar-stage"><button class="ar-flip" data-flip title="Turn the rack round">⟲<span>turn round</span></button><div class="ar-rack" id="ar-rack"></div><button class="ar-flip" data-flip title="Turn the rack round">⟲<span>turn round</span></button></div><div class="ar-side r"></div></div>
+      <div class="ar-stage"><button class="ar-flip" data-flip title="Turn the rack round">⟲<span>turn round</span></button><div class="ar-rack" id="ar-rack"></div><button class="ar-flip" data-flip title="Turn the rack round">⟲<span>turn round</span></button></div><div class="ar-side r"><div class="ar-mon" data-tip="Simulator panel (not a real device): what reaches the studio speakers (JVC SPEAKERS 2) and the VU outputs of the LS-280 (2 and 6 — where they go is still to confirm).">
+        <b>SIMULATOR</b><div class="ar-mt"><span>Studio speakers<br>(JVC SP-2)</span><div class="ar-bars"><i data-m="s0"></i><i data-m="s1"></i></div></div>
+        <div class="ar-mt"><span>VU<br>(LS-280 2 / 6)</span><div class="ar-bars"><i data-m="v0"></i><i data-m="v1"></i></div></div>
+        <button id="ar-listen" title="Simulator: hear the studio speakers instead of the control room ones">🎧 Listen in<br>the studio</button></div></div></div>
     <div class="ar-msg" id="ar-msg"></div>
     <div class="mx-src mx-guide" id="ar-guide"><div class="mx-srchd"><b>The audio rack</b> <button id="ar-guideclose" aria-label="Close">✕</button></div><ol class="mx-steps">
       <li>You see the <b>front</b> (the controls). <b>⟲</b> on either side turns the rack round: the <b>rear</b>, seen from behind, with the cables.</li>
@@ -125,6 +134,8 @@ function build(){if(root.dataset.built)return;root.dataset.built='1';make();
     <div class="mx-plugmenu" id="ar-plugmenu"></div><div class="pwr-tip" id="ar-tip"><b></b><span></span></div>`;
   $('#ar-close').onclick=()=>window.closeOutboard();$('#ar-midas').onclick=()=>{window.closeOutboard();window.openMixer&&openMixer();};
   root.querySelectorAll('[data-flip]').forEach(b=>b.onclick=flip);
+  let inStudio=false;$('#ar-listen').onclick=e=>{if(!EXT)return AR.flash('Switch the Midas on first (POWER on its rear).');inStudio=!inStudio;const t=AR.ctx.currentTime;EXT.ctrl.gain.setTargetAtTime(inStudio?0:1,t,.03);EXT.studMon.gain.setTargetAtTime(inStudio?1:0,t,.03);
+    e.currentTarget.classList.toggle('on',inStudio);e.currentTarget.innerHTML=inStudio?'🎧 Back to the<br>control room':'🎧 Listen in<br>the studio';AR.flash(inStudio?'You hear the studio speakers (JVC SPEAKERS 2)':'You hear the control-room speakers (JVC SPEAKERS 1)');};
   const pm=$('#ar-plugmenu');$('#ar-patch').onclick=e=>{const on=!root.classList.contains('patch');if(on&&!confirm('Patch mode (admin): you can re-cable the audio rack. The sound follows the new cables. Changes are saved in this browser. Continue?'))return;
     root.classList.toggle('patch',on);e.currentTarget.classList.toggle('on',on);e.currentTarget.textContent=on?'Exit patch mode':'Patch mode';$('#ar-def').hidden=!on;pm.classList.remove('on');if(on){if(side==='front')flip();AR.flash('Patch mode: click a connector on the rear');}};
   $('#ar-def').onclick=()=>{if(!confirm('Put back the default (assumed) cabling of the audio rack?'))return;CAB=JSON.parse(JSON.stringify(DEF_CAB));saveCab();wire();ropes&&ropes.refresh();AR.flash('Default cabling restored');};

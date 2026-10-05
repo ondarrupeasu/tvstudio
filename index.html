@@ -440,6 +440,10 @@
 .ar-msg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1b1d22;border:1px solid #ff6b5a;color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40}.ar-msg.on{opacity:1}
 #ob.rear .ar-stage{overflow:visible}#ob.patch .ar-rack{outline:2px dashed #c2185b;outline-offset:3px}#ob.patch .ar-s{cursor:copy}#ar-plugmenu{position:fixed;z-index:50;max-height:80vh;overflow:auto}#ar-plugmenu .mx-snote{margin:6px 8px 2px;font-weight:700}
 .ar-jump{position:absolute;bottom:108px;z-index:6;background:#1b1d22;border:1px solid #ff6b5a;color:#fff;border-radius:10px;height:40px;padding:0 16px;font:700 13px -apple-system,sans-serif;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.5)}.ar-jump:hover{background:#2a1714}.ar-jump.r{right:40px}.ar-jump.l{left:22px}
+.ar-side.r{justify-content:center}.ar-mon{width:84px;background:#141519;border:1px dashed #3a3d44;border-radius:10px;padding:8px 6px;display:flex;flex-direction:column;gap:10px;align-items:center;font:600 9px -apple-system,sans-serif;color:#9aa1ab;text-align:center}
+.ar-mon b{font-size:8.5px;letter-spacing:.1em;color:#6f7680}.ar-mt{display:flex;flex-direction:column;align-items:center;gap:4px}.ar-bars{display:flex;gap:4px;height:90px}.ar-bars i{width:10px;height:100%;background:#24262b;border-radius:2px;position:relative;overflow:hidden}
+.ar-bars i::after{content:'';position:absolute;left:0;right:0;bottom:0;height:var(--h,0%);background:linear-gradient(#ff453a,#ffd60a 18%,#39e26a 40%);background-size:100% 90px;background-position:bottom}.ar-bars i.pk{outline:1px solid #ff453a}
+#ar-listen{background:#1b1d22;border:1px solid #2c2f36;color:#e6e7ea;border-radius:8px;padding:6px 4px;font:700 9.5px -apple-system,sans-serif;cursor:pointer;line-height:1.25}#ar-listen.on{border-color:#ff6b5a;background:#2a1714;color:#fff}
 </style>
 </head>
 <body class="ce-base">
@@ -666,7 +670,7 @@
   <div class="pwr-status" id="pwr-status"></div>
   <div class="pwr-tip" id="pwr-tip"></div>
 </div>
-<script src="power.js?v=100"></script>
+<script src="power.js?v=101"></script>
 <div class="dsk" id="dsk">
   <div class="pwr-hd"><div><h2>Lighting desk</h2><div class="kind">Showtec Showmaster 24 MKII · DMX · in the studio</div>
     <p>Switch it on at the back (<b>POWER</b>) · drag the faders · hover any control to learn what it does · on the studio map, drag the lights and the orange bars.</p></div>
@@ -676,7 +680,7 @@
   <div class="pwr-status" id="dsk-diag"></div>
   <div class="pwr-tip" id="dsk-tip"></div>
 </div>
-<script src="desk.js?v=100"></script>
+<script src="desk.js?v=101"></script>
 <div class="mx" id="mx"><button class="ar-jump r" onclick="closeMixer();openOutboard()" title="Go to the audio rack">Audio rack ▶</button>
   <div class="pwr-hd"><div><h2>Audio desk</h2><div class="kind">Midas M32R · digital mixer · control room</div>
     <p>Switch it on at the back (<b>POWER</b>) · <b>SEL</b> a channel, raise <b>GAIN</b>, its fader and <b>MAIN</b> · drag knobs up/down · hover anything to learn what it does.</p></div>
@@ -711,26 +715,26 @@
   <input type="file" id="mx-packdir" webkitdirectory multiple hidden>
   <div class="pwr-tip" id="mx-tip"></div>
 </div>
-<script src="m32r.js?v=100"></script>
+<script src="m32r.js?v=101"></script>
 <div class="vh" id="vh"></div>
-<script src="videohub.js?v=100"></script>
-<script src="constellation.js?v=100"></script>
-<script src="hyperdeck.js?v=100"></script>
-<script src="cables.js?v=100"></script>
+<script src="videohub.js?v=101"></script>
+<script src="constellation.js?v=101"></script>
+<script src="hyperdeck.js?v=101"></script>
+<script src="cables.js?v=101"></script>
 <div class="cr" id="cr"></div>
 <div class="um" id="um"></div>
 <div class="vh ob" id="ob"></div>
-<script src="ccu.js?v=100"></script>
-<script src="atempanel.js?v=100"></script>
-<script src="controlroom.js?v=100"></script>
-<script src="ultimatte.js?v=100"></script>
-<script src="audiorack.js?v=100"></script>
-<script src="ar-basic.js?v=100"></script>
-<script src="ar-jvc.js?v=100"></script>
-<script src="ar-mdx4600.js?v=100"></script>
-<script src="ar-deq2496.js?v=100"></script>
+<script src="ccu.js?v=101"></script>
+<script src="atempanel.js?v=101"></script>
+<script src="controlroom.js?v=101"></script>
+<script src="ultimatte.js?v=101"></script>
+<script src="audiorack.js?v=101"></script>
+<script src="ar-basic.js?v=101"></script>
+<script src="ar-jvc.js?v=101"></script>
+<script src="ar-mdx4600.js?v=101"></script>
+<script src="ar-deq2496.js?v=101"></script>
 <div class="vx" id="vx"></div>
-<script src="vmix.js?v=100"></script>
+<script src="vmix.js?v=101"></script>
 <button class="swbtn" id="swbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg><span></span></button>
 <script>
 (function(){const b=document.getElementById('swbtn'),pw=document.getElementById('pwr'),dk=document.getElementById('dsk');

@@ -1,9 +1,14 @@
 /* Audio rack unit: JVC A-X77 "Dynamic Super-A" stereo integrated amplifier (docs/jvc-ax7-spec.md, img/rack-audio-v2.jpg).
- * Drawn with the lower flap open, as in the photo. Only AUX carries audio (the DEQ2496 output); SPEAKERS 1 = control room. */
+ * Drawn with the lower flap open, as in the photo. Every rear audio socket is real (d.ports): AUX (default = DEQ2496 output), TUNER,
+ * PHONO-1/2 (RIAA EQ + MM/MC gain), TAPE-1/2 PLAY in and REC out. TAPE-3 = front jacks (nothing connected). SPEAKERS 1 = control room. */
 (function(){
 const A=window.AR;if(!A)return;
 A.type('jvc',d=>{const RU=3.2,H=A.UH*RU,X=f=>f*A.W,Y=f=>f*H;
-  Object.assign(d.st,{power:true,mute:false,tmon:false,input:'aux',tone:false,sub:false,loud:false,mono:false});
+  Object.assign(d.st,{power:true,mute:false,tmon:false,input:'aux',tone:false,sub:false,loud:false,mono:false,phones:false});
+  /* rear audio sockets (patch mode / cables). Set before make() computes d._socks, which looks the unit up in AR.dev */
+  d.ports={in:['auxL','auxR','tunerL','tunerR','phono1L','phono1R','phono2L','phono2R','tape1playL','tape1playR','tape2playL','tape2playR'],
+    out:['tape1recL','tape1recR','tape2recL','tape2recR','sp1','sp2']};
+  if(!A.dev[d.id])A.dev[d.id]=d;
   const K={vol:{min:-80,max:0,def:-4,step:1,name:'VOLUME',fmt:v=>v<=-80?'−∞ dB':v+' dB'},
     bass:{min:-8,max:8,def:0,step:.5,name:'BASS (100 Hz)',fmt:v=>(v>0?'+':'')+v+' dB'},
     treble:{min:-8,max:8,def:0,step:.5,name:'TREBLE (10 kHz)',fmt:v=>(v>0?'+':'')+v+' dB'},
@@ -18,7 +23,8 @@ A.type('jvc',d=>{const RU=3.2,H=A.UH*RU,X=f=>f*A.W,Y=f=>f*H;
   /* black key with white label top-left and a lamp */
   const key=(b,x,y,w,h,l,tip)=>A.btn(d,b,X(x),Y(y),X(w),Y(h),tip,'ar-bt2')+A.txt(X(x-w/2)+5,Y(y-h/2)+11,l,'ar-t5w','start')+A.rled(d,b,X(x+w/2)-9,Y(y-h/2)+7,8,4,'g');
   const sk=(b,x,y,tip)=>A.btn(d,b,X(x),Y(y),17,17,tip,'ar-bt');
-  return {name:'JVC A-X77',sub:'integrated amplifier · SPEAKERS 1 = control room, 2 = studio',ru:RU,wFrac:.9,knobs:K,
+  const phTip=p=>p?'PHONES: headphones PLUGGED (click to unplug). Volume = VOLUME. The speakers keep following SPEAKERS (OFF = phones only)':'PHONES: 6.3 mm headphone jack — empty (click to plug headphones). Plugging in does not cut the speakers';
+  return {name:'JVC A-X77',sub:'integrated amplifier · SPEAKERS 1 = control room, 2 = studio',ru:RU,wFrac:.9,knobs:K,ports:d.ports,
     front(){let s=`<rect x="0" y="0" width="${A.W}" height="${H}" rx="6" class="ar-silver"/>`;
       /* upper aluminium panel */
       s+=A.txt(X(.078),Y(.255),'JVC','ar-brand')+A.txt(X(.135),Y(.275),'A-X77  STEREO INTEGRATED AMPLIFIER','ar-t5d','start')+A.txt(X(.36),Y(.275),'Dynamic Super-A','ar-t6b','start');
@@ -26,8 +32,8 @@ A.type('jvc',d=>{const RU=3.2,H=A.UH*RU,X=f=>f*A.W,Y=f=>f*H;
       s+=`<circle cx="${X(.592)}" cy="${Y(.372)}" r="${X(.0675)+7}" class="ar-silver2" stroke="#ccc" stroke-width="2"/>`+A.knob(d,'vol',X(.592),Y(.372),X(.0675),'VOLUME: attenuation from max (drag / scroll). Feeds speakers and phones')+A.txt(X(.635),Y(.146),'VOLUME','ar-t5d');
       s+=A.led(d,'prot',X(.548),Y(.16),3.5,'r')+`<circle cx="${X(.548)}" cy="${Y(.16)}" r="9" fill="transparent" data-tip="Protection indicator: blinks a few seconds after power-on (speakers muted), then steady"/>`;
       s+=key('mute',.727,.192,.06,.129,'MUTING','MUTING: −20 dB, push again to restore');
-      s+=key('tmon',.782,.555,.06,.134,'TAPE MONITOR','TAPE MONITOR: listen to the deck chosen with TAPE PLAY instead of the source (no deck connected here = silence)');
-      [['phono',.195,'PHONO','PHONO input (PHONO selector chooses 1/2, MM/MC) — nothing connected'],['tuner',.377,'TUNER','TUNER input — nothing connected'],['aux',.555,'AUX','AUX input = the DEQ2496 output (Midas monitor)']]
+      s+=key('tmon',.782,.555,.06,.134,'TAPE MONITOR','TAPE MONITOR: listen to the deck chosen with TAPE PLAY instead of the source (TAPE-1 / TAPE-2 PLAY on the rear, TAPE-3 on the front; nothing cabled = silence)');
+      [['phono',.195,'PHONO','PHONO input: PHONO-1 or PHONO-2 and MM / MC with the PHONO selector (RIAA EQ, +38 dB MM / +60 dB MC — a line signal overloads it). Not cabled by default'],['tuner',.377,'TUNER','TUNER input (line). Not cabled by default'],['aux',.555,'AUX','AUX input (line) = the DEQ2496 output (Midas monitor)']]
         .forEach(([b,y,l,t])=>s+=key(b,.896,y,.129,.134,l,t));
       /* indicator band: 6 windows */
       s+=`<rect x="${X(.17)}" y="${Y(.652)}" width="${X(.29)}" height="${Y(.034)}" rx="2" fill="#2a2a2a"/>`;
@@ -43,14 +49,15 @@ A.type('jvc',d=>{const RU=3.2,H=A.UH*RU,X=f=>f*A.W,Y=f=>f*H;
       const P=[[.053,.177,''],[.181,.348,'TONE'],[.351,.45,''],[.455,.525,''],[.528,.709,'TAPE-3'],[.713,.855,'PLAY —— TAPE —— REC'],[.858,.94,'PHONO']];
       P.forEach(([a,b,h])=>{s+=`<rect x="${X(a)}" y="${Y(.745)}" width="${X(b-a)}" height="${Y(.228)}" fill="none" stroke="#9a9a9a" stroke-width="1"/>`+(h?A.txt(X((a+b)/2),Y(.755)+7,h,'ar-t4w'):'');});
       const ky=Y(.883),ly=Y(.79),kr=X(.0195);
-      s+=A.sock(d,'phones',X(.085),ky,'trs','PHONES: 6.3 mm headphone jack (speakers keep playing)',26)+A.txt(X(.085),ly,'PHONES','ar-t4w');
+      s+=`<g class="ar-b" data-d="${d.id}" data-b="phones" data-tip="${phTip(d.st.phones)}"><circle cx="${X(.085)}" cy="${ky}" r="${26*.62}" class="ar-jack"/><circle cx="${X(.085)}" cy="${ky}" r="${26*.28}" class="ar-hole"/>`+
+        `<g data-plug style="display:${d.st.phones?'inline':'none'}"><path d="M${X(.085)} ${ky} L${X(.085)} ${H-2}" stroke="#111" stroke-width="6"/><circle cx="${X(.085)}" cy="${ky}" r="12" fill="#1a1a1a" stroke="#c9a43a" stroke-width="2.5"/></g></g>`+A.txt(X(.085),ly,'PHONES','ar-t4w');
       s+=A.knob(d,'spk',X(.144),ky,kr,'SPEAKERS: OFF · 1 (control room) · 2 (studio) · 1+2')+A.txt(X(.144),ly,'SPEAKERS','ar-t4w')+A.txt(X(.125),ky-kr-3,'OFF','ar-t4w')+A.txt(X(.165),ky-kr-3,'1 2 1+2','ar-t4w');
       s+=A.knob(d,'bass',X(.216),ky,kr,'BASS: ±8 dB at 100 Hz (only with TONE on)')+A.txt(X(.216),ly,'BASS','ar-t4w')+A.knob(d,'treble',X(.280),ky,kr,'TREBLE: ±8 dB at 10 kHz (only with TONE on)')+A.txt(X(.280),ly,'TREBLE','ar-t4w');
       s+=sk('tone',.333,.895,'TONE: in = ON (BASS / TREBLE active), out = OFF (flat)')+A.txt(X(.333),ly,'ON/OFF','ar-t4w');
       [['sub',.367,'SUBSONIC','SUBSONIC filter: 18 Hz, −6 dB/oct (in = ON)'],['loud',.401,'LOUDNESS','LOUDNESS: +6 dB at 100 Hz / +4 dB at 10 kHz at low volume (in = ON)'],['mono',.434,'MODE','MODE: in = MONO (L+R), out = STEREO']]
         .forEach(([b,x,l,t])=>s+=sk(b,x,.88,t)+A.txt(X(x),ly,l,'ar-t4w')+A.txt(X(x),ly+9,b==='mono'?'MONO/ST':'ON/OFF','ar-t4w'));
       s+=A.knob(d,'bal',X(.489),ky,kr,'BALANCE: LEFT ◄ ▮ ► RIGHT (centre click)')+A.txt(X(.489),ly,'BALANCE','ar-t4w');
-      [['t3recL',.553,'REC L'],['t3recR',.592,'REC R'],['t3playL',.631,'PLAY L'],['t3playR',.672,'PLAY R']].forEach(([k,x,l])=>s+=A.sock(d,k,X(x),ky,'rca','TAPE-3 '+l+' (front RCA) — nothing connected',30)+A.txt(X(x),ly+8,l,'ar-t4w'));
+      [['t3recL',.553,'REC L'],['t3recR',.592,'REC R'],['t3playL',.631,'PLAY L'],['t3playR',.672,'PLAY R']].forEach(([k,x,l])=>s+=A.sock(d,k,X(x),ky,'rca','TAPE-3 '+l+' (front RCA) — nothing connected (silent)',30)+A.txt(X(x),ly+8,l,'ar-t4w'));
       s+=A.knob(d,'tplay',X(.740),ky,kr,'TAPE PLAY: which deck TAPE MONITOR listens to (2 · 1 · 3)')+A.txt(X(.740),ly+8,'2 · 1 · 3','ar-t4w');
       s+=A.knob(d,'trec',X(.812),ky,kr,'TAPE REC: what goes to the REC outputs (SOURCE · OFF · 1►2/3 · 2►1 · 3►1)')+A.txt(X(.812),ly+8,'SRC·OFF·1►2/3','ar-t4w');
       s+=A.knob(d,'phono',X(.891),ky,kr,'PHONO: 1-MC · 1-MM · 2-MM · 2-MC (input and cartridge type)')+A.txt(X(.891),ly+8,'1:MC MM 2:MM MC','ar-t4w');
@@ -58,12 +65,12 @@ A.type('jvc',d=>{const RU=3.2,H=A.UH*RU,X=f=>f*A.W,Y=f=>f*H;
     rear(){let s=`<rect x="0" y="0" width="${A.W}" height="${H}" rx="6" class="ar-rear"/><rect x="${X(.055)}" y="${Y(.1)}" width="${X(.17)}" height="${Y(.86)}" rx="3" class="ar-box"/>`;
       const rc=(id,y,lab,tip)=>A.sock(d,id+'R',X(.075),Y(y),'rca',tip+' R')+A.sock(d,id+'L',X(.110),Y(y),'rca',tip+' L')+A.txt(X(.128),Y(y)+4,lab,'ar-t4','start');
       s+=A.txt(X(.075),Y(.12)-2,'R','ar-t4')+A.txt(X(.11),Y(.12)-2,'L','ar-t4');
-      s+=rc('ph1',.18,'PHONO 1','PHONO-1 input (RCA) — nothing connected')+rc('ph2',.28,'PHONO 2','PHONO-2 input (RCA) — nothing connected')+rc('tun',.375,'TUNER','TUNER input (RCA) — nothing connected');
+      s+=rc('phono1',.18,'PHONO 1','PHONO-1 input (RCA, MM 2.5 mV / MC 200 µV)')+rc('phono2',.28,'PHONO 2','PHONO-2 input (RCA, MM 2.5 mV / MC 200 µV)')+rc('tuner',.375,'TUNER','TUNER input (RCA, line 200 mV)');
       s+=A.sock(d,'auxR',X(.075),Y(.47),'rca','AUX input R (RCA) ← DEQ2496 OUT R')+A.sock(d,'auxL',X(.110),Y(.47),'rca','AUX input L (RCA) ← DEQ2496 OUT L')+A.txt(X(.128),Y(.47)+4,'AUX','ar-t4','start');
-      s+=rc('t1rec',.58,'REC','TAPE-1 REC output (RCA)')+rc('t1play',.68,'PLAY','TAPE-1 PLAY input (RCA)')+A.txt(X(.2),Y(.75),'TAPE-1 · SEA','ar-t4');
-      s+=rc('t2rec',.80,'REC','TAPE-2 REC output (RCA)')+rc('t2play',.91,'PLAY','TAPE-2 PLAY input (RCA)')+A.txt(X(.2),Y(.86),'TAPE-2','ar-t4');
+      s+=rc('tape1rec',.58,'REC','TAPE-1 REC output (RCA, set by TAPE REC)')+rc('tape1play',.68,'PLAY','TAPE-1 PLAY input (RCA, heard with TAPE MONITOR + TAPE PLAY 1)')+A.txt(X(.2),Y(.75),'TAPE-1 · SEA','ar-t4');
+      s+=rc('tape2rec',.80,'REC','TAPE-2 REC output (RCA, set by TAPE REC)')+rc('tape2play',.91,'PLAY','TAPE-2 PLAY input (RCA, heard with TAPE MONITOR + TAPE PLAY 2)')+A.txt(X(.2),Y(.86),'TAPE-2','ar-t4');
       s+=`<g data-tip="GND: ground terminal for the turntable"><circle cx="${X(.18)}" cy="${Y(.2)}" r="9" class="ar-post"/><line x1="${X(.18)-5}" y1="${Y(.2)}" x2="${X(.18)+5}" y2="${Y(.2)}" stroke="#333" stroke-width="2"/></g>`+A.txt(X(.18),Y(.2)+22,'GND','ar-t4');
-      s+=A.sock(d,'din',X(.18),Y(.62),'din','TAPE-1 DIN REC/PLAY (parallel with the TAPE-1 RCAs)',14)+A.txt(X(.18),Y(.62)+26,'DIN','ar-t4');
+      s+=A.sock(d,'din',X(.18),Y(.62),'din','TAPE-1 DIN REC/PLAY (parallel with the TAPE-1 RCAs; not used in the simulator — cable the RCAs)',14)+A.txt(X(.18),Y(.62)+26,'DIN','ar-t4');
       /* speaker terminals: R+ R− L− L+ ; the sock (cable end) sits on the inner pair */
       s+=`<rect x="${X(.33)}" y="${Y(.3)}" width="${X(.22)}" height="${Y(.6)}" rx="3" class="ar-box"/>`+A.txt(X(.44),Y(.3)+16,'SPEAKERS','ar-t5');
       [[1,.53,'sp1','SPEAKERS SYSTEM 1 → control-room speakers (SP-1)'],[2,.76,'sp2','SPEAKERS SYSTEM 2 → studio speakers (SP-2)']].forEach(([k,y,id,t])=>{
@@ -77,34 +84,60 @@ A.type('jvc',d=>{const RU=3.2,H=A.UH*RU,X=f=>f*A.W,Y=f=>f*H;
     press(b){const st=d.st;if(b==='power'){st.power=!st.power;if(st.power){pOn=performance.now();setTimeout(route,3100);}}
       else if(b==='phono'||b==='tuner'||b==='aux')st.input=b;
       else if(['mute','tmon','tone','sub','loud','mono'].includes(b))st[b]=!st[b];
-      if(b==='phones')A.flash('PHONES: no headphones in the simulator — the speakers keep playing.');
+      else if(b==='phones'){st.phones=!st.phones;A.flash(st.phones?'PHONES: headphones plugged — you hear them too; the speakers keep following SPEAKERS (OFF = phones only).':'PHONES: headphones unplugged.');}
       route();},
     change(){route();},
-    audio(c){const g=v=>{const x=c.createGain();x.gain.value=v??1;return x;},f=(t,fr)=>{const x=c.createBiquadFilter();x.type=t;x.frequency.value=fr;x.gain.value=0;return x;};
-      const inL=g(),inR=g(),mg=c.createChannelMerger(2);inL.connect(mg,0,0);inR.connect(mg,0,1);
-      n={sel:g(0),sub:f('highpass',1),bass:f('lowshelf',100),tre:f('highshelf',10000),lb:f('lowshelf',100),lt:f('highshelf',10000),sp:c.createChannelSplitter(2),m:c.createChannelMerger(2),
-        LL:g(1),LR:g(0),RL:g(0),RR:g(1),vol:g(0),o1:g(0),o2:g(0),an:c.createAnalyser()};
+    audio(c){const g=v=>{const x=c.createGain();x.gain.value=v??1;return x;},f=(t,fr,gn=0)=>{const x=c.createBiquadFilter();x.type=t;x.frequency.value=fr;x.gain.value=gn;return x;};
+      /* every rear input = one mono GainNode per side, merged to stereo inside */
+      const IN={},pair=k=>{const L=g(),R=g(),m=c.createChannelMerger(2);L.connect(m,0,0);R.connect(m,0,1);IN[k+'L']=L;IN[k+'R']=R;return m;};
+      const aux=pair('aux'),tun=pair('tuner'),ph1=pair('phono1'),ph2=pair('phono2'),tp1=pair('tape1play'),tp2=pair('tape2play'),tp3=g();   // tp3 = front TAPE-3 PLAY: nothing connected
+      n={ph1:g(0),ph2:g(0),phAmp:g(0),riaL:f('lowshelf',200,18),riaH:f('highshelf',3500,-18),clip:c.createWaveShaper(),
+        sPh:g(0),sTun:g(0),sAux:g(0),src:g(),mSrc:g(),mTape:g(0),tp1:g(0),tp2:g(0),tp3:g(0),tape:g(),pre:g(),
+        rs1:g(0),rs2:g(0),c12:g(0),c21:g(0),c31:g(0),r1:g(0),r2:g(0),
+        sub:f('highpass',1),bass:f('lowshelf',100),tre:f('highshelf',10000),lb:f('lowshelf',100),lt:f('highshelf',10000),sp:c.createChannelSplitter(2),m:c.createChannelMerger(2),
+        LL:g(1),LR:g(0),RL:g(0),RR:g(1),vol:g(0),o1:g(0),o2:g(0),phn:g(0),an:c.createAnalyser()};
       n.sub.Q.value=.5;n.an.fftSize=512;
-      mg.connect(n.sel);n.sel.connect(n.sub);n.sub.connect(n.bass);n.bass.connect(n.tre);n.tre.connect(n.lb);n.lb.connect(n.lt);n.lt.connect(n.sp);
+      /* PHONO stage: 1 / 2 → MM (+38 dB) or MC (+60 dB) gain → RIAA-like de-emphasis (bass up, treble down) → overload (a line signal clips it) */
+      const cv=new Float32Array(1025);for(let i=0;i<cv.length;i++){const x=i/512-1,ax=Math.abs(x);cv[i]=ax<.7?x:Math.sign(x)*(.7+.3*Math.tanh((ax-.7)/.3));}n.clip.curve=cv;n.clip.oversample='2x';
+      ph1.connect(n.ph1);ph2.connect(n.ph2);n.ph1.connect(n.phAmp);n.ph2.connect(n.phAmp);n.phAmp.connect(n.riaL);n.riaL.connect(n.riaH);n.riaH.connect(n.clip);n.clip.connect(n.sPh);
+      /* input selector PHONO / TUNER / AUX = the SOURCE */
+      tun.connect(n.sTun);aux.connect(n.sAux);[n.sPh,n.sTun,n.sAux].forEach(x=>x.connect(n.src));
+      /* TAPE PLAY 2 · 1 · 3 → TAPE MONITOR chooses source or tape */
+      tp1.connect(n.tp1);tp2.connect(n.tp2);tp3.connect(n.tp3);[n.tp1,n.tp2,n.tp3].forEach(x=>x.connect(n.tape));
+      n.src.connect(n.mSrc);n.tape.connect(n.mTape);n.mSrc.connect(n.pre);n.mTape.connect(n.pre);
+      /* TAPE REC: r1 = TAPE-1 REC, r2 = TAPE-2 REC (and the front TAPE-3 REC) */
+      n.src.connect(n.rs1);n.src.connect(n.rs2);n.rs1.connect(n.r1);n.rs2.connect(n.r2);
+      tp1.connect(n.c12);n.c12.connect(n.r2);tp2.connect(n.c21);n.c21.connect(n.r1);tp3.connect(n.c31);n.c31.connect(n.r1);
+      const OUT={sp1:n.o1,sp2:n.o2},rec=(r,k)=>{const sp=c.createChannelSplitter(2),L=g(),R=g();r.connect(sp);sp.connect(L,0);sp.connect(R,1);OUT[k+'L']=L;OUT[k+'R']=R;};
+      rec(n.r1,'tape1rec');rec(n.r2,'tape2rec');
+      /* power amp path */
+      n.pre.connect(n.sub);n.sub.connect(n.bass);n.bass.connect(n.tre);n.tre.connect(n.lb);n.lb.connect(n.lt);n.lt.connect(n.sp);
       /* MODE + BALANCE matrix: LL/RL feed left out, LR/RR feed right out */
       n.sp.connect(n.LL,0);n.sp.connect(n.LR,0);n.sp.connect(n.RL,1);n.sp.connect(n.RR,1);n.LL.connect(n.m,0,0);n.RL.connect(n.m,0,0);n.LR.connect(n.m,0,1);n.RR.connect(n.m,0,1);
       n.m.connect(n.vol);n.vol.connect(n.an);n.vol.connect(n.o1);n.vol.connect(n.o2);
-      pOn=-1e9;route();return {in:{auxL:inL,auxR:inR},out:{sp1:n.o1,sp2:n.o2}};},
+      n.vol.connect(n.phn);n.phn.connect(c.destination);   // PHONES: the operator's headphones = this computer's output
+      pOn=-1e9;route();return {in:IN,out:OUT};},
     draw(){const st=d.st,on=st.power,now=performance.now(),boot=now-pOn<3000;
       A.setLed(d,'power',on);A.setLed(d,'prot',on&&(!boot||Math.floor(now/250)%2===0));
       A.setLed(d,'mute',on&&st.mute);A.setLed(d,'tmon',on&&st.tmon);['phono','tuner','aux'].forEach(b=>A.setLed(d,b,on&&st.input===b));
       A.setLed(d,'sp1',on&&(st.spk==='1'||st.spk==='1+2'));A.setLed(d,'sp2',on&&(st.spk==='2'||st.spk==='1+2'));
       A.setLed(d,'tone',on&&st.tone);A.setLed(d,'sub',on&&st.sub);
-      A.setLed(d,'mm',on&&st.input==='phono'&&st.phono.endsWith('MM'));A.setLed(d,'mc',on&&st.input==='phono'&&st.phono.endsWith('MC'));}};
-  function route(){if(!n||!A.ctx)return;const st=d.st,t=A.ctx.currentTime,T=(p,v)=>p.setTargetAtTime(v,t,.02);
-    const live=st.power&&performance.now()-pOn>=3000;   // protection relay closes ~3 s after power-on
-    T(n.sel.gain,st.input==='aux'&&!st.tmon?1:0);   // PHONO / TUNER / tape: nothing connected
+      A.setLed(d,'mm',on&&st.input==='phono'&&st.phono.endsWith('MM'));A.setLed(d,'mc',on&&st.input==='phono'&&st.phono.endsWith('MC'));
+      document.querySelectorAll(`.ar-b[data-d="${d.id}"][data-b="phones"]`).forEach(e=>{const t=phTip(st.phones);if(e.dataset.tip!==t)e.dataset.tip=t;const p=e.querySelector('[data-plug]');if(p)p.style.display=st.phones?'inline':'none';});}};
+  function route(){if(!n||!A.ctx)return;const st=d.st,t=A.ctx.currentTime,T=(p,v)=>p.setTargetAtTime(v,t,.02),on=st.power?1:0;
+    const live=st.power&&performance.now()-pOn>=3000;   // protection relay (speaker outputs) closes ~3 s after power-on
+    T(n.sPh.gain,on*(st.input==='phono'));T(n.sTun.gain,on*(st.input==='tuner'));T(n.sAux.gain,on*(st.input==='aux'));
+    T(n.ph1.gain,+st.phono.startsWith('1'));T(n.ph2.gain,+st.phono.startsWith('2'));T(n.phAmp.gain,A.db2g(st.phono.endsWith('MC')?60:38));
+    T(n.mSrc.gain,st.tmon?0:1);T(n.mTape.gain,st.tmon?1:0);['1','2','3'].forEach(k=>T(n['tp'+k].gain,+(st.tplay===k)));
+    const r=st.trec;T(n.rs1.gain,+(r==='SOURCE'));T(n.rs2.gain,+(r==='SOURCE'));T(n.c12.gain,+(r==='1►2/3'));T(n.c21.gain,+(r==='2►1'));T(n.c31.gain,+(r==='3►1'));
+    T(n.r1.gain,on);T(n.r2.gain,on);   // REC outputs: line level, before VOLUME / TONE
     T(n.sub.frequency,st.sub?18:1);
     T(n.bass.gain,st.tone?st.bass:0);T(n.tre.gain,st.tone?st.treble:0);
     const lf=st.loud?Math.max(0,Math.min(1,(-st.vol-10)/20)):0;T(n.lb.gain,6*lf);T(n.lt.gain,4*lf);
     const bl=Math.min(1,1-st.bal),br=Math.min(1,1+st.bal),m=st.mono;
     T(n.LL.gain,(m?.5:1)*bl);T(n.RL.gain,(m?.5:0)*bl);T(n.LR.gain,(m?.5:0)*br);T(n.RR.gain,(m?.5:1)*br);
-    T(n.vol.gain,live?(st.vol<=-80?0:A.db2g(st.vol))*(st.mute?A.db2g(-20):1):0);
-    T(n.o1.gain,st.spk==='1'||st.spk==='1+2'?1:0);T(n.o2.gain,st.spk==='2'||st.spk==='1+2'?1:0);}
+    T(n.vol.gain,on*(st.vol<=-80?0:A.db2g(st.vol))*(st.mute?A.db2g(-20):1));
+    T(n.o1.gain,live&&(st.spk==='1'||st.spk==='1+2')?1:0);T(n.o2.gain,live&&(st.spk==='2'||st.spk==='1+2')?1:0);
+    T(n.phn.gain,st.phones?1:0);}   // plugging headphones does not cut the speakers (manual)
 });
 })();

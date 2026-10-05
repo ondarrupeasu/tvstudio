@@ -60,6 +60,7 @@ A.type('m350',d=>{const H=100;
       s+=A.sock(d,'midiin',X(.53),46,'din','MIDI IN')+A.sock(d,'midiout',X(.589),46,'din','MIDI OUT')+A.txt(X(.56),80,'MIDI IN · OUT','ar-t4')+A.sock(d,'pedal',X(.65),42,'trs','PEDAL IN: tip = bypass, ring = tap tempo',16)+A.txt(X(.65),74,'PEDAL','ar-t4');
       s+=`<rect x="${X(.69)}" y="12" width="${X(.09)}" height="56" class="ar-label"/>${A.txt(X(.735),40,'CAUTION','ar-t5d')}<rect x="${X(.84)}" y="16" width="${X(.06)}" height="60" class="ar-label"/>${A.txt(X(.87),44,'SERIAL NO.','ar-t4d')}`;
       s+=A.sock(d,'iec',X(.951),42,'iec','Mains 100-240 V~ (IEC) — no power switch',16)+A.txt(X(.951),86,'100-240V~','ar-t4');return s;},
+    audio(){const o=M32.audio().ob.m350;return {in:{inL:o.inL,inR:o.inR},out:{outL:o.outL,outR:o.outR}};},   // the effect engine runs in the Midas audio; its in / out follow the rack cables
     change(k){const O=OB();if(!O)return;const v=d.st[k];if(k==='type')O.set('m350',{type:v,decay:[1.2,1.6,1.8,2.4,4.5,.8][RT.indexOf(v)]});else if(k==='dtype'){const i=DT.indexOf(v);O.set('m350',{delay:[.32,.4,.28,.02,.005,0][i],feedback:i>=3?.05:.25});}else O.set('m350',{[k]:v});},
     draw(){const O=OB();if(!O)return;A.setText(d,'disp',d.st.type.slice(0,7));const db=O.level('aux1'),f=db<=-60?0:(db+60)/60;for(let i=0;i<5;i++)A.setLed(d,'lv'+i,f>i/5);}};});
 /* ---------- Behringer Virtualizer Pro DSP2024P ---------- */
@@ -81,6 +82,7 @@ A.type('virt',d=>{const H=100,VP=['Plate','Hall','Room','Cathedral','Echo','Ping
         +A.sock(d,'inj'+n,X(.689+dx),71,'trs','INPUTS '+n+' (jack)',13)+A.sock(d,'in'+n,X(.737+dx),44,'xlrF','INPUTS '+n+' (female XLR)',15)+A.txt(X(.666+dx),95,'◄ OUTPUTS '+n+' ▬ INPUTS '+n+' ►','ar-t4');});
       return s;},
     press(b){const O=OB();if(!O)return;if(b==='prev'||b==='next'){const i=(VP.indexOf(d.st.type)+(b==='next'?1:-1)+VP.length)%VP.length;d.st.type=VP[i];this.change('type');}else if(b==='na')A.flash('Not simulated on this unit.');},
+    audio(){const o=M32.audio().ob.virt;return {in:{in1:o.inL,in2:o.inR},out:{out1:o.outL,out2:o.outR}};},
     change(k){const O=OB();if(!O)return;const v=d.st[k];if(k==='type'){const i=VP.indexOf(v);O.set('virt',{type:v,decay:[1.4,2.6,.9,5,1.2,1][i],delay:[.25,.25,.15,.25,.38,.3][i]});}else O.set('virt',{[k]:v});},
     draw(){const O=OB();if(!O)return;A.setText(d,'disp',String(VP.indexOf(d.st.type)+1).padStart(2,'0'));const db=O.level('aux3'),f=db<=-60?0:(db+60)/60;for(let i=0;i<6;i++)A.setLed(d,'lv'+i,f>i/6);}};});
 })();
