@@ -24,16 +24,30 @@ const PL=[
   {t:'Finally the <b>RCD</b>.',hl:['rcd'],check:()=>!PS().rcd,demo:[{set:['rcd',false]}]}]}];
 TUT.add({id:'pwr',name:'Power',ov:'pwr',key:pkey,act:pact,lessons:PL});
 /* ---------- lighting desk ---------- */
-const dkey=k=>k==='power'?document.querySelectorAll('#dsk .dk-power'):k.startsWith('f:')?document.querySelectorAll(`#dsk .dk-f[data-f="${k.slice(2)}"]`):document.querySelectorAll(`#dsk .dk-b[data-b="${k}"]`);
+const dkey=k=>k.startsWith('p:')?document.querySelectorAll(`#pwr [data-id="${k.slice(2)}"]`):k==='power'?document.querySelectorAll('#dsk .dk-power'):k.startsWith('f:')?document.querySelectorAll(`#dsk .dk-f[data-f="${k.slice(2)}"]`):document.querySelectorAll(`#dsk .dk-b[data-b="${k}"]`);
 async function dact(a){const d=DK();
   if(a.power!=null){d.power(a.power);await W(300);}
   else if(a.f){const[id,to]=a.f,from=id[0]==='c'&&/^c\d+$/.test(id)?D().f[+id.slice(1)]:D()[id];for(let i=1;i<=14;i++){d.setF(id,from+(to-from)*i/14);await W(45);}}
   else if(a.b){dkey(a.b).forEach(e=>e.classList.add('down'));d.press(a.b,true);await W(a.hold||200);d.press(a.b,false);dkey(a.b).forEach(e=>e.classList.remove('down'));}
+  else if(a.set){P().set(a.set[0],a.set[1]);await W(400);}
+  else if(a.go){await TUT.go(...a.go);}
   else if(a.mains){['rcd','led','dim','dpE1'].forEach(k=>P()&&P().set(k,true));await W(200);}}
 const fv=n=>D().f[n-1];
 const mainsOk=()=>PS()&&PS().rcd&&PS().led;
+const on=id=>document.getElementById(id)?.classList.contains('on');
 const DL=[
- {id:'first',title:'First light: desk power, Master A and a channel',intro:'The desk only sends levels; the lamps need their power on the breaker board (Power simulator). Channel fader × <b>Master A</b> = the level sent to each light. Look at the little studio plan on the right of the desk.',
+ {id:'switchon',title:'Switch everything on (board → Datapak → desk)',ovs:['pwr'],intro:'The lights need three things, in this order: <b>mains</b> on the breaker board, the <b>Datapak</b> dimmer pack ready, and the <b>desk</b> itself on. This lesson starts with everything off and takes you to the Power simulator and back.',
+  setup:()=>{['rcd','dp','dim','led','dpE0','dpE1'].forEach(k=>P().set(k,false));DK().power(false);D().mA=0;DK().setF('mA',0);for(let i=0;i<24;i++)D().f[i]=0;DK().setF('c1',0);},
+  steps:[
+  {t:'Go to the <b>Power</b> simulator: the <b>◀ Power</b> arrow (top right).',hl:['nav:prev'],check:()=>on('pwr'),demo:[{go:['closeDesk','openPower']}]},
+  {t:'Switch on the <b>RCD</b> (diferencial): it feeds the whole board.',hl:['p:rcd'],check:()=>PS().rcd,demo:[{set:['rcd',true]}]},
+  {t:'Switch on <b>LED</b> (chroma lights, faders 1-12) and <b>Dimmers</b> (Datapak 2 = set lamps, faders 13-24).',hl:['p:led','p:dim'],check:()=>PS().led&&PS().dim,demo:[{set:['led',true]},{set:['dim',true]}]},
+  {t:'On Datapak 2 switch on <b>ELECTRONICS</b>.',hl:['p:dpE1'],check:()=>PS().dpE1,demo:[{set:['dpE1',true]}]},
+  {t:'Back to the desk: the <b>Lighting ▶</b> arrow.',hl:['nav:next'],check:()=>on('dsk'),demo:[{go:['closePower','openDesk']}]},
+  {t:'Switch the desk on: <b>POWER</b> on its rear panel.',hl:['power'],check:()=>D().power,demo:[{power:true}]},
+  {t:'Raise <b>MASTER A</b> to the top…',hl:['f:mA'],check:()=>D().mA>.9,demo:[{f:['mA',1]}]},
+  {t:'…and channel <b>2</b>: the green screen lights up on the studio plan. Everything works!',hl:['f:c1'],check:()=>fv(2)>.5,demo:[{f:['c1',.8]}]}]},
+ {id:'first',title:'Master A and the channel faders',intro:'The desk only sends levels; the lamps need their power on the breaker board (Power simulator). Channel fader × <b>Master A</b> = the level sent to each light. Look at the little studio plan on the right of the desk.',
   setup:()=>{DK().power(false);for(let i=0;i<24;i++)D().f[i]=0;D().mA=0;D().bo=false;D().mode='single';DK().setF('mA',0);},
   steps:[
   {t:'Mains first: the <b>RCD</b> and <b>LED</b> breakers must be on (Power simulator). If the chips under the desk say they are off, switch them on there — or press "Show me".',check:mainsOk,demo:[{mains:true}]},

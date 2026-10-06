@@ -11,6 +11,8 @@ const key=k=>k.startsWith('in:')?document.querySelectorAll(`#vh .vh-sock[data-s=
 async function act(a){if(a.k){key(a.k).forEach(e=>e.classList.add('down'));V().press(a.k);await W(220);key(a.k).forEach(e=>e.classList.remove('down'));}}
 const seq=(...ks)=>ks.map(k=>({k}));
 const L=[
+ {id:'power',title:'Switching on: where the power comes from',intro:'The Smart Videohub, the ATEM Constellation, the HyperDeck and the Ultimattes have <b>no power switch</b>: they start as soon as they get mains. In the video rack that comes from the <b>power strip of 8 Schuko sockets</b> at the top of the rack. (Still to be confirmed with the school — in the simulator they are always on.)',
+  steps:[{t:'So the video rack is switched on (and off) at its power strip — after the breaker board is on. Give them a moment to boot (the Videohub LCD and the ATEM come up). Press <b>Next</b>.'}]},
  {id:'route',title:'Route a source to a destination (DEST → SRC → TAKE)',intro:'The Videohub connects any <b>input</b> (source, IN 1-20) to any <b>output</b> (destination, OUT 1-20). On the front panel: choose the destination, then the source, then confirm with <b>TAKE</b>. Example: the control-room monitor 1 (<b>OUT 19</b>) normally shows the multiview (IN 19); send it <b>camera 2</b> (IN 2) to check that camera full screen.',
   setup:()=>{U().mode='src';},
   steps:[

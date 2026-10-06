@@ -18,6 +18,8 @@ function lowerThird(c,w,h,key){const x=w*.07,y=h*.72,bw=w*.52,bh=h*.15;
   c.fillStyle='#fff';c.font=`700 ${Math.round(h*.065)}px system-ui,sans-serif`;c.textBaseline='middle';c.fillText('Ane Etxeberria',x+w*.03,y+bh*.5);
   c.fillStyle='#173d7a';c.font=`600 ${Math.round(h*.036)}px system-ui,sans-serif`;c.fillText('Presenter · Tartanga TV',x+w*.03,y+bh+h*.03);}
 const L=[
+ {id:'power',title:'Switching on: where the power comes from',intro:'The ATEM Constellation (in the video rack) has <b>no power switch</b>: it starts when the rack power strip is on. The <b>Advanced Panel</b> on the desk is only a control surface: it talks to the switcher over the network and shows the switcher\'s state once both are up. (Still to be confirmed with the school — in the simulator they are always on.)',
+  steps:[{t:'Order: breaker board → video-rack power strip (switcher, router, recorder) → desk panels → PCs (vMix, ATEM Software Control). Press <b>Next</b>.'}]},
  {id:'usk',title:'Upstream key on the M/E: picture in picture',intro:'An M/E (mix/effect) is the background (program / preview) plus up to 4 <b>upstream keys</b> on top of it. A key can be a DVE (a box: picture in picture), a LUMA key or a CHROMA key. Upstream keys go <b>with</b> the background: they can be part of the next transition.',
   setup:()=>{A().setKey(1,{type:'luma',fill:3,size:.35,x:.58,y:-.55});},
   steps:[

@@ -27,7 +27,7 @@ const mem={};function pk(id,w='pre'){const k=id+w,v=M().peak(id,w),t=performance
 const fd=id=>M().S[id].fader,near0=id=>fd(id)>.7&&fd(id)<.8;   // fader at about 0 dB (0.75 = 0 dB)
 const goodPre=id=>{const v=pk(id);return v>-22&&v<-4;};
 const L=[
- {id:'first',title:'From silence to sound: power, +48 V, gain, fader, main',intro:'The path of a microphone through the desk: <b>preamp (GAIN)</b> → channel processing → <b>channel fader</b> → <b>MAIN LR fader</b> → speakers / programme. Everything is at zero now. Channel 1 = the presenter\'s lavalier (a <b>condenser</b> mic: it needs phantom power).',
+ {id:'first',title:'Switch on and first sound: power, +48 V, gain, fader, main',intro:'The path of a microphone through the desk: <b>preamp (GAIN)</b> → channel processing → <b>channel fader</b> → <b>MAIN LR fader</b> → speakers / programme. Everything is at zero now. Channel 1 = the presenter\'s lavalier (a <b>condenser</b> mic: it needs phantom power).',
   setup:()=>{M().G.sel='in3';},
   steps:[
   {t:'Switch the console on: the <b>POWER</b> switch on the rear panel (it boots in a second).',hl:['power'],check:ready,demo:[{power:true}]},

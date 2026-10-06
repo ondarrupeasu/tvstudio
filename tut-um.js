@@ -30,6 +30,8 @@ async function act(a){const x=X();
 const v=()=>u1().v,f=()=>u1().f;
 const look='Watch the <b>monitor</b> (MON OUT of the selected unit, top right).';
 const L=[
+ {id:'power',title:'Switching on: where the power comes from',intro:'The Ultimatte 12 units have <b>no power switch</b>: they run when the video-rack power strip is on. The <b>Smart Remote 4</b> on the desk talks to them over the network (Ethernet switch). (Still to be confirmed with the school — in the simulator they are always on.)',
+  steps:[{t:'If the remote shows a unit OFFLINE, the unit has no power or no network: check the rack power strip and the network cable. Press <b>Next</b>.'}]},
  {id:'look',title:'Select a unit and look at the key (monitor outputs, Auto Key)',intro:'The Smart Remote 4 controls the 3 Ultimattes (one per chroma camera). First choose <b>which unit</b> you are adjusting, then <b>what you watch</b>: the composite (Program), the camera (Foreground), the background, or the <b>matte</b> — the black-and-white mask that decides what is transparent.',
   setup:()=>{X().R.unit=1;u1().backing=[90,120,90];},
   steps:[

@@ -15,7 +15,16 @@ async function act(a){
   else if(a.press){const[d,b]=a.press,e=key(`b:${d}:${b}`);e.forEach(x=>x.classList.add('down'));dev(d).press(b);await W(200);dev(d).release&&dev(d).release(b);e.forEach(x=>x.classList.remove('down'));}
   else if(a.set){const[d,k,to]=a.set,s=st(d);if(typeof to==='number'&&typeof s[k]==='number'){const from=s[k];for(let i=1;i<=12;i++){s[k]=from+(to-from)*i/12;dev(d).change&&dev(d).change(k);await W(50);}}
     else{s[k]=to;dev(d).change&&dev(d).change(k);await W(200);}}}
+const pw=id=>st(id).power,toggle=id=>({press:[id,'power']});
 const L=[
+ {id:'switchon',title:'Switch the rack on (and in which order)',intro:'Rule of thumb for any sound system: switch on from the <b>source</b> to the <b>speakers</b> — the <b>amplifier last</b> (and first when switching off), so no thump reaches the speakers. The lesson starts with the rack units off. (The M350 and the Virtualizer have no power switch: they run when their power supply is plugged in.)',
+  setup:()=>{['deq','ls','mdx1','mdx2','jvc'].forEach(id=>{if(pw(id))dev(id).press('power');});},
+  steps:[
+  {t:'The source first: the rack only processes what the <b>Midas</b> sends. If it is off, switch it on (◀ Midas → POWER at the back) — or press "Show me".',check:()=>M()&&M().G&&M().G.power,demo:[{fn:async()=>{M().power(true);await W(1800);}}]},
+  {t:'<b>DEQ2496</b> POWER (the room EQ of the control-room speakers).',hl:['b:deq:power'],check:()=>pw('deq'),demo:[toggle('deq')]},
+  {t:'<b>LS-280</b> POWER (it splits the programme to the ATEM and the VU meters).',hl:['b:ls:power'],check:()=>pw('ls'),demo:[toggle('ls')]},
+  {t:'Both <b>MDX4600</b> POWER (compressors).',hl:['b:mdx1:power','b:mdx2:power'],check:()=>pw('mdx1')&&pw('mdx2'),demo:[toggle('mdx1'),toggle('mdx2')]},
+  {t:'And last the amplifier: <b>JVC</b> POWER. Its protection relay keeps the speakers muted for about 3 seconds (PROTECTION LED) and then the sound comes in.',hl:['b:jvc:power'],check:()=>pw('jvc'),demo:[toggle('jvc'),{wait:3000}]}]},
  {id:'path',title:'Front and rear: follow the sound',intro:'The rack is seen from the front (controls) or from the rear (connections). The control-room sound goes: Midas <b>MONITOR</b> out → <b>DEQ2496</b> (room EQ) → <b>JVC A-X77</b> amplifier → speakers. The programme (MAIN, OUT 7/8) goes to the <b>LS-280</b> splitter → ATEM and the VU meters.',
   steps:[
   {t:'Turn the rack round: the <b>⟲</b> arrow next to the rack.',hl:['flip'],check:()=>R().api.side()==='rear',demo:[{flip:true}]},

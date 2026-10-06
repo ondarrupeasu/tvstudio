@@ -18,6 +18,8 @@ async function act(a){
 const ev=()=>P().exposure(c1()),okExp=()=>ev()>.7&&ev()<1.45;
 let low=false;const lowThenOk=()=>{if(ev()<.6)low=true;return low&&okExp();};   // the picture was spoilt first, then put right
 const L=[
+ {id:'power',title:'Switching on: cameras and CCU',intro:'The Camera Control Panel has no switch of its own: it starts when it gets power, and it controls the cameras <b>through the ATEM</b> (the commands travel inside the SDI return feed to each camera). So the cameras only respond when the ATEM is up and each camera is switched on (its own POWER switch) with the right camera ID. (Still to be confirmed with the school — in the simulator they are always on.)',
+  steps:[{t:'If a strip does nothing on its camera: check that the camera is on, that its camera ID matches the strip (1, 2, 3…) and that it gets the ATEM\'s SDI return. Press <b>Next</b>.'}]},
  {id:'iris',title:'Exposure with the iris (joystick)',intro:'Each strip of the CCU controls one camera — strip 1 = <b>Camera 1</b>. Look at <b>Cam 1</b> on the multiview: it is far too dark. The joystick is the <b>iris</b>: push it forward to open (more light), pull it back to close. The display above it shows the f-number (F2 = open … F16 = closed).',
   setup:()=>{c1().j=.18;},
   steps:[

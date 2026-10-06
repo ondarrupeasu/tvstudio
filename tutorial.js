@@ -16,7 +16,8 @@ function sigOn(list){sigOff();(list||[]).forEach(([k,gen])=>{const o=window.VH_S
   VH_SOURCES[k]=(c,w,h)=>{if(o&&o(c,w,h)!==false)return;gen(c,w,h);if(!sigUsed){sigUsed=true;render();}};});}
 function sigOff(){for(const k in sigSaved){if(sigSaved[k])VH_SOURCES[k]=sigSaved[k];else delete VH_SOURCES[k];}sigSaved={};sigUsed=false;}
 /* ---------- highlight / demo ---------- */
-function hl(ids){document.querySelectorAll('.tut-hl').forEach(e=>e.classList.remove('tut-hl'));if(!set)return;(ids||[]).forEach(k=>[...(set.key(k)||[])].forEach(e=>e&&e.classList.add('tut-hl')));}
+const navKey=k=>k==='nav:prev'?document.querySelectorAll('#simnav .sn-p'):k==='nav:next'?document.querySelectorAll('#simnav .sn-n'):null;
+function hl(ids){document.querySelectorAll('.tut-hl').forEach(e=>e.classList.remove('tut-hl'));if(!set)return;(ids||[]).forEach(k=>[...(navKey(k)||set.key(k)||[])].forEach(e=>e&&e.classList.add('tut-hl')));}
 async function act(a){if(a.fn)return a.fn();if(a.wait)return W(a.wait);return set.act&&set.act(a);}
 async function demo(s){for(const a of s.demo||[]){if(stopReq)return;if(a.hl)hl(a.hl);await act(a);await W(380);}}
 const readMs=s=>Math.min(6000,Math.max(1600,(s.t||'').replace(/<[^>]+>/g,'').length*32));
@@ -32,7 +33,7 @@ function render(){const c=card(),s=cur&&cur.steps[step];if(!c)return;if(!cur){c.
   hl(done?[]:s.hl);}
 function stop(){entered=null;stopReq=true;playing=false;clearInterval(timer);try{cur&&cur.cleanup&&cur.cleanup();set&&set.cleanup&&set.cleanup();}catch(_){}sigOff();cur=null;render();}
 function start(st,l,m){build();stop();menuEl()&&menuEl().classList.remove("on");set=st;cur=l;mode=m;step=0;try{st.reset&&st.reset();}catch(e){console.warn(e);}sigOn(l.sig);try{l.setup&&l.setup();}catch(e){console.warn(e);}st.redraw&&st.redraw();stopReq=false;render();
-  timer=setInterval(()=>{if(!cur||step>=cur.steps.length||playing)return;const s=cur.steps[step];if(!s.check)return;try{if(s.check()){hl([]);step++;setTimeout(render,450);}}catch(_){}},200);
+  let tick=0;timer=setInterval(()=>{if(!cur||step>=cur.steps.length)return;const s=cur.steps[step];if(++tick%5===0&&!playing)hl(s.hl);if(playing)return;if(!s.check)return;try{if(s.check()){hl([]);step++;setTimeout(render,450);}}catch(_){}},200);
   if(m==='watch')play();}
 async function play(){if(playing)return;playing=true;stopReq=false;render();
   while(cur&&step<cur.steps.length&&!stopReq&&playing){const s=cur.steps[step];render();await W(readMs(s));if(!playing||stopReq)break;await demo(s);await W(900);if(!playing||stopReq)break;if(step<cur.steps.length)step++;}
@@ -61,8 +62,9 @@ function sync(){build();
   new Set(SETS.map(s=>s.ov)).forEach(ov=>{const root=document.getElementById(ov),own=SETS.find(s=>s.ov===ov&&s.host),host=own?own.host():root&&root.querySelector('.pwr-hd .pwr-btns');if(!host)return;
     let b=host.querySelector(`.tut-btn[data-ov="${ov}"]`);if(!b){b=document.createElement('button');b.className='tut-btn';b.dataset.ov=ov;b.textContent='🎓 Tutorials';b.title='Student mode: lessons (watch them or do them)';b.onclick=()=>menu(ov);host.prepend(b);}
     b.hidden=!setsFor(ov).length||(own&&!root.classList.contains('on'));});   /* a shared host (vMix: the simulator arrows) shows it only while that simulator is open */
-  if(cur&&set){const root=document.getElementById(set.ov);if(!root||!root.classList.contains('on')||(set.when&&!set.when()))stop();}
+  if(cur&&set){const on=id=>document.getElementById(id)?.classList.contains('on'),here=on(set.ov)&&(!set.when||set.when());
+    if(!here&&!(cur.ovs||[]).some(on))stop();}   // a lesson may visit other simulators (cur.ovs), e.g. Lighting → Power → Lighting
   const m=menuEl();if(m&&m.classList.contains('on')&&!SETS.some(s=>document.getElementById(s.ov)?.classList.contains('on')))m.classList.remove('on');}
 setInterval(sync,500);
-window.TUT={add:s=>{SETS.push(s);},W,sets:SETS,start:(id,i,m)=>{const s=SETS.find(x=>x.id===id);start(s,s.lessons[i],m||'do');},stop,get state(){return{set:set&&set.id,lesson:cur&&cur.id,step,playing};}};
+window.TUT={add:s=>{SETS.push(s);},W,go:async(from,to)=>{window[from]&&window[from]();window[to]&&window[to]();await W(500);},sets:SETS,start:(id,i,m)=>{const s=SETS.find(x=>x.id===id);start(s,s.lessons[i],m||'do');},stop,get state(){return{set:set&&set.id,lesson:cur&&cur.id,step,playing};}};
 })();
